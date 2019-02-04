@@ -16,30 +16,26 @@ app.set('views', path.join(__dirname, 'views'))
 app.set('scripts', path.join(__dirname, 'scripts'))
 
 app.get('/', (request, response) => {
-    response.render('game', {
-
-    })
+    response.render('game', {})
 })
 
-app.get('/game.js', function (req, res, next) {
-    console.log("before redirection");
-    res.sendfile('./app/scripts/Game.js');
+app.get('/phaser.js', function (req, res, next) {
+    console.log("phaser.js delivered");
+    res.sendFile(path.resolve(__dirname, './scripts/phaser.js'));
 });
 
-const options = {
-    method: 'GET',
-    uri: 'https://risingstack.com'
-}
+app.get('/Scene1.js', function (req, res, next) {
+    console.log("scene1.js delivered"); 
+    res.sendFile(path.resolve(__dirname, './scripts/Scene1.js'));
+   
+});
 
-request(options)
-    .then(function (response) {
-        console.log("success")
-        
-    })
-    .catch(function (err) {
-        console.log(err)
-    })
+app.get('/Game.js', function (req, res, next) {
+    console.log("game.js delivered");
+    res.sendFile(path.resolve(__dirname, './scripts/Game.js'));
+});
 
 app.listen(3000)
 
+console.log("Listening to PORT: 3000")
 
