@@ -14,6 +14,7 @@ app.engine('.hbs', exphbs({
 app.set('view engine', '.hbs')
 app.set('views', path.join(__dirname, 'views'))
 app.set('scripts', path.join(__dirname, 'scripts'))
+app.set('assets', path.join(__dirname, 'assets'))
 
 app.get('/', (request, response) => {
     response.render('game', {})
@@ -33,6 +34,11 @@ app.get('/Scene1.js', function (req, res, next) {
 app.get('/Game.js', function (req, res, next) {
     console.log("game.js delivered");
     res.sendFile(path.resolve(__dirname, './scripts/Game.js'));
+});
+
+app.get('/runningMan.png', function (req, res, next) {
+    console.log("runningMan.png delivered");
+    res.sendFile(path.resolve(__dirname, './assets/runningMan.png'));
 });
 
 app.listen(3000)
