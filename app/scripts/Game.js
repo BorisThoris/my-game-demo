@@ -30,9 +30,9 @@ var gameOver = false;
 var scoreText;
 
 function preload() {
-    this.load.spritesheet('mummy', './runningMan.png', { frameWidth: 256, frameHeight: 270 });
-    this.load.spritesheet('mummy2', './runningMan2.png', { frameWidth: 256, frameHeight: 270 });
-    this.load.spritesheet('flex', './flexingMan.png', { frameWidth: 256, frameHeight: 270 });
+    this.load.spritesheet('mummy', './runningMan.png', { frameWidth: 256, frameHeight: 256 });
+    this.load.spritesheet('mummy2', './runningMan2.png', { frameWidth: 256, frameHeight: 256 });
+    this.load.spritesheet('flex', './flexingMan.png', { frameWidth: 256, frameHeight: 256 });
     this.load.image('ground', '/floor.png');
 }
 
@@ -47,12 +47,12 @@ function create() {
     platforms.create(1280, 768, 'ground').setScale(2).refreshBody();
 
     //creating player
-    player = this.physics.add.sprite(100, 540, 'mummy');
+    player = this.physics.add.sprite(100, 200, 'mummy');
 
     //  Player physics properties. Give the little guy a slight bounce.
-    player.setBounce(0.2);
+    player.setBounce(0.0);
     player.setCollideWorldBounds(true);
-
+    this.physics.add.collider(player, platforms);
    
     this.anims.create({
         key: 'walkRight',
@@ -76,8 +76,6 @@ function create() {
         repeat: -1
     });
 
-    sprite = this.add.sprite(400, 300, 'mummy');
-    sprite.anims.load('walk');
 
     //  Input Events
     cursors = this.input.keyboard.createCursorKeys();
@@ -91,9 +89,6 @@ function updateFrameView() {
 }
 
 function update() {
-    if (gameOver) {
-        return;
-    }
 
     if (cursors.left.isDown) {
         player.setVelocityX(-160);
@@ -114,6 +109,12 @@ function update() {
 
     if (cursors.up.isDown && player.body.touching.down) {
         player.setVelocityY(-330);
+        console.log("xd")
+    }
+
+    if (!player.body.touching.down) {
+        
+        console.log("xd")
     }
 }
 
