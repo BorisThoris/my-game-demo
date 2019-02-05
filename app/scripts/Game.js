@@ -8,7 +8,7 @@ var config = {
     physics: {
         default: 'arcade',
         arcade: {
-            gravity: { y: 300 },
+            gravity: { y: 700 },
             debug: false
         }
     },
@@ -28,11 +28,13 @@ var cursors;
 var score = 0;
 var gameOver = false;
 var scoreText;
+var jumped = false;
 
 function preload() {
     this.load.spritesheet('mummy', './runningMan.png', { frameWidth: 256, frameHeight: 256 });
     this.load.spritesheet('mummy2', './runningMan2.png', { frameWidth: 256, frameHeight: 256 });
     this.load.spritesheet('flex', './flexingMan.png', { frameWidth: 256, frameHeight: 256 });
+    this.load.spritesheet('jump', './jumpingMan.png', { frameWidth: 256, frameHeight: 256 });
     this.load.image('ground', '/floor.png');
 }
 
@@ -76,6 +78,13 @@ function create() {
         repeat: -1
     });
 
+    this.anims.create({
+        key: 'jump',
+        frames: this.anims.generateFrameNumbers('jump'),
+        frameRate: 6,
+        
+    });
+
 
     //  Input Events
     cursors = this.input.keyboard.createCursorKeys();
@@ -102,19 +111,28 @@ function update() {
     }
     else {
         player.setVelocityX(0);
-
         player.anims.play('flex', true)
-        
     }
 
     if (cursors.up.isDown && player.body.touching.down) {
         player.setVelocityY(-330);
-        console.log("xd")
+        jumped = true;
     }
 
-    if (!player.body.touching.down) {
-        
-        console.log("xd")
+    else if (!player.body.touching.down) {
+            if (cursors.left.isDown) {
+                player.setVelocityX(-160);
+
+                player.anims.play('walkLeft', true);
+                console.log("lol left")
+            }
+            else if (cursors.right.isDown) {
+                player.setVelocityX(160);
+
+                player.anims.play('jump', true);
+            }
+       
+        jumped = false;
     }
 }
 
