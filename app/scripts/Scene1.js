@@ -9,15 +9,9 @@ class Scene1 extends Phaser.Scene {
     }
 
     create(){
-        console.log("lol")
-
-        let sprite = this.add.sprite(300, 200, 'runningMan');
-
+       
+    }
     
-
-        let walk = sprite.animations.add('walk');
-
-        sprite.animations.play('walk', 30, true);
-        
-    }   
+    
+    
 }

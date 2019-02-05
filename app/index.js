@@ -41,6 +41,16 @@ app.get('/runningMan.png', function (req, res, next) {
     res.sendFile(path.resolve(__dirname, './assets/runningMan.png'));
 });
 
+app.get('/runningMan.json', function (req, res, next) {
+    console.log("runningMan.json delivered");
+    res.sendFile(path.resolve(__dirname, './assets/runningMan.json'));
+});
+
+app.get('/background.png', function (req, res, next) {
+    console.log("background.png delivered");
+    res.sendFile(path.resolve(__dirname, './assets/ProfilePic.JPG'));
+});
+
 app.listen(3000)
 
 console.log("Listening to PORT: 3000")
