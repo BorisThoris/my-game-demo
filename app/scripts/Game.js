@@ -14,6 +14,7 @@ var config = {
 
 var game = new Phaser.Game(config);
 
+var player;
 var anim;
 var sprite;
 var progress;
@@ -25,7 +26,6 @@ function preload() {
 
 function create() {
     //  Frame debug view
-
     frameView = this.add.graphics();
 
     var config = {
