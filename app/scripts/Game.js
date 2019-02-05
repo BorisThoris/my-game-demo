@@ -5,6 +5,13 @@ var config = {
     width: 1280,
     height: 720,
     backgroundColor: '#7d7d7d',
+    physics: {
+        default: 'arcade',
+        arcade: {
+            gravity: { y: 300 },
+            debug: false
+        }
+    },
     scene: {
         preload: preload,
         create: create,
@@ -13,69 +20,92 @@ var config = {
 };
 
 var game = new Phaser.Game(config);
-
 var player;
-var anim;
-var sprite;
-var progress;
-var frameView;
+var stars;
+var bombs;
+var platforms;
+var cursors;
+var score = 0;
+var gameOver = false;
+var scoreText;
 
 function preload() {
-    this.load.spritesheet('mummy', './runningMan.png', { frameWidth: 256, frameHeight: 256 });
+    this.load.spritesheet('mummy', './runningMan.png', { frameWidth: 256, frameHeight: 280 });
+    this.load.spritesheet('flex', './flexingMan.png', { frameWidth: 256, frameHeight: 280 });
+    this.load.image('ground', '/floor.png');
 }
 
 function create() {
     //  Frame debug view
     frameView = this.add.graphics();
 
-    var config = {
+    //  The platforms group contains the ground and the 2 ledges we can jump on
+    platforms = this.physics.add.staticGroup();
+
+    //floor
+    platforms.create(1280, 768, 'ground').setScale(2).refreshBody();
+
+    //creating player
+    player = this.physics.add.sprite(100, 540, 'mummy');
+
+    //  Player physics properties. Give the little guy a slight bounce.
+    player.setBounce(0.2);
+    player.setCollideWorldBounds(true);
+
+   
+    this.anims.create({
         key: 'walk',
         frames: this.anims.generateFrameNumbers('mummy'),
         frameRate: 10,
         repeat: -1
-    };
+    });
 
-    anim = this.anims.create(config);
+    this.anims.create({
+        key: 'flex',
+        frames: this.anims.generateFrameNumbers('flex'),
+        frameRate: 3,
+        repeat: -1
+    });
+
     sprite = this.add.sprite(400, 300, 'mummy');
     sprite.anims.load('walk');
 
-    progress = this.add.text(100, 500, 'Progress: 0%', { color: '#00ff00' });
-    this.input.keyboard.on('keydown_SPACE', function (event) {
-        sprite.anims.play('walk');
-    });
+    //  Input Events
+    cursors = this.input.keyboard.createCursorKeys();
 
-    this.input.keyboard.on('keydown_P', function (event) {
-        if (sprite.anims.isPaused) {
-            sprite.anims.resume();
-        }
-        else {
-            sprite.anims.pause();
-        }
-
-    });
-
-    this.input.keyboard.on('keydown_R', function (event) {
-        sprite.anims.restart();
-    });
+   
 
 }
 
 function updateFrameView() {
-    frameView.clear();
-    frameView.fillRect(sprite.frame.cutX, 0, 37, 45);
+    
 }
 
 function update() {
-    updateFrameView();
+    if (gameOver) {
+        return;
+    }
 
-    var debug = [
-        'SPACE to start animation, P to pause/resume',
-        'Progress: ' + sprite.anims.getProgress() + '%',
-        'Accumulator: ' + sprite.anims.accumulator,
-        'NextTick: ' + sprite.anims.nextTick
-    ];
+    if (cursors.left.isDown) {
+        player.setVelocityX(-160);
 
-    progress.setText(debug);
+        player.anims.play('walk', true);
+    }
+    else if (cursors.right.isDown) {
+        player.setVelocityX(160);
+
+        player.anims.play('walk', true);
+    }
+    else {
+        player.setVelocityX(0);
+
+        player.anims.play('flex', true)
+        
+    }
+
+    if (cursors.up.isDown && player.body.touching.down) {
+        player.setVelocityY(-330);
+    }
 }
 
 
