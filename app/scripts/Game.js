@@ -2,8 +2,8 @@
 var config = {
     type: Phaser.CANVAS,
     parent: 'phaser-example',
-    width: 800,
-    height: 600,
+    width: 1280,
+    height: 720,
     backgroundColor: '#7d7d7d',
     scene: {
         preload: preload,
@@ -31,8 +31,7 @@ function create() {
     var config = {
         key: 'walk',
         frames: this.anims.generateFrameNumbers('mummy'),
-        frameRate: 30,
-        yoyo: true,
+        frameRate: 10,
         repeat: -1
     };
 
