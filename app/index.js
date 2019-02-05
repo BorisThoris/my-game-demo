@@ -41,6 +41,11 @@ app.get('/runningMan.png', function (req, res, next) {
     res.sendFile(path.resolve(__dirname, './assets/runningMan.png'));
 });
 
+app.get('/runningMan2.png', function (req, res, next) {
+    console.log("runningMan2.png delivered");
+    res.sendFile(path.resolve(__dirname, './assets/runningMan2.png'));
+});
+
 app.get('/runningMan.json', function (req, res, next) {
     console.log("runningMan.json delivered");
     res.sendFile(path.resolve(__dirname, './assets/runningMan.json'));

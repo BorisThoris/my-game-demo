@@ -30,8 +30,9 @@ var gameOver = false;
 var scoreText;
 
 function preload() {
-    this.load.spritesheet('mummy', './runningMan.png', { frameWidth: 256, frameHeight: 280 });
-    this.load.spritesheet('flex', './flexingMan.png', { frameWidth: 256, frameHeight: 280 });
+    this.load.spritesheet('mummy', './runningMan.png', { frameWidth: 256, frameHeight: 270 });
+    this.load.spritesheet('mummy2', './runningMan2.png', { frameWidth: 256, frameHeight: 270 });
+    this.load.spritesheet('flex', './flexingMan.png', { frameWidth: 256, frameHeight: 270 });
     this.load.image('ground', '/floor.png');
 }
 
@@ -54,11 +55,19 @@ function create() {
 
    
     this.anims.create({
-        key: 'walk',
+        key: 'walkRight',
         frames: this.anims.generateFrameNumbers('mummy'),
         frameRate: 10,
         repeat: -1
     });
+
+    this.anims.create({
+        key: 'walkLeft',
+        frames: this.anims.generateFrameNumbers('mummy2'),
+        frameRate: 10,
+        repeat: -1
+    });
+
 
     this.anims.create({
         key: 'flex',
@@ -89,12 +98,12 @@ function update() {
     if (cursors.left.isDown) {
         player.setVelocityX(-160);
 
-        player.anims.play('walk', true);
+        player.anims.play('walkLeft', true);
     }
     else if (cursors.right.isDown) {
         player.setVelocityX(160);
 
-        player.anims.play('walk', true);
+        player.anims.play('walkRight', true);
     }
     else {
         player.setVelocityX(0);
