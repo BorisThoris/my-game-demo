@@ -51,11 +51,6 @@ app.get('/runningMan.json', function (req, res, next) {
     res.sendFile(path.resolve(__dirname, './assets/runningMan.json'));
 });
 
-app.get('/background.png', function (req, res, next) {
-    console.log("background.png delivered");
-    res.sendFile(path.resolve(__dirname, './assets/ProfilePic.JPG'));
-});
-
 app.get('/flexingMan.png', function (req, res, next) {
     console.log("flexingMan.png delivered");
     res.sendFile(path.resolve(__dirname, './assets/flexingMan.png'));
@@ -64,6 +59,11 @@ app.get('/flexingMan.png', function (req, res, next) {
 app.get('/jumpingMan.png', function (req, res, next) {
     console.log("jumpingMan.png delivered");
     res.sendFile(path.resolve(__dirname, './assets/jumpingMan.png'));
+});
+
+app.get('/background.png', function (req, res, next) {
+    console.log("background.png delivered");
+    res.sendFile(path.resolve(__dirname, './assets/background.png'));
 });
 
 app.get('/floor.png', function (req, res, next) {

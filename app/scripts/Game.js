@@ -36,9 +36,15 @@ function preload() {
     this.load.spritesheet('flex', './flexingMan.png', { frameWidth: 256, frameHeight: 256 });
     this.load.spritesheet('jump', './jumpingMan.png', { frameWidth: 256, frameHeight: 256 });
     this.load.image('ground', '/floor.png');
+    this.load.image('background', '/background.png');
 }
 
 function create() {
+    //background
+    let backgroundImg = this.add.tileSprite(1280 / 2, 720/2, 1280, 720, 'background')
+
+    
+
     //  Frame debug view
     frameView = this.add.graphics();
 
@@ -74,7 +80,7 @@ function create() {
     this.anims.create({
         key: 'flex',
         frames: this.anims.generateFrameNumbers('flex'),
-        frameRate: 3,
+        frameRate: 4,
         repeat: -1
     });
 
@@ -82,7 +88,7 @@ function create() {
         key: 'jump',
         frames: this.anims.generateFrameNumbers('jump'),
         frameRate: 6,
-        
+        repeat: -1
     });
 
 
@@ -102,37 +108,36 @@ function update() {
     if (cursors.left.isDown) {
         player.setVelocityX(-160);
 
+        if (player.body.touching.down){
         player.anims.play('walkLeft', true);
+        }
     }
     else if (cursors.right.isDown) {
         player.setVelocityX(160);
 
+        if (player.body.touching.down) {
         player.anims.play('walkRight', true);
+        }
     }
     else {
         player.setVelocityX(0);
-        player.anims.play('flex', true)
+
+        if(!player.body.touching.down){
+            player.anims.play('jump', true);
+        }
+
+        if (player.body.touching.down) {
+            player.anims.play('flex', true)
+        }
     }
 
     if (cursors.up.isDown && player.body.touching.down) {
         player.setVelocityY(-330);
-        jumped = true;
+        player.anims.play('flex', true)
     }
 
     else if (!player.body.touching.down) {
-            if (cursors.left.isDown) {
-                player.setVelocityX(-160);
-
-                player.anims.play('walkLeft', true);
-                console.log("lol left")
-            }
-            else if (cursors.right.isDown) {
-                player.setVelocityX(160);
-
-                player.anims.play('jump', true);
-            }
-       
-        jumped = false;
+        player.anims.play('jump', true);
     }
 }
 
