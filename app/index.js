@@ -71,6 +71,18 @@ app.get('/floor.png', function (req, res, next) {
     res.sendFile(path.resolve(__dirname, './assets/floor.png'));
 });
 
+
+app.get('/Ball.js', function (req, res, next) {
+    console.log("Ball.js delivered");
+    res.sendFile(path.resolve(__dirname, './scripts/Ball.js'));
+});
+
+///spikeball.png
+app.get('/spikeball.png', function (req, res, next) {
+    console.log("Ball.js delivered");
+    res.sendFile(path.resolve(__dirname, './assets/spikeball.png'));
+});
+
 app.listen(3000)
 
 console.log("Listening to PORT: 3000")

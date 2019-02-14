@@ -1,4 +1,5 @@
-    
+
+
 var config = {
     type: Phaser.CANVAS,
     parent: 'phaser-example',
@@ -37,13 +38,21 @@ function preload() {
     this.load.spritesheet('jump', './jumpingMan.png', { frameWidth: 256, frameHeight: 256 });
     this.load.image('ground', '/floor.png');
     this.load.image('background', '/background.png');
+    this.load.image('spike', '/spikeball.png');
 }
 
 function create() {
     //background
     let backgroundImg = this.add.tileSprite(1280 / 2, 720/2, 1280, 720, 'background')
 
-    
+    let spikes = this.physics.add.group({})
+    for(let i=0; i< 7; i++){
+       spikes.create(Math.random()*1280, Math.random()*720, 'spike').setScale(1);
+    }
+
+    spikes.children.iterate(function (child) {
+        child.setMass(1);
+    });
 
     //  Frame debug view
     frameView = this.add.graphics();
@@ -60,6 +69,8 @@ function create() {
     //  Player physics properties. Give the little guy a slight bounce.
     player.setBounce(0.0);
     player.setCollideWorldBounds(true);
+    this.physics.add.collider(spikes, platforms);
+    this.physics.add.collider(spikes, player);
     this.physics.add.collider(player, platforms);
    
     this.anims.create({
