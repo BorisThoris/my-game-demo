@@ -30,6 +30,8 @@ var score = 0;
 var gameOver = false;
 var scoreText;
 var jumped = false;
+var timer = 0;
+var spikes
 
 function preload() {
     this.load.spritesheet('mummy', './runningMan.png', { frameWidth: 256, frameHeight: 256 });
@@ -45,10 +47,7 @@ function create() {
     //background
     let backgroundImg = this.add.tileSprite(1280 / 2, 720/2, 1280, 720, 'background')
 
-    let spikes = this.physics.add.group({})
-    for(let i=0; i< 7; i++){
-        spikes.create((Math.random() * (+1000 - +500) + +300) , -100, 'spike').setScale(1);
-    }
+    spikes = this.physics.add.group({})
 
     spikes.children.iterate(function (child) {
         child.body.friction.x = 5;
@@ -69,11 +68,10 @@ function create() {
     //  Player physics properties. Give the little guy a slight bounce.
     player.setBounce(0.0);
     player.setCollideWorldBounds(true);
-    this.physics.add.collider(spikes, platforms);
-    this.physics.add.collider(spikes, spikes);
     this.physics.add.collider(spikes, player);
     this.physics.add.collider(player, platforms);
-   
+    player.setSize(100,245, true);
+
     this.anims.create({
         key: 'walkRight',
         frames: this.anims.generateFrameNumbers('mummy'),
@@ -116,24 +114,35 @@ function updateFrameView() {
 }
 
 function update() {
+    timer++;
+    
+    if(timer%20===0 || timer === 1){
+        spikes.create(Math.random()*1280, -100, 'spike').setScale(1);    
+    }
+
+    if (timer > 200 && spikes.children.entries[spikes.children.entries.length - 1].y === -100){
+        
+        spikes.children.entries.shift();
+        console.log(spikes.children.entries)
+    }
 
     if (cursors.left.isDown) {
         player.setVelocityX(-200);
-
+        player.setSize(50, 245, true);
         if (player.body.touching.down){
         player.anims.play('walkLeft', true);
         }
     }
     else if (cursors.right.isDown) {
         player.setVelocityX(200);
-
+        player.setSize(50, 245, true);
         if (player.body.touching.down) {
         player.anims.play('walkRight', true);
         }
     }
     else {
         player.setVelocityX(0);
-
+        player.setSize(100, 245, true);
         if(!player.body.touching.down){
             player.anims.play('jump', true);
         }
@@ -149,6 +158,7 @@ function update() {
     }
 
     else if (!player.body.touching.down) {
+        player.setSize(100, 245, true);
         player.anims.play('jump', true);
     }
 }
