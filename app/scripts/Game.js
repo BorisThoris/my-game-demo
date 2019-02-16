@@ -10,7 +10,7 @@ var config = {
         default: 'arcade',
         arcade: {
             gravity: { y: 700 },
-            debug: false
+            debug: true
         }
     },
     scene: {
@@ -47,11 +47,11 @@ function create() {
 
     let spikes = this.physics.add.group({})
     for(let i=0; i< 7; i++){
-       spikes.create(Math.random()*1280, Math.random()*720, 'spike').setScale(1);
+        spikes.create((Math.random() * (+1000 - +500) + +300) , -100, 'spike').setScale(1);
     }
 
     spikes.children.iterate(function (child) {
-        child.setMass(1);
+        child.body.friction.x = 5;
     });
 
     //  Frame debug view
@@ -70,6 +70,7 @@ function create() {
     player.setBounce(0.0);
     player.setCollideWorldBounds(true);
     this.physics.add.collider(spikes, platforms);
+    this.physics.add.collider(spikes, spikes);
     this.physics.add.collider(spikes, player);
     this.physics.add.collider(player, platforms);
    
@@ -117,14 +118,14 @@ function updateFrameView() {
 function update() {
 
     if (cursors.left.isDown) {
-        player.setVelocityX(-160);
+        player.setVelocityX(-200);
 
         if (player.body.touching.down){
         player.anims.play('walkLeft', true);
         }
     }
     else if (cursors.right.isDown) {
-        player.setVelocityX(160);
+        player.setVelocityX(200);
 
         if (player.body.touching.down) {
         player.anims.play('walkRight', true);
