@@ -117,13 +117,12 @@ function update() {
     timer++;
     
     if(timer%20===0 || timer === 1){
-        spikes.create(Math.random()*1280, -100, 'spike').setScale(1);    
+        spikes.create(Math.random() * 1280, -100, 'spike').setScale((Math.random() * (1 - 0.4)) + 0.4);    
     }
 
     if (timer > 200 && spikes.children.entries[spikes.children.entries.length - 1].y === -100){
         
         spikes.children.entries.shift();
-        console.log(spikes.children.entries)
     }
 
     if (cursors.left.isDown) {
@@ -160,6 +159,10 @@ function update() {
     else if (!player.body.touching.down) {
         player.setSize(100, 245, true);
         player.anims.play('jump', true);
+    }
+
+    if (player.body.touching.up){
+        window.alert("game over")
     }
 }
 
