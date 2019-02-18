@@ -32,6 +32,9 @@ var scoreText;
 var jumped = false;
 var timer = 0;
 var spikes
+var gameOver = false;
+var scoreText;
+var gameOverText
 
 function preload() {
     this.load.spritesheet('mummy', './runningMan.png', { frameWidth: 256, frameHeight: 256 });
@@ -46,6 +49,7 @@ function preload() {
 function create() {
     //background
     let backgroundImg = this.add.tileSprite(1280 / 2, 720/2, 1280, 720, 'background')
+	scoreText = this.add.text(16, 16, 'score: 0', { fontSize: '32px', fill: '#FF0000' });
 
     spikes = this.physics.add.group({})
 
@@ -114,8 +118,9 @@ function updateFrameView() {
 }
 
 function update() {
-    timer++;
-    
+    if(gameOver===false){
+		timer++;
+		scoreText.setText('Score: ' + Math.floor(timer/50));
     if(timer%20===0 || timer === 1){
         spikes.create(Math.random() * 1280, -100, 'spike').setScale((Math.random() * (1 - 0.4)) + 0.4);    
     }
@@ -162,8 +167,18 @@ function update() {
     }
 
     if (player.body.touching.up){
-        window.alert("game over")
-    }
+        gameOver = true;
+	}
+	
+	}
+	else if(gameOver!=="Ended"){
+		player.setVelocityX(0);
+		player.anims.play('flex', true)
+		console.log("hehe")
+		scoreText.destroy();
+		gameOver = this.add.text(260, 360/4, `\n Game Over \n You scored: \n ${Math.floor(timer/50)}`, { fontSize: '100px', fill: '#FF0000' });
+		gameOver = "Ended"
+	}
 }
 
 
