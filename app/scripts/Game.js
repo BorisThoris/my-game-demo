@@ -131,14 +131,14 @@ function update() {
     }
 
     if (cursors.left.isDown) {
-        player.setVelocityX(-200);
+        player.setVelocityX(-300);
         player.setSize(50, 245, true);
         if (player.body.touching.down){
         player.anims.play('walkLeft', true);
         }
     }
     else if (cursors.right.isDown) {
-        player.setVelocityX(200);
+        player.setVelocityX(300);
         player.setSize(50, 245, true);
         if (player.body.touching.down) {
         player.anims.play('walkRight', true);
@@ -176,7 +176,7 @@ function update() {
 		player.anims.play('flex', true)
 		console.log("hehe")
 		scoreText.destroy();
-		gameOver = this.add.text(260, 360/4, `\n Game Over \n You scored: \n ${Math.floor(timer/50)}`, { fontSize: '100px', fill: '#FF0000' });
+		gameOver = this.add.text(260, 360/4, `\n Game Over \n You scored: \n ${Math.floor(timer/50)} points`, { fontSize: '100px', fill: '#FF0000' });
 		gameOver = "Ended"
 	}
 }
