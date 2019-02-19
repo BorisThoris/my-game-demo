@@ -138,8 +138,18 @@ function update() {
     if(gameOver===false){
 		timer++;
 		scoreText.setText('Score: ' + Math.floor(timer/50));
-    if(timer%10 === 0 || timer === 1){
+    if ( Math.floor(timer / 50) <10){
+        if ((timer % 20 === 0 || timer === 1)){
         spikes.create(Math.random() * 1280, -100, 'spike').setScale((Math.random() * (1 - 0.4)) + 0.4);    
+        console.log("ha")
+        }
+    }
+
+   if ( Math.floor(timer / 50) >= 10) {
+       console.log("hhaa")
+        if (timer % 10 === 0 || timer === 1){
+        spikes.create(Math.random() * 1280, -100, 'spike').setScale((Math.random() * (1 - 0.4)) + 0.4);
+        }
     }
 
     if (timer > 200 && spikes.children.entries[spikes.children.entries.length - 1].y === -100){
