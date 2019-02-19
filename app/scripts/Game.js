@@ -36,6 +36,7 @@ var gameOver = false;
 var scoreText;
 var gameOverText;
 var replayButton;
+var music;
 
 function preload() {
     this.load.spritesheet('mummy', './runningMan.png', { frameWidth: 256, frameHeight: 256 });
@@ -45,10 +46,14 @@ function preload() {
     this.load.image('ground', '/floor.png');
     this.load.image('background', '/background.png');
     this.load.image('spike', '/spikeball.png');
+    this.load.image('replay', '/replay.png');
     this.load.image('replay', '/replay.png')
+    this.load.audio('musicBack', '/backgroundMusic.mp3');
 }
 
 function create() {
+    music = this.sound.add('musicBack');
+    music.play();
     //background
     let backgroundImg = this.add.tileSprite(1280 / 2, 720/2, 1280, 720, 'background')
 	scoreText = this.add.text(16, 16, 'score: 0', { fontSize: '32px', fill: '#FF0000' });
@@ -174,6 +179,7 @@ function update() {
 
     if (player.body.touching.up){
         gameOver = true;
+        music.pause();
 	}
 	
 	}
@@ -198,7 +204,7 @@ function update() {
         replayButton.setScale(0.2)
         replayButton.setInteractive();
         spikes.children.entries = []
-        replayButton.on("clicked", () => { console.log("heh"), gameOverText.destroy(), timer = 0, gameOver = false, replayButton.destroy()})
+        replayButton.on("clicked", () => { console.log("heh"), gameOverText.destroy(), timer = 0, gameOver = false, replayButton.destroy(), music.play()})
     }
     
     

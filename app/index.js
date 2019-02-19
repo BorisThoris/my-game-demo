@@ -89,6 +89,11 @@ app.get('/replay.png', function (req, res, next) {
     res.sendFile(path.resolve(__dirname, './assets/replayBtn.png'));
 });
 
+app.get('/backgroundMusic.mp3', function (req, res, next) {
+    console.log("ReplayButton delivered");
+    res.sendFile(path.resolve(__dirname, './assets/backMusic(2).mp3'));
+});
+
 app.listen(3000)
 
 console.log("Listening to PORT: 3000")
