@@ -34,7 +34,8 @@ var timer = 0;
 var spikes
 var gameOver = false;
 var scoreText;
-var gameOverText
+var gameOverText;
+var replayButton;
 
 function preload() {
     this.load.spritesheet('mummy', './runningMan.png', { frameWidth: 256, frameHeight: 256 });
@@ -44,6 +45,7 @@ function preload() {
     this.load.image('ground', '/floor.png');
     this.load.image('background', '/background.png');
     this.load.image('spike', '/spikeball.png');
+    this.load.image('replay', '/replay.png')
 }
 
 function create() {
@@ -108,6 +110,10 @@ function create() {
 
     //  Input Events
     cursors = this.input.keyboard.createCursorKeys();
+
+    this.input.on('gameobjectup', function (pointer, gameObject) {
+        gameObject.emit('clicked', gameObject);
+    }, this);
 
    
 
@@ -175,10 +181,27 @@ function update() {
 		player.setVelocityX(0);
 		player.anims.play('flex', true)
 		console.log("hehe")
-		scoreText.destroy();
-		gameOver = this.add.text(260, 360/4, `\n Game Over \n You scored: \n ${Math.floor(timer/50)} points`, { fontSize: '100px', fill: '#FF0000' });
-		gameOver = "Ended"
-	}
+
+		gameOverText = this.add.text(260, 360/4, `\n Game Over \n You scored: \n ${Math.floor(timer/50)} points`, { fontSize: '100px', fill: '#FF0000' });
+        gameOver = "Ended"
+        replayButton = this.add.sprite(1280/2, 540, 'replay')
+        this.add.tween({
+            targets: replayButton,
+            ease: 'Sine.easeInOut',
+            duration: 2000,
+            delay: 0,
+            alpha: 0,
+            repeat: -1
+            
+        })
+        replayButton.opacity = 0;
+        replayButton.setScale(0.2)
+        replayButton.setInteractive();
+        spikes.children.entries = []
+        replayButton.on("clicked", () => { console.log("heh"), gameOverText.destroy(), timer = 0, gameOver = false, replayButton.destroy()})
+    }
+    
+    
 }
 
 

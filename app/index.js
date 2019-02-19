@@ -82,6 +82,12 @@ app.get('/spikeball.png', function (req, res, next) {
     console.log("Ball.js delivered");
     res.sendFile(path.resolve(__dirname, './assets/spikeball.png'));
 });
+///replay.png
+
+app.get('/replay.png', function (req, res, next) {
+    console.log("ReplayButton delivered");
+    res.sendFile(path.resolve(__dirname, './assets/replayBtn.png'));
+});
 
 app.listen(3000)
 
