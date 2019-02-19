@@ -37,6 +37,7 @@ var scoreText;
 var gameOverText;
 var replayButton;
 var music;
+var gameOverMusic;
 
 function preload() {
     this.load.spritesheet('mummy', './runningMan.png', { frameWidth: 256, frameHeight: 256 });
@@ -49,10 +50,12 @@ function preload() {
     this.load.image('replay', '/replay.png');
     this.load.image('replay', '/replay.png')
     this.load.audio('musicBack', '/backgroundMusic.mp3');
+    this.load.audio('gameOver', '/gameOver.mp3');
 }
 
 function create() {
     music = this.sound.add('musicBack');
+    gameOverMusic = this.sound.add('gameOver')
     music.play();
     //background
     let backgroundImg = this.add.tileSprite(1280 / 2, 720/2, 1280, 720, 'background')
@@ -180,6 +183,7 @@ function update() {
     if (player.body.touching.up){
         gameOver = true;
         music.pause();
+        gameOverMusic.play();
 	}
 	
 	}
