@@ -132,7 +132,7 @@ function update() {
     if(gameOver===false){
 		timer++;
 		scoreText.setText('Score: ' + Math.floor(timer/50));
-    if(timer%20===0 || timer === 1){
+    if(timer%10===0 || timer === 1){
         spikes.create(Math.random() * 1280, -100, 'spike').setScale((Math.random() * (1 - 0.4)) + 0.4);    
     }
 
@@ -142,14 +142,14 @@ function update() {
     }
 
     if (cursors.left.isDown) {
-        player.setVelocityX(-300);
+        player.setVelocityX(-500);
         player.setSize(50, 245, true);
         if (player.body.touching.down){
         player.anims.play('walkLeft', true);
         }
     }
     else if (cursors.right.isDown) {
-        player.setVelocityX(300);
+        player.setVelocityX(500);
         player.setSize(50, 245, true);
         if (player.body.touching.down) {
         player.anims.play('walkRight', true);
@@ -186,7 +186,6 @@ function update() {
 	else if(gameOver!=="Ended"){
 		player.setVelocityX(0);
 		player.anims.play('flex', true)
-		console.log("hehe")
 
 		gameOverText = this.add.text(260, 360/4, `\n Game Over \n You scored: \n ${Math.floor(timer/50)} points`, { fontSize: '100px', fill: '#FF0000' });
         gameOver = "Ended"
@@ -204,7 +203,7 @@ function update() {
         replayButton.setScale(0.2)
         replayButton.setInteractive();
         spikes.children.entries = []
-        replayButton.on("clicked", () => { console.log("heh"), gameOverText.destroy(), timer = 0, gameOver = false, replayButton.destroy(), music.play()})
+        replayButton.on("clicked", () => { gameOverText.destroy(), timer = 0, gameOver = false, replayButton.destroy(), music.play()})
     }
     
     
