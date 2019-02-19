@@ -26,6 +26,7 @@ var stars;
 var bombs;
 var platforms;
 var cursors;
+var highestScoreValue =0;
 var score = 0;
 var gameOver = false;
 var scoreText;
@@ -34,6 +35,7 @@ var timer = 0;
 var spikes
 var gameOver = false;
 var scoreText;
+var highestScore;
 var gameOverText;
 var replayButton;
 var music;
@@ -60,6 +62,7 @@ function create() {
     //background
     let backgroundImg = this.add.tileSprite(1280 / 2, 720/2, 1280, 720, 'background')
 	scoreText = this.add.text(16, 16, 'score: 0', { fontSize: '32px', fill: '#FF0000' });
+    highestScore = this.add.text(900, 16, `highest score: ${highestScoreValue}`, { fontSize: '32px', fill: '#FF0000' });
 
     spikes = this.physics.add.group({})
 
@@ -135,7 +138,7 @@ function update() {
     if(gameOver===false){
 		timer++;
 		scoreText.setText('Score: ' + Math.floor(timer/50));
-    if(timer%10===0 || timer === 1){
+    if(timer%10 === 0 || timer === 1){
         spikes.create(Math.random() * 1280, -100, 'spike').setScale((Math.random() * (1 - 0.4)) + 0.4);    
     }
 
@@ -184,6 +187,12 @@ function update() {
         gameOver = true;
         music.pause();
         gameOverMusic.play();
+        let score = Math.floor(timer / 50);
+
+        if (highestScoreValue < score ){
+            highestScoreValue = score;
+            highestScore.setText(`highest score: ${highestScoreValue}`)
+        }
 	}
 	
 	}

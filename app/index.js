@@ -90,12 +90,12 @@ app.get('/replay.png', function (req, res, next) {
 });
 
 app.get('/backgroundMusic.mp3', function (req, res, next) {
-    console.log("ReplayButton delivered");
+    console.log("backgroundMusic delivered");
     res.sendFile(path.resolve(__dirname, './assets/backMusic(2).mp3'));
 });
 
 app.get('/gameOver.mp3', function (req, res, next) {
-    console.log("ReplayButton delivered");
+    console.log("GameOver sound delivered");
     res.sendFile(path.resolve(__dirname, './assets/gameOver.mp3'));
 });
 
