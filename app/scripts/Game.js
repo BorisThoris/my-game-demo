@@ -24,7 +24,7 @@ var config = {
 var game = new Phaser.Game(config);
 
 //Variables
-var player, platforms, cursors, scoreText, spikes, scoreText, highestScore, gameOverText, replayButton, music,  gameOverMusic;
+var player, platforms, cursors, scoreText, spikes, scoreText, highestScore, gameOverText, replayButton, music, gameOverMusic;
 
 //Variables with default values
 var highestScoreValue = 0;
@@ -63,10 +63,10 @@ function create() {
     music = this.sound.add('musicBack');
     gameOverMusic = this.sound.add('gameOver')
     music.play();
-    
+
     //background
-    let backgroundImg = this.add.tileSprite(1280 / 2, 720/2, 1280, 720, 'background')
-	scoreText = this.add.text(16, 16, 'score: 0', { fontSize: '32px', fill: '#FF0000' });
+    let backgroundImg = this.add.tileSprite(1280 / 2, 720 / 2, 1280, 720, 'background')
+    scoreText = this.add.text(16, 16, 'score: 0', { fontSize: '32px', fill: '#FF0000' });
     highestScore = this.add.text(900, 16, `highest score: ${highestScoreValue}`, { fontSize: '32px', fill: '#FF0000' });
 
     spikes = this.physics.add.group({})
@@ -153,146 +153,146 @@ function create() {
         gameObject.emit('clicked', gameObject);
     }, this);
 
-   
+
 
 }
 
 function updateFrameView() {
-    
+
 }
 
 //Movement
 function update() {
-    
+
     //Checking if game is over
-    if(gameOver===false){
+    if (gameOver === false) {
         timer++;
         crouched = false;
-        scoreText.setText('Score: ' + Math.floor(timer/50));
-        
-    //Checking phase
-    if ( Math.floor(timer / 50) <10){
-        if ((timer % 20 === 0 || timer === 1)){
-        spikes.create(Math.random() * 1280, -100, 'spike').setScale((Math.random() * (1 - 0.4)) + 0.4);    
-        }
-    }
-    //Checking phase
-    if ( Math.floor(timer / 50) >= 10) {
-        if (timer % 10 === 0 || timer === 1){
-        spikes.create(Math.random() * 1280, -100, 'spike').setScale((Math.random() * (1 - 0.4)) + 0.4);
-        }
-    }
+        scoreText.setText('Score: ' + Math.floor(timer / 50));
 
-    //Preventing memory leaks
-    if (timer > 200 && spikes.children.entries[spikes.children.entries.length - 1].y === -100){
-        
-        spikes.children.entries.shift();
-    }
+        //Checking phase
+        if (Math.floor(timer / 50) < 10) {
+            if ((timer % 20 === 0 || timer === 1)) {
+                spikes.create(Math.random() * 1280, -100, 'spike').setScale((Math.random() * (1 - 0.4)) + 0.4);
+            }
+        }
+        //Checking phase
+        if (Math.floor(timer / 50) >= 10) {
+            if (timer % 10 === 0 || timer === 1) {
+                spikes.create(Math.random() * 1280, -100, 'spike').setScale((Math.random() * (1 - 0.4)) + 0.4);
+            }
+        }
 
-    //Moving left
+        //Preventing memory leaks
+        if (timer > 200 && spikes.children.entries[spikes.children.entries.length - 1].y === -100) {
+
+            spikes.children.entries.shift();
+        }
+
+        //Moving left
         if (cursors.left.isDown && !cursors.down.isDown) {
             player.setVelocityX(-walkSpeed);
             player.setSize(50, playerHeight, true);
 
-            if (player.body.touching.down){
-            player.anims.play('walkLeft', true);
+            if (player.body.touching.down) {
+                player.anims.play('walkLeft', true);
             }
-    }
-    //Moving right
-    else if (cursors.right.isDown && !cursors.down.isDown) {
+        }
+        //Moving right
+        else if (cursors.right.isDown && !cursors.down.isDown) {
             crouched = true;
             player.setVelocityX(walkSpeed);
             player.setSize(50, playerHeight, true);
             if (player.body.touching.down) {
-            player.anims.play('walkRight', true);
+                player.anims.play('walkRight', true);
             }
-    }
-    //Croutching
-    else if (cursors.down.isDown && cursors.right.isDown) {
-        crouched = true;
-        player.setVelocityX(+croutchSpeed);
-        if (player.body.touching.down) {
-            //changing player hitbox
-            player.setSize(50, 140);
-            player.setOffset(100, 100)
+        }
+        //Croutching
+        else if (cursors.down.isDown && cursors.right.isDown) {
+            crouched = true;
+            player.setVelocityX(+croutchSpeed);
             if (player.body.touching.down) {
+                //changing player hitbox
+                player.setSize(50, 140);
+                player.setOffset(100, 100)
+                if (player.body.touching.down) {
                     player.anims.play('crouch-walk-right', true)
+                }
             }
         }
-    }
-    
-    else if (cursors.down.isDown && cursors.left.isDown) {
-        crouched = true;
-        player.setVelocityX(-croutchSpeed);
-        if (player.body.touching.down) {
-            //changing player hitbox
-            player.setSize(50, 140);
-            player.setOffset(100, 100)   
-            if (player.body.touching.down) {
-                    player.anims.play('crouch-walk-left', true)
-            }
-        }
-    }
 
-    else if(cursors.down.isDown){
-        crouched = true;
-        if (player.body.touching.down) {
-            let y = player.y;
-            //changing player hitbox
-            player.setSize(50, 140);
-            player.setOffset(100, 100)            
-            player.setVelocityX(0);
-            //playing animation
-            player.anims.play('crouch-flex',true) 
+        else if (cursors.down.isDown && cursors.left.isDown) {
+            crouched = true;
+            player.setVelocityX(-croutchSpeed);
+            if (player.body.touching.down) {
+                //changing player hitbox
+                player.setSize(50, 140);
+                player.setOffset(100, 100)
+                if (player.body.touching.down) {
+                    player.anims.play('crouch-walk-left', true)
+                }
+            }
         }
-    }
-    
-    
-    //Idle animation
-    else {
-        player.setVelocityX(0);
+
+        else if (cursors.down.isDown) {
+            crouched = true;
+            if (player.body.touching.down) {
+                let y = player.y;
+                //changing player hitbox
+                player.setSize(50, 140);
+                player.setOffset(100, 100)
+                player.setVelocityX(0);
+                //playing animation
+                player.anims.play('crouch-flex', true)
+            }
+        }
+
+
+        //Idle animation
+        else {
+            player.setVelocityX(0);
             player.setSize(100, playerHeight, true);
-        if(!player.body.touching.down){
+            if (!player.body.touching.down) {
+                player.anims.play('jump', true);
+            }
+            if (player.body.touching.down) {
+                player.anims.play('flex', true)
+            }
+        }
+
+        //jumping
+        if (cursors.up.isDown && player.body.touching.down) {
+            player.setVelocityY(-330);
+        }
+
+        else if (!player.body.touching.down && crouched === false) {
+
+            player.setSize(100, playerHeight, true);
             player.anims.play('jump', true);
         }
-        if (player.body.touching.down) {
-            player.anims.play('flex', true)
+
+        //On Collision with enemy
+        if (player.body.touching.up) {
+            gameOver = true;
+            //Stop BG music and play game over music
+            music.pause();
+            gameOverMusic.play();
+
+            let score = Math.floor(timer / 50);
+            if (highestScoreValue < score) {
+                highestScoreValue = score;
+                highestScore.setText(`highest score: ${highestScoreValue}`)
+            }
         }
+
     }
+    else if (gameOver !== "Ended") {
+        player.setVelocityX(0);
+        player.anims.play('flex', true)
 
-    //jumping
-    if (cursors.up.isDown && player.body.touching.down) {
-        player.setVelocityY(-330);
-    }
-
-    else if (!player.body.touching.down && crouched === false) {
-
-        player.setSize(100, playerHeight, true);
-        player.anims.play('jump', true);
-    }
-
-    //On Collision with enemy
-    if (player.body.touching.up){
-        gameOver = true;
-        //Stop BG music and play game over music
-        music.pause();
-        gameOverMusic.play();
-
-        let score = Math.floor(timer / 50);
-        if (highestScoreValue < score ){
-            highestScoreValue = score;
-            highestScore.setText(`highest score: ${highestScoreValue}`)
-        }
-	}
-	
-	}
-	else if(gameOver!=="Ended"){
-		player.setVelocityX(0);
-		player.anims.play('flex', true)
-
-		gameOverText = this.add.text(260, 360/4, `\n Game Over \n You scored: \n ${Math.floor(timer/50)} points`, { fontSize: '100px', fill: '#FF0000' });
+        gameOverText = this.add.text(260, 360 / 4, `\n Game Over \n You scored: \n ${Math.floor(timer / 50)} points`, { fontSize: '100px', fill: '#FF0000' });
         gameOver = "Ended"
-        replayButton = this.add.sprite(1280/2, 540, 'replay')
+        replayButton = this.add.sprite(1280 / 2, 540, 'replay')
         this.add.tween({
             targets: replayButton,
             ease: 'Sine.easeInOut',
@@ -300,17 +300,17 @@ function update() {
             delay: 0,
             alpha: 0,
             repeat: -1
-            
+
         })
 
         replayButton.opacity = 0;
         replayButton.setScale(0.2)
         replayButton.setInteractive();
         spikes.children.entries = []
-        replayButton.on("clicked", () => { gameOverText.destroy(), timer = 0, gameOver = false, replayButton.destroy(), music.play()} )
+        replayButton.on("clicked", () => { gameOverText.destroy(), timer = 0, gameOver = false, replayButton.destroy(), music.play() })
     }
-    
-    
+
+
 }
 
 
