@@ -163,10 +163,11 @@ function updateFrameView() {
 
 //Movement
 function update() {
-
+    
     //Checking if game is over
     if(gameOver===false){
-		timer++;
+        timer++;
+        crouched = false;
         scoreText.setText('Score: ' + Math.floor(timer/50));
         
     //Checking phase
@@ -190,48 +191,52 @@ function update() {
 
     //Moving left
         if (cursors.left.isDown && !cursors.down.isDown) {
-        player.setVelocityX(-walkSpeed);
+            player.setVelocityX(-walkSpeed);
             player.setSize(50, playerHeight, true);
-        if (player.body.touching.down){
-        player.anims.play('walkLeft', true);
-        }
+
+            if (player.body.touching.down){
+            player.anims.play('walkLeft', true);
+            }
     }
     //Moving right
     else if (cursors.right.isDown && !cursors.down.isDown) {
-        player.setVelocityX(walkSpeed);
+            crouched = true;
+            player.setVelocityX(walkSpeed);
             player.setSize(50, playerHeight, true);
-        if (player.body.touching.down) {
-        player.anims.play('walkRight', true);
-        }
+            if (player.body.touching.down) {
+            player.anims.play('walkRight', true);
+            }
     }
     //Croutching
     else if (cursors.down.isDown && cursors.right.isDown) {
+        crouched = true;
+        player.setVelocityX(+croutchSpeed);
+        if (player.body.touching.down) {
             //changing player hitbox
             player.setSize(50, 140);
             player.setOffset(100, 100)
-            player.setVelocityX(0);
-
-            player.setVelocityX(+croutchSpeed);
             if (player.body.touching.down) {
                     player.anims.play('crouch-walk-right', true)
             }
+        }
     }
     
     else if (cursors.down.isDown && cursors.left.isDown) {
+        crouched = true;
+        player.setVelocityX(-croutchSpeed);
+        if (player.body.touching.down) {
             //changing player hitbox
             player.setSize(50, 140);
-            player.setOffset(100, 100)
-            player.setVelocityX(0);
-
-            player.setVelocityX(-croutchSpeed);
+            player.setOffset(100, 100)   
             if (player.body.touching.down) {
                     player.anims.play('crouch-walk-left', true)
             }
+        }
     }
 
     else if(cursors.down.isDown){
+        crouched = true;
         if (player.body.touching.down) {
-            crouched = true;
             let y = player.y;
             //changing player hitbox
             player.setSize(50, 140);
