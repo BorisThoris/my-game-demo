@@ -200,7 +200,6 @@ function update() {
         }
         //Moving right
         else if (cursors.right.isDown && !cursors.down.isDown) {
-            crouched = true;
             player.setVelocityX(walkSpeed);
             player.setSize(50, playerHeight, true);
             if (player.body.touching.down) {
