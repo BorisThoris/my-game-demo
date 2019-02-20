@@ -20,35 +20,35 @@ var config = {
     }
 };
 
+//Creating game
 var game = new Phaser.Game(config);
-var player;
-var stars;
-var bombs;
-var platforms;
-var cursors;
-var highestScoreValue =0;
+
+//Variables
+var player, platforms, cursors, scoreText, spikes, scoreText, highestScore, gameOverText, replayButton, music,  gameOverMusic;
+
+//Variables with default values
+var highestScoreValue = 0;
 var score = 0;
-var gameOver = false;
-var scoreText;
-var jumped = false;
 var timer = 0;
-var spikes
 var gameOver = false;
-var scoreText;
-var highestScore;
-var gameOverText;
-var replayButton;
-var music;
+var jumped = false;
+var gameOver = false;
 var crouched = false;
-var gameOverMusic;
+
+//Player vars
+var playerHeight = 225;
+
+//Change walking speed
+var walkSpeed = 500;
+var croutchSpeed = walkSpeed - 100;
 
 function preload() {
     this.load.spritesheet('mummy', './runningMan.png', { frameWidth: 256, frameHeight: 256 });
     this.load.spritesheet('mummy2', './runningMan2.png', { frameWidth: 256, frameHeight: 256 });
     this.load.spritesheet('flex', './flexingMan.png', { frameWidth: 256, frameHeight: 256 });
-    this.load.spritesheet('croutch-flex', './croutching-flex.png', { frameWidth: 256, frameHeight: 256 });
-    this.load.spritesheet('croutch-walk-left', './croutching-walk-left.png', { frameWidth: 256, frameHeight: 256 });
-    this.load.spritesheet('croutch-walk-right', './croutching-walk-right.png', { frameWidth: 256, frameHeight: 256 });
+    this.load.spritesheet('crouch-flex', './croutching-flex.png', { frameWidth: 256, frameHeight: 256 });
+    this.load.spritesheet('crouch-walk-left', './croutching-walk-left.png', { frameWidth: 256, frameHeight: 256 });
+    this.load.spritesheet('crouch-walk-right', './croutching-walk-right.png', { frameWidth: 256, frameHeight: 256 });
     this.load.spritesheet('jump', './jumpingMan.png', { frameWidth: 256, frameHeight: 256 });
     this.load.image('ground', '/floor.png');
     this.load.image('background', '/background.png');
@@ -62,7 +62,8 @@ function preload() {
 function create() {
     music = this.sound.add('musicBack');
     gameOverMusic = this.sound.add('gameOver')
-    //music.play();
+    music.play();
+    
     //background
     let backgroundImg = this.add.tileSprite(1280 / 2, 720/2, 1280, 720, 'background')
 	scoreText = this.add.text(16, 16, 'score: 0', { fontSize: '32px', fill: '#FF0000' });
@@ -84,15 +85,16 @@ function create() {
     platforms.create(1280, 768, 'ground').setScale(2).refreshBody();
 
     //creating player
-    player = this.physics.add.sprite(100, 200, 'mummy');
+    player = this.physics.add.sprite(100, playerHeight, 'mummy');
 
-    //  Player physics properties. Give the little guy a slight bounce.
+    //  Player physics properties
     player.setBounce(0.0);
     player.setCollideWorldBounds(true);
     this.physics.add.collider(spikes, player);
     this.physics.add.collider(player, platforms);
-    player.setSize(100,245, true);
+    player.setSize(100, playerHeight, true);
 
+    //Creating Animations
     this.anims.create({
         key: 'walkRight',
         frames: this.anims.generateFrameNumbers('mummy'),
@@ -123,8 +125,22 @@ function create() {
     });
 
     this.anims.create({
-        key: 'croutch-flex',
-        frames: this.anims.generateFrameNumbers('croutch-flex'),
+        key: 'crouch-flex',
+        frames: this.anims.generateFrameNumbers('crouch-flex'),
+        frameRate: 6,
+        repeat: -1
+    });
+
+    this.anims.create({
+        key: 'crouch-walk-left',
+        frames: this.anims.generateFrameNumbers('crouch-walk-left'),
+        frameRate: 6,
+        repeat: -1
+    });
+
+    this.anims.create({
+        key: 'crouch-walk-right',
+        frames: this.anims.generateFrameNumbers('crouch-walk-right'),
         frameRate: 6,
         repeat: -1
     });
@@ -145,84 +161,119 @@ function updateFrameView() {
     
 }
 
+//Movement
 function update() {
+
+    //Checking if game is over
     if(gameOver===false){
 		timer++;
-		scoreText.setText('Score: ' + Math.floor(timer/50));
+        scoreText.setText('Score: ' + Math.floor(timer/50));
+        
+    //Checking phase
     if ( Math.floor(timer / 50) <10){
         if ((timer % 20 === 0 || timer === 1)){
         spikes.create(Math.random() * 1280, -100, 'spike').setScale((Math.random() * (1 - 0.4)) + 0.4);    
         }
     }
-
-   if ( Math.floor(timer / 50) >= 10) {
+    //Checking phase
+    if ( Math.floor(timer / 50) >= 10) {
         if (timer % 10 === 0 || timer === 1){
         spikes.create(Math.random() * 1280, -100, 'spike').setScale((Math.random() * (1 - 0.4)) + 0.4);
         }
     }
 
+    //Preventing memory leaks
     if (timer > 200 && spikes.children.entries[spikes.children.entries.length - 1].y === -100){
         
         spikes.children.entries.shift();
     }
 
-    if (cursors.left.isDown) {
-        player.setVelocityX(-500);
-        player.setSize(50, 245, true);
+    //Moving left
+        if (cursors.left.isDown && !cursors.down.isDown) {
+        player.setVelocityX(-walkSpeed);
+            player.setSize(50, playerHeight, true);
         if (player.body.touching.down){
         player.anims.play('walkLeft', true);
         }
     }
-    else if (cursors.right.isDown) {
-        player.setVelocityX(500);
-        player.setSize(50, 245, true);
+    //Moving right
+    else if (cursors.right.isDown && !cursors.down.isDown) {
+        player.setVelocityX(walkSpeed);
+            player.setSize(50, playerHeight, true);
         if (player.body.touching.down) {
         player.anims.play('walkRight', true);
         }
-        
     }
+    //Croutching
+    else if (cursors.down.isDown && cursors.right.isDown) {
+            //changing player hitbox
+            player.setSize(50, 140);
+            player.setOffset(100, 100)
+            player.setVelocityX(0);
+
+            player.setVelocityX(+croutchSpeed);
+            if (player.body.touching.down) {
+                    player.anims.play('crouch-walk-right', true)
+            }
+    }
+    
+    else if (cursors.down.isDown && cursors.left.isDown) {
+            //changing player hitbox
+            player.setSize(50, 140);
+            player.setOffset(100, 100)
+            player.setVelocityX(0);
+
+            player.setVelocityX(-croutchSpeed);
+            if (player.body.touching.down) {
+                    player.anims.play('crouch-walk-left', true)
+            }
+    }
+
     else if(cursors.down.isDown){
-        
         if (player.body.touching.down) {
             crouched = true;
-            console.log(player.y);
             let y = player.y;
+            //changing player hitbox
             player.setSize(50, 140);
-            player.setOffset(100, 110)            
+            player.setOffset(100, 100)            
             player.setVelocityX(0);
-            player.setVelocityY(0);
-            player.anims.play('croutch-flex',true)
+            //playing animation
+            player.anims.play('crouch-flex',true) 
         }
     }
+    
+    
+    //Idle animation
     else {
         player.setVelocityX(0);
-        player.setSize(100, 245, true);
+            player.setSize(100, playerHeight, true);
         if(!player.body.touching.down){
             player.anims.play('jump', true);
         }
-
         if (player.body.touching.down) {
             player.anims.play('flex', true)
         }
     }
 
+    //jumping
     if (cursors.up.isDown && player.body.touching.down) {
         player.setVelocityY(-330);
-        player.anims.play('flex', true)
     }
 
     else if (!player.body.touching.down && crouched === false) {
 
-        player.setSize(100, 245, true);
+        player.setSize(100, playerHeight, true);
         player.anims.play('jump', true);
     }
 
+    //On Collision with enemy
     if (player.body.touching.up){
         gameOver = true;
+        //Stop BG music and play game over music
         music.pause();
-        //gameOverMusic.play();
-        let score = Math.floor(timer / 50);
+        gameOverMusic.play();
 
+        let score = Math.floor(timer / 50);
         if (highestScoreValue < score ){
             highestScoreValue = score;
             highestScore.setText(`highest score: ${highestScoreValue}`)
@@ -246,11 +297,12 @@ function update() {
             repeat: -1
             
         })
+
         replayButton.opacity = 0;
         replayButton.setScale(0.2)
         replayButton.setInteractive();
         spikes.children.entries = []
-        replayButton.on("clicked", () => { gameOverText.destroy(), timer = 0, gameOver = false, replayButton.destroy()}) //music.play()} )
+        replayButton.on("clicked", () => { gameOverText.destroy(), timer = 0, gameOver = false, replayButton.destroy(), music.play()} )
     }
     
     
