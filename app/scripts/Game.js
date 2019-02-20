@@ -10,7 +10,7 @@ var config = {
         default: 'arcade',
         arcade: {
             gravity: { y: 700 },
-            debug: false
+            debug: true
         }
     },
     scene: {
@@ -39,12 +39,16 @@ var highestScore;
 var gameOverText;
 var replayButton;
 var music;
+var crouched = false;
 var gameOverMusic;
 
 function preload() {
     this.load.spritesheet('mummy', './runningMan.png', { frameWidth: 256, frameHeight: 256 });
     this.load.spritesheet('mummy2', './runningMan2.png', { frameWidth: 256, frameHeight: 256 });
     this.load.spritesheet('flex', './flexingMan.png', { frameWidth: 256, frameHeight: 256 });
+    this.load.spritesheet('croutch-flex', './croutching-flex.png', { frameWidth: 256, frameHeight: 256 });
+    this.load.spritesheet('croutch-walk-left', './croutching-walk-left.png', { frameWidth: 256, frameHeight: 256 });
+    this.load.spritesheet('croutch-walk-right', './croutching-walk-right.png', { frameWidth: 256, frameHeight: 256 });
     this.load.spritesheet('jump', './jumpingMan.png', { frameWidth: 256, frameHeight: 256 });
     this.load.image('ground', '/floor.png');
     this.load.image('background', '/background.png');
@@ -58,7 +62,7 @@ function preload() {
 function create() {
     music = this.sound.add('musicBack');
     gameOverMusic = this.sound.add('gameOver')
-    music.play();
+    //music.play();
     //background
     let backgroundImg = this.add.tileSprite(1280 / 2, 720/2, 1280, 720, 'background')
 	scoreText = this.add.text(16, 16, 'score: 0', { fontSize: '32px', fill: '#FF0000' });
@@ -118,6 +122,13 @@ function create() {
         repeat: -1
     });
 
+    this.anims.create({
+        key: 'croutch-flex',
+        frames: this.anims.generateFrameNumbers('croutch-flex'),
+        frameRate: 6,
+        repeat: -1
+    });
+
 
     //  Input Events
     cursors = this.input.keyboard.createCursorKeys();
@@ -141,12 +152,10 @@ function update() {
     if ( Math.floor(timer / 50) <10){
         if ((timer % 20 === 0 || timer === 1)){
         spikes.create(Math.random() * 1280, -100, 'spike').setScale((Math.random() * (1 - 0.4)) + 0.4);    
-        console.log("ha")
         }
     }
 
    if ( Math.floor(timer / 50) >= 10) {
-       console.log("hhaa")
         if (timer % 10 === 0 || timer === 1){
         spikes.create(Math.random() * 1280, -100, 'spike').setScale((Math.random() * (1 - 0.4)) + 0.4);
         }
@@ -170,6 +179,20 @@ function update() {
         if (player.body.touching.down) {
         player.anims.play('walkRight', true);
         }
+        
+    }
+    else if(cursors.down.isDown){
+        
+        if (player.body.touching.down) {
+            crouched = true;
+            console.log(player.y);
+            let y = player.y;
+            player.setSize(50, 140);
+            player.setOffset(100, 110)            
+            player.setVelocityX(0);
+            player.setVelocityY(0);
+            player.anims.play('croutch-flex',true)
+        }
     }
     else {
         player.setVelocityX(0);
@@ -188,7 +211,8 @@ function update() {
         player.anims.play('flex', true)
     }
 
-    else if (!player.body.touching.down) {
+    else if (!player.body.touching.down && crouched === false) {
+
         player.setSize(100, 245, true);
         player.anims.play('jump', true);
     }
@@ -196,7 +220,7 @@ function update() {
     if (player.body.touching.up){
         gameOver = true;
         music.pause();
-        gameOverMusic.play();
+        //gameOverMusic.play();
         let score = Math.floor(timer / 50);
 
         if (highestScoreValue < score ){
@@ -226,7 +250,7 @@ function update() {
         replayButton.setScale(0.2)
         replayButton.setInteractive();
         spikes.children.entries = []
-        replayButton.on("clicked", () => { gameOverText.destroy(), timer = 0, gameOver = false, replayButton.destroy(), music.play()})
+        replayButton.on("clicked", () => { gameOverText.destroy(), timer = 0, gameOver = false, replayButton.destroy()}) //music.play()} )
     }
     
     

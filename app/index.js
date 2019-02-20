@@ -99,6 +99,21 @@ app.get('/gameOver.mp3', function (req, res, next) {
     res.sendFile(path.resolve(__dirname, './assets/gameOver.mp3'));
 });
 
+app.get('/croutching-flex.png', function (req, res, next) {
+    console.log("croutching-flex delivered");
+    res.sendFile(path.resolve(__dirname, './assets/croutching-flex.png'));
+});
+
+app.get('/croutching-walk-left.png', function (req, res, next) {
+    console.log("croutching-walk-left delivered");
+    res.sendFile(path.resolve(__dirname, './assets/croutching-walk-left.png'));
+});
+
+app.get('/croutching-walk-right.png', function (req, res, next) {
+    console.log("croutching-walk-left delivered");
+    res.sendFile(path.resolve(__dirname, './assets/croutching-walk-right.png'));
+});
+
 app.listen(3000)
 
 console.log("Listening to PORT: 3000")
