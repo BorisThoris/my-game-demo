@@ -24,7 +24,7 @@ var config = {
 var game = new Phaser.Game(config);
 
 //Variables
-var player, platforms, cursors, scoreText, spikes, scoreText, highestScore, gameOverText, replayButton, music, gameOverMusic;
+var player, platforms, cursors, scoreText, spikes, powerUps, scoreText, highestScore, gameOverText, replayButton, music, gameOverMusic;
 
 //Variables with default values
 var highestScoreValue = 0;
@@ -54,9 +54,46 @@ function preload() {
     this.load.image('background', '/background.png');
     this.load.image('spike', '/spikeball.png');
     this.load.image('replay', '/replay.png');
+    this.load.image('powerUp', '/powerUp.png');
     this.load.image('replay', '/replay.png')
     this.load.audio('musicBack', '/backgroundMusic.mp3');
     this.load.audio('gameOver', '/gameOver.mp3');
+    
+}
+
+function spikeCollision() {
+    //On Collision with enemy
+    if (player.body.touching.up) {
+        gameOver = true;
+        //Stop BG music and play game over music
+        music.pause();
+        gameOverMusic.play();
+
+        let score = Math.floor(timer / 50);
+        if (highestScoreValue < score) {
+            highestScoreValue = score;
+            highestScore.setText(`highest score: ${highestScoreValue}`)
+        }
+    }
+}
+
+function powerUpsCollision(e){
+    let powerUp = Math.floor(Math.random()*4)
+
+    if(powerUp === 1){
+        walkSpeed = -500
+    }
+    else if(powerUp === 2){
+        walkSpeed = 500
+    }
+    else if(powerUp === 3){
+        walkSpeed = 700
+    }
+    else if (powerUp === 4) {
+        walkSpeed = 560
+    }
+
+    powerUps.children.entries.shift(e);
 }
 
 function create() {
@@ -71,9 +108,12 @@ function create() {
 
     spikes = this.physics.add.group({})
 
+    powerUps = this.physics.add.group({})
+
     spikes.children.iterate(function (child) {
         child.body.friction.x = 5;
     });
+
 
     //  Frame debug view
     frameView = this.add.graphics();
@@ -90,8 +130,12 @@ function create() {
     //  Player physics properties
     player.setBounce(0.0);
     player.setCollideWorldBounds(true);
-    this.physics.add.collider(spikes, player);
+
+    //Collisions
+    this.physics.add.collider(spikes, player, () => spikeCollision());
+    this.physics.add.collider(powerUps, player, (powerUps) => powerUpsCollision(powerUps))
     this.physics.add.collider(player, platforms);
+
     player.setSize(100, playerHeight, true);
 
     //Creating Animations
@@ -173,24 +217,42 @@ function update() {
         //Checking phase
         if (Math.floor(timer / 50) < 10) {
             if ((timer % 20 === 0 || timer === 1)) {
+                let huh = Math.floor(Math.random()*5)
+                if(huh >= 1 && huh <= 4){
                 spikes.create(Math.random() * 1280, -100, 'spike').setScale((Math.random() * (1 - 0.4)) + 0.4);
+                }
+                else {
+                    powerUps.create(Math.random() * 1280, -100, 'powerUp').setScale(0.15)
+                }
             }
         }
         //Checking phase
         if (Math.floor(timer / 50) >= 10) {
             if (timer % 10 === 0 || timer === 1) {
-                spikes.create(Math.random() * 1280, -100, 'spike').setScale((Math.random() * (1 - 0.4)) + 0.4);
+                let huh = Math.floor(Math.random() * 10)
+                if (huh >= 1 && huh <= 6) {
+                    spikes.create(Math.random() * 1280, -100, 'spike').setScale((Math.random() * (1 - 0.4)) + 0.4);
+                }
+                else {
+                    powerUps.create(Math.random() * 1280, -100, 'powerUp').setScale(0.15)
+                }
             }
         }
 
         //Preventing memory leaks
-        if (timer > 200 && spikes.children.entries[spikes.children.entries.length - 1].y === -100) {
+        if (timer > 200 && spikes.children.entries[spikes.children.entries.length - 1].y === -500) {
 
             spikes.children.entries.shift();
         }
 
+        if (timer > 200 && powerUps.children.entries[powerUps.children.entries.length - 1].y !== undefined && powerUps.children.entries[powerUps.children.entries.length - 1].y === -500) {
+
+            powerUps.children.entries.shift();
+        }
+
         //Moving left
         if (cursors.left.isDown && !cursors.down.isDown) {
+            console.log(walkSpeed);
             player.setVelocityX(-walkSpeed);
             player.setSize(50, playerHeight, true);
 
@@ -270,20 +332,6 @@ function update() {
             player.anims.play('jump', true);
         }
 
-        //On Collision with enemy
-        if (player.body.touching.up) {
-            gameOver = true;
-            //Stop BG music and play game over music
-            music.pause();
-            gameOverMusic.play();
-
-            let score = Math.floor(timer / 50);
-            if (highestScoreValue < score) {
-                highestScoreValue = score;
-                highestScore.setText(`highest score: ${highestScoreValue}`)
-            }
-        }
-
     }
     else if (gameOver !== "Ended") {
         player.setVelocityX(0);
@@ -306,10 +354,8 @@ function update() {
         replayButton.setScale(0.2)
         replayButton.setInteractive();
         spikes.children.entries = []
-        replayButton.on("clicked", () => { gameOverText.destroy(), timer = 0, gameOver = false, replayButton.destroy(), music.play() })
+        replayButton.on("clicked", () => { gameOverText.destroy(), timer = 0, walkSpeed = 500, gameOver = false, replayButton.destroy(), music.play() })
     }
-
-
 }
 
 

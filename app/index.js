@@ -114,6 +114,11 @@ app.get('/croutching-walk-right.png', function (req, res, next) {
     res.sendFile(path.resolve(__dirname, './assets/croutching-walk-right.png'));
 });
 
+app.get('/powerUp.png', function (req, res, next) {
+    console.log("croutching-walk-left delivered");
+    res.sendFile(path.resolve(__dirname, './assets/powerUp.png'));
+});
+
 app.listen(3000)
 
 console.log("Listening to PORT: 3000")
