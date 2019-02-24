@@ -252,7 +252,6 @@ function update() {
 
         //Moving left
         if (cursors.left.isDown && !cursors.down.isDown) {
-            console.log(walkSpeed);
             player.setVelocityX(-walkSpeed);
             player.setSize(50, playerHeight, true);
 
