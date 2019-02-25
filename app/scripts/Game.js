@@ -10,7 +10,7 @@ var config = {
         default: 'arcade',
         arcade: {
             gravity: { y: 700 },
-            debug: false
+            debug: true
         }
     },
     scene: {
@@ -87,19 +87,15 @@ function powerUpsCollision(e){
 
     if(powerUp === 1){
         walkSpeed = -500
-        powerUps.children.entries.shift(e);
     }
     else if(powerUp === 2){
         walkSpeed = 500
-        powerUps.children.entries.shift(e);
     }
     else if(powerUp === 3){
         walkSpeed = 700
-        powerUps.children.entries.shift(e);
     }
     else if (powerUp === 4) {
-        walkSpeed = 560
-        powerUps.children.entries.shift(e);
+        walkSpeed = -700
     }
     else if(powerUp === 5){
         spikeMax += 0.1;
@@ -370,7 +366,7 @@ function update() {
         replayButton.setScale(0.2)
         replayButton.setInteractive();
         spikes.children.entries = []
-        replayButton.on("clicked", () => { gameOverText.destroy(), timer = 0, walkSpeed = 500, spikeMax = 0.4, gameOver = false, replayButton.destroy(), music.play() })
+        replayButton.on("clicked", () => { gameOverText.destroy(), timer = 0, walkSpeed = 500, croutchSpeed = walkSpeed - 100, spikeMax = 0.4, gameOver = false, replayButton.destroy(), music.play() })
     }
 }
 
