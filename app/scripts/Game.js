@@ -24,7 +24,7 @@ var config = {
 var game = new Phaser.Game(config);
 
 //Variables
-var player, platforms, cursors, scoreText, spikes, powerUps, scoreText, highestScore, gameOverText, replayButton, music, gameOverMusic;
+var player, platforms, cursors, scoreText, spikes, powerUps, scoreText, highestScore, gameOverText, replayButton, music, gameOverMusic, ooGnome;
 
 //Variables with default values
 var highestScoreValue = 0;
@@ -34,6 +34,7 @@ var gameOver = false;
 var jumped = false;
 var gameOver = false;
 var crouched = false;
+var spikeMax = 0.4;
 
 //Player vars
 var playerHeight = 225;
@@ -56,8 +57,10 @@ function preload() {
     this.load.image('replay', '/replay.png');
     this.load.image('powerUp', '/powerUp.png');
     this.load.image('replay', '/replay.png')
+    //Audio
     this.load.audio('musicBack', '/backgroundMusic.mp3');
     this.load.audio('gameOver', '/gameOver.mp3');
+    this.load.audio('ooGnome', '/ooGnome.mp3');
     
 }
 
@@ -77,28 +80,41 @@ function spikeCollision() {
     }
 }
 
+// Power up collision
 function powerUpsCollision(e){
-    let powerUp = Math.floor(Math.random()*4)
+    let powerUp = Math.floor(Math.random()*6)
+    ooGnome.play();
 
     if(powerUp === 1){
         walkSpeed = -500
+        powerUps.children.entries.shift(e);
     }
     else if(powerUp === 2){
         walkSpeed = 500
+        powerUps.children.entries.shift(e);
     }
     else if(powerUp === 3){
         walkSpeed = 700
+        powerUps.children.entries.shift(e);
     }
     else if (powerUp === 4) {
         walkSpeed = 560
+        powerUps.children.entries.shift(e);
+    }
+    else if(powerUp === 5){
+        spikeMax += 0.1;
+    }
+    else if(powerUp === 6){
+        spikeMax -= 0.1;
     }
 
-    powerUps.children.entries.shift(e);
+    croutchSpeed = walkSpeed - 100;
 }
 
 function create() {
     music = this.sound.add('musicBack');
     gameOverMusic = this.sound.add('gameOver')
+    ooGnome = this.sound.add('ooGnome')
     music.play();
 
     //background
@@ -133,6 +149,7 @@ function create() {
 
     //Collisions
     this.physics.add.collider(spikes, player, () => spikeCollision());
+    this.physics.add.collider(spikes, powerUps);
     this.physics.add.collider(powerUps, player, (powerUps) => powerUpsCollision(powerUps))
     this.physics.add.collider(player, platforms);
 
@@ -219,7 +236,7 @@ function update() {
             if ((timer % 20 === 0 || timer === 1)) {
                 let huh = Math.floor(Math.random()*5)
                 if(huh >= 1 && huh <= 4){
-                spikes.create(Math.random() * 1280, -100, 'spike').setScale((Math.random() * (1 - 0.4)) + 0.4);
+                spikes.create(Math.random() * 1280, -100, 'spike').setScale((Math.random() * (1 - 0.4)) + spikeMax);
                 }
                 else {
                     powerUps.create(Math.random() * 1280, -100, 'powerUp').setScale(0.15)
@@ -231,7 +248,7 @@ function update() {
             if (timer % 10 === 0 || timer === 1) {
                 let huh = Math.floor(Math.random() * 10)
                 if (huh >= 1 && huh <= 6) {
-                    spikes.create(Math.random() * 1280, -100, 'spike').setScale((Math.random() * (1 - 0.4)) + 0.4);
+                    spikes.create(Math.random() * 1280, -100, 'spike').setScale((Math.random() * (1 - 0.4)) + spikeeMax);
                 }
                 else {
                     powerUps.create(Math.random() * 1280, -100, 'powerUp').setScale(0.15)
@@ -245,7 +262,7 @@ function update() {
             spikes.children.entries.shift();
         }
 
-        if (timer > 200 && powerUps.children.entries[powerUps.children.entries.length - 1].y !== undefined && powerUps.children.entries[powerUps.children.entries.length - 1].y === -500) {
+        if (timer > 200 && powerUps.children.entries[powerUps.children.entries.length - 1] !== undefined && powerUps.children.entries[powerUps.children.entries.length - 1].y === -500) {
 
             powerUps.children.entries.shift();
         }
@@ -353,7 +370,7 @@ function update() {
         replayButton.setScale(0.2)
         replayButton.setInteractive();
         spikes.children.entries = []
-        replayButton.on("clicked", () => { gameOverText.destroy(), timer = 0, walkSpeed = 500, gameOver = false, replayButton.destroy(), music.play() })
+        replayButton.on("clicked", () => { gameOverText.destroy(), timer = 0, walkSpeed = 500, spikeMax = 0.4, gameOver = false, replayButton.destroy(), music.play() })
     }
 }
 
