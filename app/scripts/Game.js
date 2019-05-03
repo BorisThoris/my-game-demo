@@ -1,6 +1,8 @@
-class MyScene extends Phaser.Scene {
+// const DodgeGame = require("/scenes/dodgeGame");
+
+class DodgeGame extends Phaser.Scene {
   constructor() {
-    super({ key: "sceneb" });
+    super({ key: "sceneG" });
     //Variables
     var player,
       platforms,
@@ -509,10 +511,8 @@ var config = {
       debug: true
     }
   },
-  scene: [MyScene, MyGame]
+  scene: [DodgeGame, MyGame]
 };
 
 //Creating game
 var game = new Phaser.Game(config);
-
-//game.scene.add("myScene", MyScene, true, { x: 400, y: 300 });
