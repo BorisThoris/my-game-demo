@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "test": "mocha test",
-    "build": "webpack --mode production --config webpack.server.config.js && webpack --mode production --config webpack.dev.config.js",
+    "build": "webpack --mode development --config webpack.server.config.js && webpack --mode production --config webpack.dev.config.js",
     "start": "node ./dist/server.js",
     "your-custom-script": "echo npm",
     "deploy": "gh-pages -d dist",
