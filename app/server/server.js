@@ -136,6 +136,6 @@ app.engine(
 //   res.sendFile(path.resolve(__dirname, "./assets/powerUp.png"));
 // });
 
-app.listen(80);
+app.listen(3000);
 
-console.log(`Listening to PORT: 80`);
+console.log(`Listening to PORT: 3000`);
