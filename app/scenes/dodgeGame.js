@@ -7,7 +7,7 @@ import crouchingWalkRight from "../assets/croutching-walk-right.png";
 import jumpingMan from "../assets/jumpingMan.png";
 import floor from "../assets/floor.png";
 import background from "../assets/background.png";
-import spikeBall from "../assets/spikeBall.png";
+import spikeBall from "../assets/spikeball.png";
 import replay from "../assets/replayBtn.png";
 import powerUp from "../assets/powerUp.png";
 import musicBack from "../assets/backMusic(2).mp3";
