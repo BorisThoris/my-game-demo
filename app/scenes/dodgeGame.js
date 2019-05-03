@@ -7,7 +7,7 @@ import crouchingWalkRight from "../assets/croutching-walk-right.png";
 import jumpingMan from "../assets/jumpingMan.png";
 import floor from "../assets/floor.png";
 import background from "../assets/background.png";
-import spikeBall from "../assets/spikeBall.png";
+//import spikeBall from "../assets/spikeBall.png";
 import replay from "../assets/replayBtn.png";
 import powerUp from "../assets/powerUp.png";
 import musicBack from "../assets/backMusic(2).mp3";
@@ -80,7 +80,7 @@ export default class DodgeGame extends Phaser.Scene {
     });
     this.load.image("ground", floor);
     this.load.image("background", background);
-    this.load.image("spike", spikeBall);
+    this.load.image("spike", powerUp);
     this.load.image("replay", replay);
     this.load.image("powerUp", powerUp);
 
