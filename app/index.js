@@ -1,10 +1,11 @@
 // const DodgeGame = require("/scenes/dodgeGame");
 import Phaser from "./scripts/phaser.js";
-import dodgeGame from "./scenes/dodgeGame";
+import DodgeGame from "./scenes/dodgeGame";
+import BegginingScene from "./scenes/beginningScene";
 
 class MyGame extends Phaser.Scene {
   constructor() {
-    super({ key: "sceneC" });
+    super({ key: "lol" });
   }
 
   preload() {
@@ -29,7 +30,7 @@ var config = {
       debug: true
     }
   },
-  scene: [dodgeGame, MyGame]
+  scene: [BegginingScene, DodgeGame, MyGame]
 };
 
 //Creating game

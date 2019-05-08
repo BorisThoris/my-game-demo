@@ -13,40 +13,42 @@ import powerUp from "../assets/powerUp.png";
 import musicBack from "../assets/backMusic(2).mp3";
 import gameOver from "../assets/gameOver.mp3";
 import ooGnome from "../assets/oo.mp3";
+import playerMover from "../help-scripts/playerMovement";
 
 export default class DodgeGame extends Phaser.Scene {
   constructor() {
     super({ key: "sceneb" });
     //Variables
-    var player,
-      platforms,
-      cursors,
-      scoreText,
-      spikes,
-      powerUps,
-      scoreText,
-      highestScore,
-      gameOverText,
-      replayButton,
-      music,
-      gameOverMusic,
-      ooGnome;
+    this.player = null;
+    this.platforms = null;
+    this.cursors = null;
+    this.scoreText = null;
+    this.spikes = null;
+    this.powerUps = null;
+    this.scoreText = null;
+    this.highestScore = null;
+    this.gameOverText = null;
+    this.replayButton = null;
+    this.music = null;
+    this.gameOverMusic = null;
+    this.ooGnome = null;
+    this.playerMovementHelper = null;
 
     //Variables with default values
-    var highestScoreValue = 0;
-    var score = 0;
-    var timer = 0;
-    var gameOver = false;
-    var jumped = false;
-    var crouched = false;
-    var spikeMax = 0.4;
+    this.highestScoreValue = 0;
+    this.score = 0;
+    this.timer = 0;
+    this.gameOver = false;
+    this.jumped = false;
+    this.crouched = false;
+    this.spikeMax = 0.4;
 
     //this.player vars
-    var playerHeight = 225;
+    this.playerHeight = 225;
 
     //Change walking speed
-    var walkSpeed = 500;
-    var croutchSpeed = walkSpeed - 100;
+    this.walkSpeed = 500;
+    this.croutchSpeed = this.walkSpeed - 100;
   }
 
   preload() {
@@ -93,7 +95,6 @@ export default class DodgeGame extends Phaser.Scene {
   spikeCollision() {
     //On Collision with enemy
     if (this.player.body.touching.up) {
-      this.gameOver = true;
       //Stop BG this.music and play game over this.music
       this.music.pause();
       this.gameOverMusic.play();
@@ -106,6 +107,7 @@ export default class DodgeGame extends Phaser.Scene {
         this.highestScoreValue = score;
         this.highestScore.setText(`highest score: ${this.highestScoreValue}`);
       }
+      this.gameOverFunc();
     }
   }
 
@@ -117,6 +119,8 @@ export default class DodgeGame extends Phaser.Scene {
     let powerUp = Math.floor(Math.random() * 6);
     this.ooGnome.play();
 
+    this.scene.start("lol");
+
     if (powerUp === 1) {
       this.walkSpeed = -500;
     } else if (powerUp === 2) {
@@ -125,9 +129,17 @@ export default class DodgeGame extends Phaser.Scene {
       this.walkSpeed = 700;
     } else if (powerUp === 4) {
       this.walkSpeed = -700;
+    } else if (powerUp === 5) {
+      this.walkSpeed = 1000;
+    } else if (powerUp === 6) {
+      this.walkSpeed = -1000;
     }
 
-    this.croutchSpeed = this.walkSpeed - 100;
+    if (this.croutchSpeed > 0) {
+      this.croutchSpeed = this.walkSpeed - 200;
+    } else {
+      this.croutchSpeed = this.walkSpeed + 200;
+    }
   }
 
   create() {
@@ -179,7 +191,14 @@ export default class DodgeGame extends Phaser.Scene {
       .refreshBody();
 
     //creating this.player
-    this.player = this.physics.add.sprite(100, this.playerHeight, "mummy");
+    this.player = this.physics.add.sprite(
+      100,
+      +540,
+      this.playerHeight,
+      "mummy"
+    );
+
+    this.playerMovementHelper = new playerMover(this.player);
 
     //  this.player physics properties
     this.player.setBounce(0.0);
@@ -265,78 +284,6 @@ export default class DodgeGame extends Phaser.Scene {
 
   updateFrameView() {}
 
-  movingLeftRightCrouch(direction) {
-    let touchingDown = this.player.body.touching.down;
-    let player = this.player;
-
-    switch (direction) {
-      case "left":
-        //Moving left
-        player.setVelocityX(-this.walkSpeed);
-        player.setSize(50, this.playerHeight, true);
-
-        if (touchingDown) {
-          player.anims.play("walkLeft", true);
-        }
-
-        break;
-
-      case "right":
-        player.setVelocityX(this.walkSpeed);
-        player.setSize(50, this.playerHeight, true);
-
-        if (touchingDown) {
-          player.anims.play("walkRight", true);
-        }
-
-        break;
-
-      case "crouchRight":
-        this.crouched = true;
-        player.setVelocityX(+this.croutchSpeed);
-
-        if (touchingDown) {
-          //changing this.player hitbox
-          this.adjustCrouchingHitBox();
-
-          if (touchingDown) {
-            player.anims.play("crouch-walk-right", true);
-          }
-        }
-        break;
-
-      case "crouchLeft":
-        this.crouched = true;
-        player.setVelocityX(-this.croutchSpeed);
-
-        if (touchingDown) {
-          //changing this.player hitbox
-          this.adjustCrouchingHitBox();
-
-          if (touchingDown) {
-            player.anims.play("crouch-walk-left", true);
-          }
-        }
-        break;
-
-      case "crouch":
-        this.crouched = true;
-        let y = player.y;
-        //changing this.player hitbox
-        this.adjustCrouchingHitBox();
-        player.setVelocityX(0);
-
-        //playing animation
-        player.anims.play("crouch-flex", true);
-        break;
-    }
-  }
-
-  adjustCrouchingHitBox() {
-    this.player.setSize(50, 140);
-    this.player.setOffset(100, 120);
-  }
-
   addSpike() {
     this.spikes
       .create(Math.random() * 1280, -100, "spike")
@@ -359,6 +306,33 @@ export default class DodgeGame extends Phaser.Scene {
     this.replayButtonFunc();
   }
 
+  clearMemo() {
+    if (this.gameOver !== "Ended") {
+      let spikes = this.spikes.children.entries;
+      let spikesLength = this.spikes.children.entries.length - 1;
+      let powerUps = this.powerUps.children.entries;
+      let powerUpsLength = this.powerUps.children.entries.length - 1;
+
+      if (spikes[0] !== undefined && spikes[0].y > 1000) {
+        spikes[0].destroy();
+      }
+
+      if (powerUps[0] !== undefined && powerUps[0].y > 1000) {
+        powerUps[0].destroy();
+      }
+    }
+  }
+
+  resetVars() {
+    this.timer = 0;
+    this.walkSpeed = 500;
+    this.croutchSpeed = this.walkSpeed - 100;
+    this.spikeMax = 0.4;
+    this.gameOver = false;
+    this.replayButton.destroy();
+    this.music.play();
+  }
+
   replayButtonFunc() {
     this.replayButton = this.add.sprite(1280 / 2, 540, "replay");
     this.add.tween({
@@ -375,14 +349,7 @@ export default class DodgeGame extends Phaser.Scene {
     this.replayButton.setInteractive();
     this.spikes.children.entries = [];
     this.replayButton.on("clicked", () => {
-      this.gameOverText.destroy(),
-        (this.timer = 0),
-        (this.walkSpeed = 500),
-        (this.croutchSpeed = this.walkSpeed - 100),
-        (this.spikeMax = 0.4),
-        (this.gameOver = false),
-        this.replayButton.destroy(),
-        this.music.play();
+      this.gameOverText.destroy(), this.resetVars();
     });
   }
 
@@ -395,20 +362,9 @@ export default class DodgeGame extends Phaser.Scene {
       this.scoreText.setText("Score: " + Math.floor(this.timer / 50));
 
       let score = Math.floor(this.timer / 50);
-      let touchingDown = this.player.body.touching.down;
-      let cursorRight = this.cursors.right.isDown;
-      let cursorLeft = this.cursors.left.isDown;
-      let cursorDown = this.cursors.down.isDown;
-      let cursorUp = this.cursors.up.isDown;
-      let player = this.player;
-      let spikes = this.spikes.children.entries;
-      let spikesLength = this.spikes.children.entries.length - 1;
-      let powerUps = this.powerUps.children.entries;
-      let powerUpsLength = this.powerUps.children.entries.length - 1;
 
       //Checking phase
       let randomNum = Math.floor(Math.random() * 10);
-
       if (score < 10) {
         if (this.timer % 20 === 0 || this.timer === 1) {
           if (randomNum >= 1 && randomNum <= 4) {
@@ -418,8 +374,9 @@ export default class DodgeGame extends Phaser.Scene {
           }
         }
       }
+
       //Checking phase
-      if (score >= 10) {
+      else if (score >= 10) {
         if (this.timer % 10 === 0 || this.timer === 1) {
           if (randomNum >= 1 && randomNum <= 6) {
             this.addSpike();
@@ -430,64 +387,15 @@ export default class DodgeGame extends Phaser.Scene {
       }
 
       //Preventing memory leaks
-      if (this.timer > 200 && spikes[spikesLength].y === -500) {
-        spikes.shift();
-      }
 
-      if (
-        this.timer > 200 &&
-        powerUps[powerUpsLength] !== undefined &&
-        powerUps[powerUpsLength].y === -500
-      ) {
-        powerUps.shift();
-      }
+      this.crouched = false;
 
-      //Moving Left
-      if (cursorLeft && !cursorDown) {
-        this.movingLeftRightCrouch("left");
-      }
-
-      //Moving Right
-      else if (cursorRight && !cursorDown) {
-        this.movingLeftRightCrouch("right");
-      }
-
-      //Croutching
-      else if (cursorDown && cursorRight) {
-        this.movingLeftRightCrouch("crouchRight");
-      } else if (cursorDown && cursorLeft) {
-        this.movingLeftRightCrouch("crouchLeft");
-      } else if (cursorDown) {
-        if (touchingDown) {
-          this.movingLeftRightCrouch("crouch");
-        }
-      }
-
-      //Idle animation
-      else {
-        this.player.setVelocityX(0);
-        this.player.setSize(100, this.playerHeight, true);
-
-        if (touchingDown) {
-          this.player.anims.play("jump", true);
-        }
-        if (touchingDown) {
-          this.player.anims.play("flex", true);
-        }
-      }
-
-      //jumping
-      if (cursorUp && touchingDown) {
-        this.player.setVelocityY(-330);
-      } else if (!touchingDown && this.crouched === false) {
-        this.player.setSize(100, this.playerHeight, true);
-        this.player.anims.play("jump", true);
-      }
-    } else if (this.gameOver !== "Ended") {
+      this.playerMovementHelper.playerMovment(this.cursors);
+    } else if (this.gameOver == "Ended") {
       this.player.setVelocityX(0);
       this.player.anims.play("flex", true);
-
-      this.gameOverFunc();
     }
+
+    this.clearMemo();
   }
 }
