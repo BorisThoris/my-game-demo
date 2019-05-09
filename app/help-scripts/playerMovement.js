@@ -47,13 +47,15 @@ export default class playerMover {
     }
 
     //Idle animation
-    if (noKeys) {
+    if (noKeys && touchingDown) {
       this.player.anims.play("flex", true);
+      this.crouched = false;
     }
 
     //jumping
     if (cursorUp && touchingDown) {
       this.player.setVelocityY(-330);
+      this.crouched = false;
     } else if (!touchingDown && this.crouched === false) {
       this.player.setSize(100, this.playerHeight, true);
       this.player.anims.play("jump", true);

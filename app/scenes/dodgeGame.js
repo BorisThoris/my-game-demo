@@ -396,6 +396,10 @@ export default class DodgeGame extends Phaser.Scene {
       this.player.anims.play("flex", true);
     }
 
+    if (this.player.body.blocked.left) {
+      this.scene.start("begginingScene");
+    }
+
     this.clearMemo();
   }
 }

@@ -2,6 +2,7 @@
 import Phaser from "./scripts/phaser.js";
 import DodgeGame from "./scenes/dodgeGame";
 import BegginingScene from "./scenes/beginningScene";
+import introductionScene from "./scenes/introductionScene";
 
 class MyGame extends Phaser.Scene {
   constructor() {
@@ -30,7 +31,7 @@ var config = {
       debug: true
     }
   },
-  scene: [BegginingScene, DodgeGame, MyGame]
+  scene: [BegginingScene, DodgeGame, MyGame, introductionScene]
 };
 
 //Creating game

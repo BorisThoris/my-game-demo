@@ -7,13 +7,11 @@ import crouchingWalkRight from "../assets/croutching-walk-right.png";
 import jumpingMan from "../assets/jumpingMan.png";
 import floor from "../assets/floor.png";
 import background from "../assets/background.png";
-import spikeBall from "../assets/spikeball.png";
-import replay from "../assets/replayBtn.png";
-import powerUp from "../assets/powerUp.png";
 import musicBack from "../assets/backMusic(2).mp3";
 import gameOver from "../assets/gameOver.mp3";
 import ooGnome from "../assets/oo.mp3";
 import playerMover from "../help-scripts/playerMovement";
+import arrowRight from "../assets/arrowRight.png";
 
 export default class BegginingScene extends Phaser.Scene {
   constructor() {
@@ -22,26 +20,16 @@ export default class BegginingScene extends Phaser.Scene {
     this.player = null;
     this.platforms = null;
     this.cursors = null;
-    this.scoreText = null;
-    this.spikes = null;
-    this.powerUps = null;
-    this.scoreText = null;
-
-    this.gameOverText = null;
-    this.replayButton = null;
     this.music = null;
-    this.gameOverMusic = null;
-    this.ooGnome = null;
 
     this.playerMovementHelper = null;
     //Variables with default values
-
+    this.isStarted = false;
     this.score = 0;
     this.timer = 0;
     this.gameOver2 = false;
     this.jumped = false;
     this.crouched = false;
-    this.spikeMax = 0.4;
 
     //this.player vars
     this.playerHeight = 225;
@@ -89,20 +77,14 @@ export default class BegginingScene extends Phaser.Scene {
 
     this.load.image("ground", floor);
     this.load.image("background", background);
-    this.load.image("spike", spikeBall);
-    this.load.image("replay", replay);
-    this.load.image("powerUp", powerUp);
+    this.load.image("arrow", arrowRight);
 
     //Audio
     this.load.audio("musicBack", musicBack);
-    this.load.audio("gameOver", gameOver);
-    this.load.audio("ooGnome", ooGnome);
   }
 
   create() {
     this.music = this.sound.add("musicBack");
-    this.gameOverMusic = this.sound.add("gameOver");
-    this.ooGnome = this.sound.add("ooGnome");
     this.music.play();
 
     //background
@@ -194,48 +176,139 @@ export default class BegginingScene extends Phaser.Scene {
       boundsAlignV: "middle"
     };
 
-    this.scoreText = this.add.text(440, 360, "Welcome to my CV", style);
+    var style2 = {
+      font: "bold 40px Arial",
+      fill: "#fff",
+      boundsAlignH: "center",
+      boundsAlignV: "middle"
+    };
 
-    this.highestScore = this.add.text(
-      0,
-      0,
-      `highest score: ${this.highestScoreValue}`,
-      {
-        fontSize: "32px",
-        fill: "#f6ff00"
-      }
+    this.helloText = this.add.text(400, 300, "Hello", style);
+    this.andText = this.add.text(400, 330, "And Welcome", style);
+    this.scoreText = this.add.text(400, 360, "To", style);
+    this.myCv = this.add.text(400, 390, "My Cv", style);
+
+    this.controlsText = this.add.text(
+      150,
+      300,
+      "You Can Now Use Your Arrow Keys To Move Around",
+      style2
     );
+    this.tryText = this.add.text(500, 340, "Try It Out", style2);
+    this.arrow = this.add.image(1100, 430, "arrow").setScale(0.25);
 
-    this.scoreText.setShadow(3, 3, "rgba(0,0,0,0.5)", 2);
+    this.helloText.alpha = 0;
+    this.scoreText.alpha = 0;
+    this.andText.alpha = 0;
+    this.myCv.alpha = 0;
+    this.controlsText.alpha = 0;
+    this.tryText.alpha = 0;
+    this.arrow.alpha = 0;
+
+    var timeline = this.tweens.timeline({
+      ease: "Power2",
+      duration: 2000,
+
+      tweens: [
+        {
+          targets: this.helloText,
+          ease: "Sine.easeInOut",
+          duration: 1000,
+          delay: 0,
+          alpha: 1,
+          repeat: 0
+        },
+        {
+          targets: this.andText,
+          ease: "Sine.easeInOut",
+          duration: 1000,
+          delay: 0,
+          alpha: 1,
+          repeat: 0
+        },
+        {
+          targets: this.scoreText,
+          ease: "Sine.easeInOut",
+          duration: 1000,
+          alpha: 1,
+          repeat: 0
+        },
+        {
+          targets: this.myCv,
+          ease: "Sine.easeInOut",
+          duration: 1000,
+          alpha: 1,
+          repeat: 0
+        },
+        {
+          targets: [this.helloText, this.andText, this.scoreText, this.myCv],
+          ease: "Sine.easeInOut",
+          delay: 1000,
+          duration: 1000,
+          alpha: 0,
+          repeat: 0,
+          onComplete: () => {
+            this.isStarted = true;
+          }
+        },
+        {
+          targets: this.controlsText,
+          ease: "Sine.easeInOut",
+          duration: 1650,
+          alpha: 1,
+          yoyo: true,
+          onRepeat: () => {
+            this.add.tween({
+              targets: [this.tryText, this.arrow],
+              ease: "Sine.easeInOut",
+              duration: 1650,
+              alpha: 1,
+              yoyo: true
+            });
+          },
+
+          onComplete: () => {},
+          repeat: 1
+        },
+        {
+          targets: [this.arrow],
+          ease: "Sine.easeInOut",
+          duration: 1650,
+          alpha: 1,
+          repeat: -1,
+          yoyo: true
+        }
+      ]
+    });
+
+    //this.scoreText.setShadow(3, 3, "rgba(0,0,0,0.5)", 2);
 
     //creating this.player
     this.player = this.physics.add.sprite(600, +540, this.playerHeight, "flex");
-
     this.playerMovementHelper = new playerMover(this.player);
 
     //  this.player physics properties
     this.player.setBounce(0.0);
     this.player.setCollideWorldBounds(true);
 
-    //Collisions
-
+    //Collisions And Player Setup
     this.physics.add.collider(this.player, this.platforms);
 
     this.player.setSize(100, this.playerHeight, true);
+    this.playerMovementHelper.playerMovment(this.cursors);
+    this.player.anims.play("flex", true);
   }
 
   updateFrameView() {}
 
   //Movement
   update() {
-    console.log();
-
     if (this.player.body.blocked.right) {
-      this.scene.start("sceneb");
+      this.scene.start("introScene");
     }
 
     //Checking if game is over
-    if (this.gameOver2 === false) {
+    if (this.gameOver2 === false && this.isStarted === true) {
       this.timer++;
       this.crouched = false;
 
