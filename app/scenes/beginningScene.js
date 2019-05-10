@@ -12,6 +12,7 @@ import gameOver from "../assets/gameOver.mp3";
 import ooGnome from "../assets/oo.mp3";
 import playerMover from "../help-scripts/playerMovement";
 import arrowRight from "../assets/arrowRight.png";
+import background2 from "../assets/background2.png";
 
 export default class BegginingScene extends Phaser.Scene {
   constructor() {
@@ -183,26 +184,32 @@ export default class BegginingScene extends Phaser.Scene {
       boundsAlignV: "middle"
     };
 
-    this.helloText = this.add.text(400, 300, "Hello", style);
-    this.andText = this.add.text(400, 330, "And Welcome", style);
-    this.scoreText = this.add.text(400, 360, "To", style);
-    this.myCv = this.add.text(400, 390, "My Cv", style);
+    this.helloText = this.add.text(200, 200, "Hello", style2);
+    this.andText = this.add.text(200, 240, "And Welcome", style2);
+    this.scoreText = this.add.text(200, 280, "To", style2);
+    this.myCv = this.add.text(200, 320, "My Cv", style2);
 
     this.controlsText = this.add.text(
       150,
-      300,
+      100,
       "You Can Now Use Your Arrow Keys To Move Around",
       style2
     );
-    this.tryText = this.add.text(500, 340, "Try It Out", style2);
-    this.arrow = this.add.image(1100, 430, "arrow").setScale(0.25);
+
+    this.arrow = this.add.image(1100, 380, "arrow").setScale(0.25);
 
     this.helloText.alpha = 0;
     this.scoreText.alpha = 0;
     this.andText.alpha = 0;
     this.myCv.alpha = 0;
     this.controlsText.alpha = 0;
-    this.tryText.alpha = 0;
+
+    this.helloText.setShadow(10, 10, "rgba(0,0,0,0.5)", 2);
+    this.scoreText.setShadow(10, 10, "rgba(0,0,0,0.5)", 2);
+    this.andText.setShadow(10, 10, "rgba(0,0,0,0.5)", 2);
+    this.myCv.setShadow(10, 10, "rgba(0,0,0,0.5)", 2);
+    this.controlsText.setShadow(10, 10, "rgba(0,0,0,0.5)", 2);
+
     this.arrow.alpha = 0;
 
     var timeline = this.tweens.timeline({
@@ -256,19 +263,16 @@ export default class BegginingScene extends Phaser.Scene {
           ease: "Sine.easeInOut",
           duration: 1650,
           alpha: 1,
-          yoyo: true,
-          onRepeat: () => {
+
+          onComplete: () => {
             this.add.tween({
-              targets: [this.tryText, this.arrow],
+              targets: [this.arrow],
               ease: "Sine.easeInOut",
               duration: 1650,
               alpha: 1,
               yoyo: true
             });
-          },
-
-          onComplete: () => {},
-          repeat: 1
+          }
         },
         {
           targets: [this.arrow],
