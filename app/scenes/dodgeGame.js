@@ -14,10 +14,11 @@ import musicBack from "../assets/backMusic(2).mp3";
 import gameOver from "../assets/gameOver.mp3";
 import ooGnome from "../assets/oo.mp3";
 import playerMover from "../help-scripts/playerMovement";
+import arrowRight from "../assets/arrowRight.png";
 
 export default class DodgeGame extends Phaser.Scene {
   constructor() {
-    super({ key: "sceneb" });
+    super({ key: "gameScene" });
     //Variables
     this.player = null;
     this.platforms = null;
@@ -80,11 +81,13 @@ export default class DodgeGame extends Phaser.Scene {
       frameWidth: 256,
       frameHeight: 256
     });
+
     this.load.image("ground", floor);
     this.load.image("background", background);
     this.load.image("spike", spikeBall);
     this.load.image("replay", replay);
     this.load.image("powerUp", powerUp);
+    this.load.image("arrow", arrowRight);
 
     //Audio
     this.load.audio("musicBack", musicBack);
@@ -119,23 +122,21 @@ export default class DodgeGame extends Phaser.Scene {
     let powerUp = Math.floor(Math.random() * 6);
     this.ooGnome.play();
 
-    this.scene.start("lol");
-
     if (powerUp === 1) {
-      this.walkSpeed = -500;
+      this.playerMovementHelper.updateSpeed(-500);
     } else if (powerUp === 2) {
-      this.walkSpeed = 500;
+      this.playerMovementHelper.updateSpeed(500);
     } else if (powerUp === 3) {
-      this.walkSpeed = 700;
+      this.playerMovementHelper.updateSpeed(700);
     } else if (powerUp === 4) {
-      this.walkSpeed = -700;
+      this.playerMovementHelper.updateSpeed(-700);
     } else if (powerUp === 5) {
-      this.walkSpeed = 1000;
+      this.playerMovementHelper.updateSpeed(1000);
     } else if (powerUp === 6) {
-      this.walkSpeed = -1000;
+      this.playerMovementHelper.updateSpeed(1000);
     }
 
-    if (this.croutchSpeed > 0) {
+    if (this.walkSpeed > 0) {
       this.croutchSpeed = this.walkSpeed - 200;
     } else {
       this.croutchSpeed = this.walkSpeed + 200;
@@ -156,10 +157,15 @@ export default class DodgeGame extends Phaser.Scene {
       720,
       "background"
     );
+
+    this.arrow2 = this.add.sprite(1100, 380, "arrow");
+    this.arrow2.setScale(0.25);
+
     this.scoreText = this.add.text(16, 16, "score: 0", {
       fontSize: "62px",
       fill: "#f6ff00"
     });
+
     this.highestScore = this.add.text(
       900,
       16,
@@ -192,7 +198,7 @@ export default class DodgeGame extends Phaser.Scene {
 
     //creating this.player
     this.player = this.physics.add.sprite(
-      100,
+      600,
       +540,
       this.playerHeight,
       "mummy"
@@ -218,57 +224,7 @@ export default class DodgeGame extends Phaser.Scene {
     );
     this.physics.add.collider(this.player, this.platforms);
 
-    this.player.setSize(100, this.playerHeight, true);
-
-    //Creating Animations
-    this.anims.create({
-      key: "walkRight",
-      frames: this.anims.generateFrameNumbers("mummy"),
-      frameRate: 10,
-      repeat: -1
-    });
-
-    this.anims.create({
-      key: "walkLeft",
-      frames: this.anims.generateFrameNumbers("mummy2"),
-      frameRate: 10,
-      repeat: -1
-    });
-
-    this.anims.create({
-      key: "flex",
-      frames: this.anims.generateFrameNumbers("flex"),
-      frameRate: 4,
-      repeat: -1
-    });
-
-    this.anims.create({
-      key: "jump",
-      frames: this.anims.generateFrameNumbers("jump"),
-      frameRate: 6,
-      repeat: -1
-    });
-
-    this.anims.create({
-      key: "crouch-flex",
-      frames: this.anims.generateFrameNumbers("crouch-flex"),
-      frameRate: 6,
-      repeat: -1
-    });
-
-    this.anims.create({
-      key: "crouch-walk-left",
-      frames: this.anims.generateFrameNumbers("crouch-walk-left"),
-      frameRate: 6,
-      repeat: -1
-    });
-
-    this.anims.create({
-      key: "crouch-walk-right",
-      frames: this.anims.generateFrameNumbers("crouch-walk-right"),
-      frameRate: 6,
-      repeat: -1
-    });
+    this.player.setSize(600, this.playerHeight, true);
 
     //  Input Events
     this.cursors = this.input.keyboard.createCursorKeys();
@@ -331,6 +287,7 @@ export default class DodgeGame extends Phaser.Scene {
     this.gameOver = false;
     this.replayButton.destroy();
     this.music.play();
+    this.playerMovementHelper.reset();
   }
 
   replayButtonFunc() {
@@ -396,8 +353,8 @@ export default class DodgeGame extends Phaser.Scene {
       this.player.anims.play("flex", true);
     }
 
-    if (this.player.body.blocked.left) {
-      this.scene.start("begginingScene");
+    if (this.player.body.blocked.right) {
+      this.scene.start("choiceScene");
     }
 
     this.clearMemo();

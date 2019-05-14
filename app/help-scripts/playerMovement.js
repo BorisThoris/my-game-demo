@@ -10,6 +10,21 @@ export default class playerMover {
     this.cursors = null;
   }
 
+  reset() {
+    this.walkSpeed = 500;
+    this.croutchSpeed = this.walkSpeed - 200;
+  }
+
+  updateSpeed(speed) {
+    this.walkSpeed = speed;
+
+    if (this.croutchSpeed > 0) {
+      this.croutchSpeed = this.walkSpeed - 200;
+    } else {
+      this.croutchSpeed = this.walkSpeed + 200;
+    }
+  }
+
   playerMovment(cursors) {
     this.cursors = cursors;
     let touchingDown = this.player.body.touching.down;
@@ -49,6 +64,7 @@ export default class playerMover {
     //Idle animation
     if (noKeys && touchingDown) {
       this.player.anims.play("flex", true);
+
       this.crouched = false;
     }
 
@@ -72,6 +88,7 @@ export default class playerMover {
   }
 
   adjustCrouchingHitBox() {
+    console.log("i am working ");
     this.player.setSize(50, 140);
     this.player.setOffset(100, 100);
   }
@@ -104,7 +121,7 @@ export default class playerMover {
 
       case "crouchRight":
         this.crouched = true;
-        player.setVelocityX(+this.croutchSpeed);
+        player.setVelocityX(+Math.abs(this.croutchSpeed));
 
         if (touchingDown) {
           //changing this.player hitbox
@@ -118,7 +135,7 @@ export default class playerMover {
 
       case "crouchLeft":
         this.crouched = true;
-        player.setVelocityX(-this.croutchSpeed);
+        player.setVelocityX(-Math.abs(this.croutchSpeed));
 
         if (touchingDown) {
           //changing this.player hitbox
@@ -131,6 +148,7 @@ export default class playerMover {
         break;
 
       case "crouch":
+        console.log(":)");
         this.crouched = true;
         let y = player.y;
         //changing this.player hitbox

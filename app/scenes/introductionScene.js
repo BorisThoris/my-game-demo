@@ -108,56 +108,6 @@ export default class BegginingScene extends Phaser.Scene {
       .setScale(2)
       .refreshBody();
 
-    //Creating Animations
-    this.anims.create({
-      key: "walkRight",
-      frames: this.anims.generateFrameNumbers("mummy"),
-      frameRate: 10,
-      repeat: -1
-    });
-
-    this.anims.create({
-      key: "walkLeft",
-      frames: this.anims.generateFrameNumbers("mummy2"),
-      frameRate: 10,
-      repeat: -1
-    });
-
-    this.anims.create({
-      key: "flex",
-      frames: this.anims.generateFrameNumbers("flex"),
-      frameRate: 4,
-      repeat: -1
-    });
-
-    this.anims.create({
-      key: "jump",
-      frames: this.anims.generateFrameNumbers("jump"),
-      frameRate: 6,
-      repeat: -1
-    });
-
-    this.anims.create({
-      key: "crouch-flex",
-      frames: this.anims.generateFrameNumbers("crouch-flex"),
-      frameRate: 6,
-      repeat: -1
-    });
-
-    this.anims.create({
-      key: "crouch-walk-left",
-      frames: this.anims.generateFrameNumbers("crouch-walk-left"),
-      frameRate: 6,
-      repeat: -1
-    });
-
-    this.anims.create({
-      key: "crouch-walk-right",
-      frames: this.anims.generateFrameNumbers("crouch-walk-right"),
-      frameRate: 6,
-      repeat: -1
-    });
-
     //  Input Events
     this.cursors = this.input.keyboard.createCursorKeys();
 
@@ -168,13 +118,6 @@ export default class BegginingScene extends Phaser.Scene {
       },
       this
     );
-
-    var style = {
-      font: "bold 32px Arial",
-      fill: "#fff",
-      boundsAlignH: "center",
-      boundsAlignV: "middle"
-    };
 
     var style2 = {
       font: "bold 40px Arial",
@@ -218,7 +161,7 @@ export default class BegginingScene extends Phaser.Scene {
     this.myCv = this.add.text(
       tween4.y,
       tween4.x,
-      'and was part of a "natural-mathematical class" \n in Sofias 127th School, " Ivan N. Denkoglu" ',
+      'and was part of a "natural-mathematical class" \n in Sofia\'s 127th School, " Ivan N. Denkoglu" ',
       style2
     );
     this.Info = this.add.text(
@@ -260,7 +203,7 @@ export default class BegginingScene extends Phaser.Scene {
         {
           targets: this.helloText,
           ease: "Sine.easeInOut",
-          duration: 3000,
+          duration: 1500,
           delay: 0,
           alpha: 1,
           repeat: 0
@@ -268,7 +211,7 @@ export default class BegginingScene extends Phaser.Scene {
         {
           targets: this.andText,
           ease: "Sine.easeInOut",
-          duration: 3000,
+          duration: 1500,
           delay: 0,
           alpha: 1,
           repeat: 0
@@ -346,10 +289,8 @@ export default class BegginingScene extends Phaser.Scene {
 
   //Movement
   update() {
-    if (false) {
-      if (this.player.body.blocked.right) {
-        this.scene.start("sceneb");
-      }
+    if (this.player.body.blocked.right) {
+      this.scene.start("choiceScene");
     }
 
     //Checking if game is over
