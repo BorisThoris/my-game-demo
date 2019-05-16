@@ -22,11 +22,12 @@ export default class BegginingScene extends Phaser.Scene {
     this.platforms = null;
     this.cursors = null;
     this.music = null;
-
     this.playerMovementHelper = null;
+
     //Variables with default values
     this.isStarted = false;
     this.score = 0;
+    this.counter = 0;
     this.timer = 0;
     this.gameOver2 = false;
     this.jumped = false;
@@ -307,6 +308,12 @@ export default class BegginingScene extends Phaser.Scene {
 
   //Movement
   update() {
+    if (this.counter === 0) {
+      this.player.anims.play("flex", true);
+      this.player.setSize(100, this.playerHeight, true);
+      this.counter++;
+    }
+
     if (this.player.body.blocked.right) {
       this.scene.start("introScene");
     }

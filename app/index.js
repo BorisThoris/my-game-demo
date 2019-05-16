@@ -4,6 +4,7 @@ import DodgeGame from "./scenes/dodgeGame";
 import BegginingScene from "./scenes/beginningScene";
 import IntroductionScene from "./scenes/introductionScene";
 import ChoiceScene from "./scenes/choiceScene";
+import WebsitesScene from "./scenes/websitesScene";
 
 class MyGame extends Phaser.Scene {
   constructor() {
@@ -32,7 +33,14 @@ var config = {
       debug: true
     }
   },
-  scene: [BegginingScene, DodgeGame, MyGame, IntroductionScene, ChoiceScene]
+  scene: [
+    BegginingScene,
+    DodgeGame,
+    MyGame,
+    IntroductionScene,
+    ChoiceScene,
+    WebsitesScene
+  ]
 };
 
 //Creating game

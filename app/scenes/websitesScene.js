@@ -13,9 +13,9 @@ import ooGnome from "../assets/oo.mp3";
 import playerMover from "../help-scripts/playerMovement";
 import arrowRight from "../assets/arrowRight.png";
 
-export default class choiceScene extends Phaser.Scene {
+export default class WebsitesScene extends Phaser.Scene {
   constructor() {
-    super({ key: "choiceScene" });
+    super({ key: "websitesScene" });
     //Variables
     this.player = null;
     this.platforms = null;
@@ -148,30 +148,30 @@ export default class choiceScene extends Phaser.Scene {
       boundsAlignV: "middle"
     };
 
-    let tween1 = { x: 380, y: 60 };
+    let tween1 = { x: 440, y: 60 };
     let tween2 = { x: 20, y: 250 };
     let tween3 = { x: 980, y: 250 };
-    let tween4 = { x: 480, y: 450 };
+    let tween4 = { x: 460, y: 450 };
     let tween5 = { x: 100, y: 40 };
     let tween6 = { x: 50, y: 600 };
 
     this.helloText = this.add.text(
       tween1.x,
       tween1.y,
-      "Welcome To The Midpoint",
+      "Choose a Website",
       style2
     );
-    this.gameText = this.add.text(tween2.x, tween2.y, "Play My Game", style2);
+    this.gameText = this.add.text(tween2.x, tween2.y, "Go Back", style2);
     this.webSiteText = this.add.text(
       tween3.x,
       tween3.y,
-      "View Websites",
+      "View Cat World",
       style2
     );
     this.BackInfo = this.add.text(
       tween4.x,
       tween4.y,
-      "Go Back To Info",
+      "View Gorilla Gainz",
       style2
     );
 
@@ -200,10 +200,7 @@ export default class choiceScene extends Phaser.Scene {
           duration: 1500,
           delay: 0,
           alpha: 1,
-          repeat: 0,
-          onComplete: () => {
-            this.controls = true;
-          }
+          repeat: 0
         },
         {
           targets: [
@@ -218,7 +215,9 @@ export default class choiceScene extends Phaser.Scene {
           duration: 3000,
           delay: 0,
           alpha: 1,
-
+          onRepeat: () => {
+            this.controls = true;
+          },
           repeat: -1,
           yoyo: true
         }
@@ -251,19 +250,19 @@ export default class choiceScene extends Phaser.Scene {
       this.scene.start("gameScene");
     }
 
+    if (this.player.body.blocked.right) {
+      window.open(
+        "https://boristhoris.github.io/My-website-demo-Angular/viewAll"
+      );
+    }
+
     //Checking if game is over
     if (this.gameOver2 === false) {
       this.timer++;
       this.crouched = false;
 
-      if (this.controls !== false) {
-        if (this.cursors.down.isDown) {
-          this.scene.start("introScene");
-        }
-
-        if (this.player.body.blocked.right) {
-          this.scene.start("websitesScene");
-        }
+      if (this.cursors.down.isDown && this.controls !== false) {
+        this.scene.start("introScene");
       }
 
       this.playerMovementHelper.playerMovment(this.cursors);

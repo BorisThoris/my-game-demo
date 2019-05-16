@@ -18,7 +18,7 @@ export default class playerMover {
   updateSpeed(speed) {
     this.walkSpeed = speed;
 
-    if (this.croutchSpeed > 0) {
+    if (this.walkSpeed > 0) {
       this.croutchSpeed = this.walkSpeed - 200;
     } else {
       this.croutchSpeed = this.walkSpeed + 200;
@@ -63,7 +63,12 @@ export default class playerMover {
 
     //Idle animation
     if (noKeys && touchingDown) {
-      this.player.anims.play("flex", true);
+      this.player.setVelocityX(0);
+
+      if (this.player.body.touching.down && this.crouched === false) {
+        this.player.anims.play("flex", true);
+        this.player.setSize(100, this.playerHeight, true);
+      }
 
       this.crouched = false;
     }
@@ -76,19 +81,9 @@ export default class playerMover {
       this.player.setSize(100, this.playerHeight, true);
       this.player.anims.play("jump", true);
     }
-
-    if (this.cursors.right.isUp && this.cursors.left.isUp) {
-      this.player.setVelocityX(0);
-      this.player.setSize(100, this.playerHeight, true);
-
-      if (this.player.body.touching.down && this.crouched === false) {
-        this.player.anims.play("flex", true);
-      }
-    }
   }
 
   adjustCrouchingHitBox() {
-    console.log("i am working ");
     this.player.setSize(50, 140);
     this.player.setOffset(100, 100);
   }
@@ -121,7 +116,7 @@ export default class playerMover {
 
       case "crouchRight":
         this.crouched = true;
-        player.setVelocityX(+Math.abs(this.croutchSpeed));
+        player.setVelocityX(+this.croutchSpeed);
 
         if (touchingDown) {
           //changing this.player hitbox
@@ -135,7 +130,11 @@ export default class playerMover {
 
       case "crouchLeft":
         this.crouched = true;
-        player.setVelocityX(-Math.abs(this.croutchSpeed));
+        if (this.croutchSpeed < 0) {
+          player.setVelocityX(+Math.abs(this.croutchSpeed));
+        } else {
+          player.setVelocityX(-Math.abs(this.croutchSpeed));
+        }
 
         if (touchingDown) {
           //changing this.player hitbox
@@ -148,15 +147,16 @@ export default class playerMover {
         break;
 
       case "crouch":
-        console.log(":)");
         this.crouched = true;
         let y = player.y;
-        //changing this.player hitbox
-        this.adjustCrouchingHitBox();
+
         player.setVelocityX(0);
 
         //playing animation
         player.anims.play("crouch-flex", true);
+
+        //changing this.player hitbox
+        this.adjustCrouchingHitBox();
         break;
     }
   }

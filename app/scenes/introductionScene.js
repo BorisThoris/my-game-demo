@@ -297,9 +297,7 @@ export default class BegginingScene extends Phaser.Scene {
     if (this.gameOver2 === false) {
       this.timer++;
       this.crouched = false;
-      if (this.cursors.up.isDown) {
-        console.log("up");
-      }
+
       this.playerMovementHelper.playerMovment(this.cursors);
     }
   }
