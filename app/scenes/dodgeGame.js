@@ -354,6 +354,7 @@ export default class DodgeGame extends Phaser.Scene {
     }
 
     if (this.player.body.blocked.right) {
+      this.music.pause();
       this.scene.start("choiceScene");
     }
 

@@ -86,9 +86,6 @@ export default class BegginingScene extends Phaser.Scene {
   }
 
   create() {
-    this.music = this.sound.add("musicBack");
-    this.music.play();
-
     //background
     let backgroundImg = this.add.tileSprite(
       1280 / 2,

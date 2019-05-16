@@ -79,15 +79,9 @@ export default class WebsitesScene extends Phaser.Scene {
     this.load.image("ground", floor);
     this.load.image("background", background);
     this.load.image("arrow", arrowRight);
-
-    //Audio
-    this.load.audio("musicBack", musicBack);
   }
 
   create() {
-    this.music = this.sound.add("musicBack");
-    this.music.play();
-
     //background
     let backgroundImg = this.add.tileSprite(
       1280 / 2,
@@ -254,6 +248,9 @@ export default class WebsitesScene extends Phaser.Scene {
       window.open(
         "https://boristhoris.github.io/My-website-demo-Angular/viewAll"
       );
+
+      this.cursors.right.isDown = false;
+      this.player.x = 500;
     }
 
     //Checking if game is over
