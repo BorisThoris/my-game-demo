@@ -25,6 +25,20 @@ export default class playerMover {
     }
   }
 
+  stopPlayer() {
+    this.cursors.up.isDown = false;
+    this.cursors.up.isUp = true;
+
+    this.cursors.right.isDown = false;
+    this.cursors.right.isUp = true;
+
+    this.cursors.left.isDown = false;
+    this.cursors.left.isUp = true;
+
+    this.cursors.down.isDown = false;
+    this.cursors.down.isUp = true;
+  }
+
   playerMovment(cursors) {
     this.cursors = cursors;
     let touchingDown = this.player.body.touching.down;

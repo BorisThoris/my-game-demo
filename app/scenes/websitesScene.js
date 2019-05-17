@@ -239,16 +239,13 @@ export default class WebsitesScene extends Phaser.Scene {
   updateFrameView() {}
 
   resetCursors() {
-    this.cursors.down.isDown = false;
-    this.cursors.right.isDown = false;
-    this.cursors.left.isDown = false;
-    this.cursors.up.isDown = false;
+    this.playerMovementHelper.stopPlayer();
   }
 
   //Movement
   update() {
     if (this.player.body.blocked.left) {
-      this.scene.start("gameScene");
+      this.scene.start("choiceScene");
     }
 
     if (this.player.body.blocked.right) {
@@ -260,7 +257,7 @@ export default class WebsitesScene extends Phaser.Scene {
       this.player.x = 500;
     }
 
-    if (this.cursors.down.isDown) {
+    if (this.cursors.down.isDown && this.player.body.touching.down) {
       window.open("https://boristhoris.github.io/My-website-demo-React/");
       this.resetCursors();
     }
