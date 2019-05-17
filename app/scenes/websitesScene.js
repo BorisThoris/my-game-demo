@@ -259,7 +259,7 @@ export default class WebsitesScene extends Phaser.Scene {
       this.crouched = false;
 
       if (this.cursors.down.isDown && this.controls !== false) {
-        this.scene.start("introScene");
+        window.open("https://boristhoris.github.io/My-website-demo-React/");
       }
 
       this.playerMovementHelper.playerMovment(this.cursors);
