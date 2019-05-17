@@ -260,6 +260,7 @@ export default class WebsitesScene extends Phaser.Scene {
 
       if (this.cursors.down.isDown && this.controls !== false) {
         window.open("https://boristhoris.github.io/My-website-demo-React/");
+        this.cursors.down.isDown = false;
       }
 
       this.playerMovementHelper.playerMovment(this.cursors);
