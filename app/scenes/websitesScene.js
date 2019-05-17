@@ -238,6 +238,13 @@ export default class WebsitesScene extends Phaser.Scene {
 
   updateFrameView() {}
 
+  resetCursors() {
+    this.cursors.down.isDown = false;
+    this.cursors.right.isDown = false;
+    this.cursors.left.isDown = false;
+    this.cursors.up.isDown = false;
+  }
+
   //Movement
   update() {
     if (this.player.body.blocked.left) {
@@ -249,21 +256,15 @@ export default class WebsitesScene extends Phaser.Scene {
         "https://boristhoris.github.io/My-website-demo-Angular/viewAll"
       );
 
-      this.cursors.right.isDown = false;
+      this.resetCursors();
       this.player.x = 500;
     }
 
-    //Checking if game is over
-    if (this.gameOver2 === false) {
-      this.timer++;
-      this.crouched = false;
-
-      if (this.cursors.down.isDown && this.controls !== false) {
-        window.open("https://boristhoris.github.io/My-website-demo-React/");
-        this.cursors.down.isDown = false;
-      }
-
-      this.playerMovementHelper.playerMovment(this.cursors);
+    if (this.cursors.down.isDown) {
+      window.open("https://boristhoris.github.io/My-website-demo-React/");
+      this.resetCursors();
     }
+
+    this.playerMovementHelper.playerMovment(this.cursors);
   }
 }
