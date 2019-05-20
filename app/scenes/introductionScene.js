@@ -230,10 +230,7 @@ export default class BegginingScene extends Phaser.Scene {
           delay: 4000,
           duration: 3000,
           alpha: 0,
-          repeat: 0,
-          onComplete: () => {
-            this.isStarted = true;
-          }
+          repeat: 0
         },
         {
           targets: this.Info,
@@ -248,6 +245,8 @@ export default class BegginingScene extends Phaser.Scene {
           duration: 8000,
           alpha: 1,
           onComplete: () => {
+            this.isStarted = true;
+
             this.add.tween({
               targets: [this.arrow],
               ease: "Sine.easeInOut",
@@ -283,7 +282,8 @@ export default class BegginingScene extends Phaser.Scene {
 
   //Movement
   update() {
-    if (this.player.body.blocked.right) {
+    if (this.player.body.blocked.right && this.isStarted === true) {
+      console.log(":) switching");
       this.scene.start("choiceScene");
     }
 

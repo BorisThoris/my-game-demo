@@ -146,9 +146,9 @@ export default class choiceScene extends Phaser.Scene {
     };
 
     let tween1 = { x: 380, y: 60 };
-    let tween2 = { x: 20, y: 250 };
+    let tween2 = { x: 0, y: 250 };
     let tween3 = { x: 980, y: 250 };
-    let tween4 = { x: 480, y: 450 };
+    let tween4 = { x: 500, y: 450 };
     let tween5 = { x: 100, y: 40 };
     let tween6 = { x: 50, y: 600 };
 
@@ -158,19 +158,19 @@ export default class choiceScene extends Phaser.Scene {
       "Welcome To The Midpoint",
       style2
     );
-    this.gameText = this.add.text(tween2.x, tween2.y, "Play My Game", style2);
+    this.gameText = this.add.text(
+      tween2.x,
+      tween2.y,
+      "Go Back To Info",
+      style2
+    );
     this.webSiteText = this.add.text(
       tween3.x,
       tween3.y,
       "View Websites",
       style2
     );
-    this.BackInfo = this.add.text(
-      tween4.x,
-      tween4.y,
-      "Go Back To Info",
-      style2
-    );
+    this.BackInfo = this.add.text(tween4.x, tween4.y, "Play My Game", style2);
 
     this.arrow = this.add.image(1160, 380, "arrow").setScale(0.25);
 
@@ -245,7 +245,7 @@ export default class choiceScene extends Phaser.Scene {
   //Movement
   update() {
     if (this.player.body.blocked.left) {
-      this.scene.start("gameScene");
+      this.scene.start("introScene");
     }
 
     //Checking if game is over
@@ -255,7 +255,7 @@ export default class choiceScene extends Phaser.Scene {
 
       if (this.controls !== false) {
         if (this.cursors.down.isDown) {
-          this.scene.start("introScene");
+          this.scene.start("gameScene");
         }
 
         if (this.player.body.blocked.right) {
