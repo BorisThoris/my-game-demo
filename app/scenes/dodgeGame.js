@@ -1,167 +1,48 @@
-import runningMan from "../assets/runningMan.png";
-import runningMan2 from "../assets/runningMan2.png";
-import flexingMan from "../assets/flexingMan.png";
-import crouchingflex from "../assets/croutching-flex.png";
-import crouchingWalkLeft from "../assets/croutching-walk-left.png";
-import crouchingWalkRight from "../assets/croutching-walk-right.png";
-import jumpingMan from "../assets/jumpingMan.png";
-import floor from "../assets/floor.png";
-import background from "../assets/background.png";
 import spikeBall from "../assets/spikeball.png";
 import replay from "../assets/replayBtn.png";
 import powerUp from "../assets/powerUp.png";
 import musicBack from "../assets/backMusic(2).mp3";
 import gameOver from "../assets/gameOver.mp3";
 import ooGnome from "../assets/oo.mp3";
-import playerMover from "../help-scripts/playerMovement";
-import arrowRight from "../assets/arrowRight.png";
+import BaseScene from "./baseScene";
 
-export default class DodgeGame extends Phaser.Scene {
+export default class DodgeGame extends BaseScene {
   constructor() {
-    super({ key: "gameScene" });
-    //Variables
-    this.player = null;
-    this.platforms = null;
-    this.cursors = null;
-    this.scoreText = null;
-    this.spikes = null;
-    this.powerUps = null;
+    super("gameScene");
     this.scoreText = null;
     this.highestScore = null;
+    this.spikes = null;
+    this.powerUps = null;
     this.gameOverText = null;
     this.replayButton = null;
     this.music = null;
     this.gameOverMusic = null;
     this.ooGnome = null;
-    this.playerMovementHelper = null;
-
-    //Variables with default values
     this.highestScoreValue = 0;
-    this.score = 0;
     this.timer = 0;
-    this.gameOver = false;
-    this.jumped = false;
-    this.crouched = false;
+    this.gameOverState = false;
     this.spikeMax = 0.4;
-
-    //this.player vars
-    this.playerHeight = 225;
-
-    //Change walking speed
-    this.walkSpeed = 500;
-    this.croutchSpeed = this.walkSpeed - 100;
   }
 
   preload() {
-    this.load.spritesheet("mummy", runningMan, {
-      frameWidth: 256,
-      frameHeight: 256
-    });
-    this.load.spritesheet("mummy2", runningMan2, {
-      frameWidth: 256,
-      frameHeight: 256
-    });
-    this.load.spritesheet("flex", flexingMan, {
-      frameWidth: 256,
-      frameHeight: 256
-    });
-    this.load.spritesheet("crouch-flex", crouchingflex, {
-      frameWidth: 256,
-      frameHeight: 256
-    });
-    this.load.spritesheet("crouch-walk-left", crouchingWalkLeft, {
-      frameWidth: 256,
-      frameHeight: 256
-    });
-    this.load.spritesheet("crouch-walk-right", crouchingWalkRight, {
-      frameWidth: 256,
-      frameHeight: 256
-    });
-    this.load.spritesheet("jump", jumpingMan, {
-      frameWidth: 256,
-      frameHeight: 256
-    });
-
-    this.load.image("ground", floor);
-    this.load.image("background", background);
+    super.preload();
     this.load.image("spike", spikeBall);
     this.load.image("replay", replay);
     this.load.image("powerUp", powerUp);
-    this.load.image("arrow", arrowRight);
-
-    //Audio
     this.load.audio("musicBack", musicBack);
     this.load.audio("gameOver", gameOver);
     this.load.audio("ooGnome", ooGnome);
   }
 
-  spikeCollision() {
-    //On Collision with enemy
-    if (this.player.body.touching.up) {
-      //Stop BG this.music and play game over this.music
-      this.music.pause();
-      this.gameOverMusic.play();
-
-      let score = Math.floor(this.timer / 50);
-      if (
-        this.highestScoreValue < score ||
-        this.highestScoreValue === undefined
-      ) {
-        this.highestScoreValue = score;
-        this.highestScore.setText(`highest score: ${this.highestScoreValue}`);
-      }
-      this.gameOverFunc();
-    }
-  }
-
-  // Power up collision
-  powerUpsCollision(player, tempPowerUp, powerUps) {
-    tempPowerUp.active = false;
-    tempPowerUp.destroy();
-
-    let powerUp = Math.floor(Math.random() * 6);
-    this.ooGnome.play();
-
-    if (powerUp === 1) {
-      this.playerMovementHelper.updateSpeed(-500);
-    } else if (powerUp === 2) {
-      this.playerMovementHelper.updateSpeed(500);
-    } else if (powerUp === 3) {
-      this.playerMovementHelper.updateSpeed(700);
-    } else if (powerUp === 4) {
-      this.playerMovementHelper.updateSpeed(-700);
-    } else if (powerUp === 5) {
-      this.playerMovementHelper.updateSpeed(1000);
-    } else if (powerUp === 6) {
-      this.playerMovementHelper.updateSpeed(1000);
-    }
-
-    if (this.walkSpeed > 0) {
-      this.croutchSpeed = this.walkSpeed - 200;
-    } else {
-      this.croutchSpeed = this.walkSpeed + 200;
-    }
-  }
-
   create() {
+    super.createSceneShell(600, "mummy");
+
     this.music = this.sound.add("musicBack");
     this.gameOverMusic = this.sound.add("gameOver");
     this.ooGnome = this.sound.add("ooGnome");
     this.music.play();
 
-    //background
-    let backgroundImg = this.add.tileSprite(
-      1280 / 2,
-      720 / 2,
-      1280,
-      720,
-      "background"
-    );
-
-    this.arrow2 = this.add.sprite(1100, 380, "arrow");
-    this.arrow2.setScale(0.25);
-
-    this.scoreText = this.add.text(16, 16, "score: 0", {
+    this.scoreText = this.add.text(16, 16, "Score: 0", {
       fontSize: "62px",
       fill: "#f6ff00"
     });
@@ -169,76 +50,61 @@ export default class DodgeGame extends Phaser.Scene {
     this.highestScore = this.add.text(
       900,
       16,
-      `highest score: ${this.highestScoreValue}`,
+      `Highest score: ${this.highestScoreValue}`,
       {
         fontSize: "32px",
         fill: "#f6ff00"
       }
     );
 
-    this.spikes = this.physics.add.group({});
+    this.spikes = this.physics.add.group();
+    this.powerUps = this.physics.add.group();
 
-    this.powerUps = this.physics.add.group({});
-
-    this.spikes.children.iterate(function(child) {
-      child.body.friction.x = 5;
-    });
-
-    //  Frame debug view
-    this.frameView = this.add.graphics();
-
-    //  The platforms group contains the ground and the 2 ledges we can jump on
-    this.platforms = this.physics.add.staticGroup();
-
-    //floor
-    this.platforms
-      .create(1280, 768, "ground")
-      .setScale(2)
-      .refreshBody();
-
-    //creating this.player
-    this.player = this.physics.add.sprite(
-      600,
-      +540,
-      this.playerHeight,
-      "mummy"
-    );
-
-    this.playerMovementHelper = new playerMover(this.player);
-
-    //  this.player physics properties
-    this.player.setBounce(0.0);
-    this.player.setCollideWorldBounds(true);
-
-    //Collisions
     this.physics.add.collider(this.spikes, this.player, () =>
-      this.spikeCollision()
+      this.handleSpikeCollision()
     );
     this.physics.add.collider(this.spikes, this.powerUps);
     this.physics.add.collider(this.powerUps, this.powerUps);
-    this.physics.add.collider(
-      this.powerUps,
-      this.player,
-      (player, tempPowerUp) =>
-        this.powerUpsCollision(player, tempPowerUp, this.powerUps)
-    );
-    this.physics.add.collider(this.player, this.platforms);
-
-    this.player.setSize(600, this.playerHeight, true);
-
-    //  Input Events
-    this.cursors = this.input.keyboard.createCursorKeys();
-
-    this.input.on(
-      "gameobjectup",
-      function(pointer, gameObject) {
-        gameObject.emit("clicked", gameObject);
-      },
-      this
+    this.physics.add.collider(this.powerUps, this.player, (_, tempPowerUp) =>
+      this.handlePowerUpCollision(tempPowerUp)
     );
   }
 
-  updateFrameView() {}
+  handleSpikeCollision() {
+    if (!this.player.body.touching.up) {
+      return;
+    }
+
+    this.music.pause();
+    this.gameOverMusic.play();
+
+    const score = Math.floor(this.timer / 50);
+    if (this.highestScoreValue < score) {
+      this.highestScoreValue = score;
+      this.highestScore.setText(`Highest score: ${this.highestScoreValue}`);
+    }
+
+    this.showGameOver();
+  }
+
+  handlePowerUpCollision(tempPowerUp) {
+    tempPowerUp.destroy();
+
+    const powerUp = Math.floor(Math.random() * 6);
+    this.ooGnome.play();
+
+    if (powerUp === 1) {
+      this.playerMovement.updateSpeed(-500);
+    } else if (powerUp === 2) {
+      this.playerMovement.updateSpeed(500);
+    } else if (powerUp === 3) {
+      this.playerMovement.updateSpeed(700);
+    } else if (powerUp === 4) {
+      this.playerMovement.updateSpeed(-700);
+    } else {
+      this.playerMovement.updateSpeed(1000);
+    }
+  }
 
   addSpike() {
     this.spikes
@@ -250,105 +116,85 @@ export default class DodgeGame extends Phaser.Scene {
     this.powerUps.create(Math.random() * 1280, -100, "powerUp").setScale(0.15);
   }
 
-  gameOverFunc() {
+  showGameOver() {
     this.gameOverText = this.add.text(
       260,
-      360 / 4,
-      `\n Game Over \n You scored: \n ${Math.floor(this.timer / 50)} points`,
-      { fontSize: "100px", fill: "#FF0000" }
+      90,
+      `Game Over\nYou scored:\n${Math.floor(this.timer / 50)} points`,
+      { fontSize: "100px", fill: "#ff0000", align: "center" }
     );
-    this.gameOver = "Ended";
-
-    this.replayButtonFunc();
+    this.gameOverState = "ended";
+    this.showReplayButton();
   }
 
-  clearMemo() {
-    if (this.gameOver !== "Ended") {
-      let spikes = this.spikes.children.entries;
-      let spikesLength = this.spikes.children.entries.length - 1;
-      let powerUps = this.powerUps.children.entries;
-      let powerUpsLength = this.powerUps.children.entries.length - 1;
+  clearOffscreenObjects() {
+    if (this.gameOverState === "ended") {
+      return;
+    }
 
-      if (spikes[0] !== undefined && spikes[0].y > 1000) {
-        spikes[0].destroy();
-      }
+    const spike = this.spikes.children.entries[0];
+    const powerUp = this.powerUps.children.entries[0];
 
-      if (powerUps[0] !== undefined && powerUps[0].y > 1000) {
-        powerUps[0].destroy();
-      }
+    if (spike && spike.y > 1000) {
+      spike.destroy();
+    }
+
+    if (powerUp && powerUp.y > 1000) {
+      powerUp.destroy();
     }
   }
 
-  resetVars() {
+  resetRun() {
     this.timer = 0;
-    this.walkSpeed = 500;
-    this.croutchSpeed = this.walkSpeed - 100;
     this.spikeMax = 0.4;
-    this.gameOver = false;
+    this.gameOverState = false;
+    this.gameOverText.destroy();
     this.replayButton.destroy();
+    this.spikes.clear(true, true);
+    this.powerUps.clear(true, true);
+    this.player.setPosition(600, 540);
+    this.playerMovement.reset();
     this.music.play();
-    this.playerMovementHelper.reset();
   }
 
-  replayButtonFunc() {
-    this.replayButton = this.add.sprite(1280 / 2, 540, "replay");
-    this.add.tween({
+  showReplayButton() {
+    this.replayButton = this.add.sprite(640, 540, "replay");
+    this.replayButton.setScale(0.2);
+    this.replayButton.setInteractive();
+
+    this.tweens.add({
       targets: this.replayButton,
       ease: "Sine.easeInOut",
       duration: 2000,
-      delay: 0,
-      alpha: 0,
-      repeat: -1
+      alpha: 0.15,
+      repeat: -1,
+      yoyo: true
     });
 
-    this.replayButton.opacity = 0;
-    this.replayButton.setScale(0.2);
-    this.replayButton.setInteractive();
-    this.spikes.children.entries = [];
-    this.replayButton.on("clicked", () => {
-      this.gameOverText.destroy(), this.resetVars();
-    });
+    this.replayButton.on("pointerup", () => this.resetRun());
   }
 
-  //Movement
   update() {
-    //Checking if game is over
-    if (this.gameOver === false) {
-      this.timer++;
-      this.crouched = false;
-      this.scoreText.setText("Score: " + Math.floor(this.timer / 50));
+    if (this.gameOverState === false) {
+      this.timer += 1;
+      this.scoreText.setText(`Score: ${Math.floor(this.timer / 50)}`);
 
-      let score = Math.floor(this.timer / 50);
+      const score = Math.floor(this.timer / 50);
+      const randomNum = Math.floor(Math.random() * 10);
+      const shouldSpawn =
+        (score < 10 && (this.timer % 20 === 0 || this.timer === 1)) ||
+        (score >= 10 && (this.timer % 10 === 0 || this.timer === 1));
 
-      //Checking phase
-      let randomNum = Math.floor(Math.random() * 10);
-      if (score < 10) {
-        if (this.timer % 20 === 0 || this.timer === 1) {
-          if (randomNum >= 1 && randomNum <= 4) {
-            this.addSpike();
-          } else {
-            this.addPowerUp();
-          }
+      if (shouldSpawn) {
+        if ((score < 10 && randomNum >= 1 && randomNum <= 4) || randomNum <= 6) {
+          this.addSpike();
+        } else {
+          this.addPowerUp();
         }
       }
 
-      //Checking phase
-      else if (score >= 10) {
-        if (this.timer % 10 === 0 || this.timer === 1) {
-          if (randomNum >= 1 && randomNum <= 6) {
-            this.addSpike();
-          } else {
-            this.addPowerUp();
-          }
-        }
-      }
-
-      //Preventing memory leaks
-
-      this.crouched = false;
-
-      this.playerMovementHelper.playerMovment(this.cursors);
-    } else if (this.gameOver == "Ended") {
+      this.playerMovement.update(this.cursors);
+    } else if (this.gameOverState === "ended") {
       this.player.setVelocityX(0);
       this.player.anims.play("flex", true);
     }
@@ -358,6 +204,6 @@ export default class DodgeGame extends Phaser.Scene {
       this.scene.start("choiceScene");
     }
 
-    this.clearMemo();
+    this.clearOffscreenObjects();
   }
 }

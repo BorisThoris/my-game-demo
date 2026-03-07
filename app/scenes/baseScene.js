@@ -1,197 +1,108 @@
 import runningMan from "../assets/runningMan.png";
 import runningMan2 from "../assets/runningMan2.png";
 import flexingMan from "../assets/flexingMan.png";
-import crouchingflex from "../assets/croutching-flex.png";
+import crouchingFlex from "../assets/croutching-flex.png";
 import crouchingWalkLeft from "../assets/croutching-walk-left.png";
 import crouchingWalkRight from "../assets/croutching-walk-right.png";
 import jumpingMan from "../assets/jumpingMan.png";
 import floor from "../assets/floor.png";
 import background from "../assets/background.png";
-import musicBack from "../assets/backMusic(2).mp3";
-import gameOver from "../assets/gameOver.mp3";
-import ooGnome from "../assets/oo.mp3";
-import playerMover from "../help-scripts/playerMovement";
 import arrowRight from "../assets/arrowRight.png";
+import PlayerMovement from "../help-scripts/playerMovement";
 
-export default class baseScene extends Phaser.Scene {
-  constructor() {
-    super({ key: "baseScene" });
-    //Variables
+const SHARED_SPRITESHEETS = [
+  { key: "mummy", asset: runningMan },
+  { key: "mummy2", asset: runningMan2 },
+  { key: "flex", asset: flexingMan },
+  { key: "crouch-flex", asset: crouchingFlex },
+  { key: "crouch-walk-left", asset: crouchingWalkLeft },
+  { key: "crouch-walk-right", asset: crouchingWalkRight },
+  { key: "jump", asset: jumpingMan }
+];
+
+const SHARED_ANIMATIONS = [
+  { key: "walkRight", sheet: "mummy", frameRate: 10 },
+  { key: "walkLeft", sheet: "mummy2", frameRate: 10 },
+  { key: "flex", sheet: "flex", frameRate: 4 },
+  { key: "jump", sheet: "jump", frameRate: 6 },
+  { key: "crouch-flex", sheet: "crouch-flex", frameRate: 6 },
+  { key: "crouch-walk-left", sheet: "crouch-walk-left", frameRate: 6 },
+  { key: "crouch-walk-right", sheet: "crouch-walk-right", frameRate: 6 }
+];
+
+export default class BaseScene extends Phaser.Scene {
+  constructor(key) {
+    super({ key });
     this.player = null;
     this.platforms = null;
     this.cursors = null;
-    this.music = null;
-
-    this.playerMovementHelper = null;
-    //Variables with default values
-    this.isStarted = false;
-    this.score = 0;
-    this.timer = 0;
-    this.gameOver2 = false;
-    this.jumped = false;
-    this.crouched = false;
-
-    //this.player vars
+    this.playerMovement = null;
     this.playerHeight = 225;
-
-    //Change walking speed
-    this.walkSpeed = 500;
-    this.croutchSpeed = this.walkSpeed - 100;
   }
 
   preload() {
-    this.load.spritesheet("mummy", runningMan, {
-      frameWidth: 256,
-      frameHeight: 256
-    });
-
-    this.load.spritesheet("mummy2", runningMan2, {
-      frameWidth: 256,
-      frameHeight: 256
-    });
-
-    this.load.spritesheet("flex", flexingMan, {
-      frameWidth: 256,
-      frameHeight: 256
-    });
-
-    this.load.spritesheet("crouch-flex", crouchingflex, {
-      frameWidth: 256,
-      frameHeight: 256
-    });
-
-    this.load.spritesheet("crouch-walk-left", crouchingWalkLeft, {
-      frameWidth: 256,
-      frameHeight: 256
-    });
-
-    this.load.spritesheet("crouch-walk-right", crouchingWalkRight, {
-      frameWidth: 256,
-      frameHeight: 256
-    });
-
-    this.load.spritesheet("jump", jumpingMan, {
-      frameWidth: 256,
-      frameHeight: 256
+    SHARED_SPRITESHEETS.forEach(({ key, asset }) => {
+      this.load.spritesheet(key, asset, {
+        frameWidth: 256,
+        frameHeight: 256
+      });
     });
 
     this.load.image("ground", floor);
     this.load.image("background", background);
+    this.load.image("arrow", arrowRight);
   }
 
-  create() {
-    //background
-    let backgroundImg = this.add.tileSprite(
-      1280 / 2,
-      720 / 2,
-      1280,
-      720,
-      "background"
-    );
+  createSceneShell(playerX = 100, playerTexture = "flex") {
+    this.add.tileSprite(640, 360, 1280, 720, "background");
 
-    //Creating Animations
-    this.anims.create({
-      key: "walkRight",
-      frames: this.anims.generateFrameNumbers("mummy"),
-      frameRate: 10,
-      repeat: -1
+    this.registerSharedAnimations();
+    this.createPlatforms();
+    this.cursors = this.input.keyboard.createCursorKeys();
+    this.player = this.createPlayer(playerX, playerTexture);
+
+    return this.player;
+  }
+
+  registerSharedAnimations() {
+    SHARED_ANIMATIONS.forEach(({ key, sheet, frameRate }) => {
+      if (!this.anims.exists(key)) {
+        this.anims.create({
+          key,
+          frames: this.anims.generateFrameNumbers(sheet),
+          frameRate,
+          repeat: -1
+        });
+      }
     });
+  }
 
-    this.anims.create({
-      key: "walkLeft",
-      frames: this.anims.generateFrameNumbers("mummy2"),
-      frameRate: 10,
-      repeat: -1
-    });
-
-    this.anims.create({
-      key: "flex",
-      frames: this.anims.generateFrameNumbers("flex"),
-      frameRate: 4,
-      repeat: -1
-    });
-
-    this.anims.create({
-      key: "jump",
-      frames: this.anims.generateFrameNumbers("jump"),
-      frameRate: 6,
-      repeat: -1
-    });
-
-    this.anims.create({
-      key: "crouch-flex",
-      frames: this.anims.generateFrameNumbers("crouch-flex"),
-      frameRate: 6,
-      repeat: -1
-    });
-
-    this.anims.create({
-      key: "crouch-walk-left",
-      frames: this.anims.generateFrameNumbers("crouch-walk-left"),
-      frameRate: 6,
-      repeat: -1
-    });
-
-    this.anims.create({
-      key: "crouch-walk-right",
-      frames: this.anims.generateFrameNumbers("crouch-walk-right"),
-      frameRate: 6,
-      repeat: -1
-    });
-
-    //  Frame debug view
-    this.frameView = this.add.graphics();
-
-    //  The platforms group contains the ground and the 2 ledges we can jump on
+  createPlatforms() {
     this.platforms = this.physics.add.staticGroup();
-
-    //floor
     this.platforms
       .create(1280, 768, "ground")
       .setScale(2)
       .refreshBody();
-
-    //  Input Events
-    this.cursors = this.input.keyboard.createCursorKeys();
-
-    this.input.on(
-      "gameobjectup",
-      function(pointer, gameObject) {
-        gameObject.emit("clicked", gameObject);
-      },
-      this
-    );
-
-    //creating this.player
-    this.player = this.physics.add.sprite(100, +540, this.playerHeight, "flex");
-    this.playerMovementHelper = new playerMover(this.player);
-
-    //  this.player physics properties
-    this.player.setBounce(0.0);
-    this.player.setCollideWorldBounds(true);
-
-    //Collisions And Player Setup
-    this.physics.add.collider(this.player, this.platforms);
-
-    this.player.setSize(100, this.playerHeight, true);
-    this.playerMovementHelper.playerMovment(this.cursors);
-    this.player.anims.play("flex", true);
   }
 
-  updateFrameView() {}
+  createPlayer(x, texture) {
+    const player = this.physics.add.sprite(x, 540, texture);
+    player.setBounce(0);
+    player.setCollideWorldBounds(true);
+    player.setSize(100, this.playerHeight, true);
 
-  //Movement
-  update() {
-    if (this.player.body.blocked.right) {
-      this.scene.start("choiceScene");
-    }
+    this.physics.add.collider(player, this.platforms);
 
-    //Checking if game is over
-    if (this.gameOver2 === false) {
-      this.timer++;
-      this.crouched = false;
+    this.playerMovement = new PlayerMovement(player);
+    player.anims.play("flex", true);
 
-      this.playerMovementHelper.playerMovment(this.cursors);
-    }
+    return player;
+  }
+
+  createText(x, y, text, style, originX = 0, originY = 0) {
+    const label = this.add.text(x, y, text, style);
+    label.setOrigin(originX, originY);
+    label.setShadow(10, 10, "rgba(0,0,0,0.5)", 2);
+    return label;
   }
 }

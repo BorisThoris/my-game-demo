@@ -1,14 +1,22 @@
-<!DOCTYPE html>
-
+<!doctype html>
 <html lang="en">
   <head>
-    <meta charset="utf-8" />
-    <title>Express and Webpack App</title>
-    <link rel="shortcut icon" href="#" />
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dodge Game</title>
+    <link rel="icon" href="data:," />
   </head>
   <body>
-    <h1>Expack</h1>
-    <p class="description">Express and Webpack Boilerplate App</p>
-    <div class="awful-selfie"></div>
+    <div class="page-shell">
+      <header class="page-header">
+        <p class="eyebrow">Phaser + Vite</p>
+        <h1>Dodge Game</h1>
+        <p class="subtitle">A browser game modernized to run as a static app.</p>
+      </header>
+      <main class="game-shell">
+        <div id="phaser-example" class="game-frame"></div>
+      </main>
+    </div>
+    <script type="module" src="/main.js"></script>
   </body>
 </html>

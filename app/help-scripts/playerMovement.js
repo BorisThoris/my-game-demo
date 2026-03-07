@@ -1,100 +1,74 @@
-export default class playerMover {
+const DEFAULT_WALK_SPEED = 500;
+
+export default class PlayerMovement {
   constructor(player) {
-    this.crouched = false;
     this.player = player;
-    //this.player vars
     this.playerHeight = 225;
-    //Change walking speed
-    this.walkSpeed = 500;
-    this.croutchSpeed = this.walkSpeed - 100;
-    this.cursors = null;
+    this.crouched = false;
+    this.walkSpeed = DEFAULT_WALK_SPEED;
+    this.crouchSpeed = this.walkSpeed - 100;
   }
 
   reset() {
-    this.walkSpeed = 500;
-    this.croutchSpeed = this.walkSpeed - 200;
+    this.walkSpeed = DEFAULT_WALK_SPEED;
+    this.crouchSpeed = this.walkSpeed - 200;
+    this.crouched = false;
   }
 
   updateSpeed(speed) {
     this.walkSpeed = speed;
+    this.crouchSpeed =
+      this.walkSpeed > 0 ? this.walkSpeed - 200 : this.walkSpeed + 200;
+  }
 
-    if (this.walkSpeed > 0) {
-      this.croutchSpeed = this.walkSpeed - 200;
-    } else {
-      this.croutchSpeed = this.walkSpeed + 200;
+  update(cursors) {
+    const touchingDown = this.player.body.touching.down;
+    const movingRight = cursors.right.isDown;
+    const movingLeft = cursors.left.isDown;
+    const crouching = cursors.down.isDown;
+    const jumping = cursors.up.isDown;
+    const isIdle =
+      cursors.down.isUp &&
+      cursors.up.isUp &&
+      cursors.right.isUp &&
+      cursors.left.isUp;
+
+    if (movingLeft && !crouching) {
+      this.move("left", touchingDown);
+    } else if (movingRight && !crouching) {
+      this.move("right", touchingDown);
+    } else if (crouching && movingRight) {
+      this.move("crouchRight", touchingDown);
+    } else if (crouching && movingLeft) {
+      this.move("crouchLeft", touchingDown);
+    } else if (crouching && touchingDown) {
+      this.move("crouch", touchingDown);
+    }
+
+    if (isIdle && touchingDown) {
+      this.player.setVelocityX(0);
+
+      if (!this.crouched) {
+        this.player.setSize(100, this.playerHeight, true);
+        this.player.anims.play("flex", true);
+      }
+    }
+
+    if (jumping && touchingDown) {
+      this.player.setVelocityY(-330);
+      this.crouched = false;
+    } else if (!touchingDown && !this.crouched) {
+      this.player.setSize(100, this.playerHeight, true);
+      this.player.anims.play("jump", true);
+    }
+
+    if (!crouching) {
+      this.crouched = false;
     }
   }
 
   stopPlayer() {
-    this.cursors.up.isDown = false;
-    this.cursors.up.isUp = true;
-
-    this.cursors.right.isDown = false;
-    this.cursors.right.isUp = true;
-
-    this.cursors.left.isDown = false;
-    this.cursors.left.isUp = true;
-
-    this.cursors.down.isDown = false;
-    this.cursors.down.isUp = true;
-  }
-
-  playerMovment(cursors) {
-    this.cursors = cursors;
-    let touchingDown = this.player.body.touching.down;
-    let cursorRight = this.cursors.right.isDown;
-    let cursorLeft = this.cursors.left.isDown;
-    let cursorDown = this.cursors.down.isDown;
-
-    let noKeys =
-      this.cursors.down.isUp &&
-      this.cursors.up.isUp &&
-      this.cursors.right.isUp &&
-      this.cursors.left.isUp;
-
-    let cursorUp = this.cursors.up.isDown;
-
-    //Moving Left
-    if (cursorLeft && !cursorDown) {
-      this.movingLeftRightCrouch("left");
-    }
-
-    //Moving Right
-    else if (cursorRight && !cursorDown) {
-      this.movingLeftRightCrouch("right");
-    }
-
-    //Croutching
-    else if (cursorDown && cursorRight) {
-      this.movingLeftRightCrouch("crouchRight");
-    } else if (cursorDown && cursorLeft) {
-      this.movingLeftRightCrouch("crouchLeft");
-    } else if (cursorDown) {
-      if (touchingDown) {
-        this.movingLeftRightCrouch("crouch");
-      }
-    }
-
-    //Idle animation
-    if (noKeys && touchingDown) {
-      this.player.setVelocityX(0);
-
-      if (this.player.body.touching.down && this.crouched === false) {
-        this.player.anims.play("flex", true);
-        this.player.setSize(100, this.playerHeight, true);
-      }
-
-      this.crouched = false;
-    }
-
-    //jumping
-    if (cursorUp && touchingDown) {
-      this.player.setVelocityY(-330);
-      this.crouched = false;
-    } else if (!touchingDown && this.crouched === false) {
-      this.player.setSize(100, this.playerHeight, true);
-      this.player.anims.play("jump", true);
-    }
+    this.player.setVelocity(0, this.player.body.velocity.y);
   }
 
   adjustCrouchingHitBox() {
@@ -102,75 +76,45 @@ export default class playerMover {
     this.player.setOffset(100, 100);
   }
 
-  movingLeftRightCrouch(direction) {
-    let touchingDown = this.player.body.touching.down;
-    let player = this.player;
-
+  move(direction, touchingDown) {
     switch (direction) {
       case "left":
-        //Moving left
-        player.setVelocityX(-this.walkSpeed);
-        player.setSize(50, this.playerHeight, true);
-
+        this.player.setVelocityX(-this.walkSpeed);
+        this.player.setSize(50, this.playerHeight, true);
         if (touchingDown) {
-          player.anims.play("walkLeft", true);
+          this.player.anims.play("walkLeft", true);
         }
-
         break;
-
       case "right":
-        player.setVelocityX(this.walkSpeed);
-        player.setSize(50, this.playerHeight, true);
-
+        this.player.setVelocityX(this.walkSpeed);
+        this.player.setSize(50, this.playerHeight, true);
         if (touchingDown) {
-          player.anims.play("walkRight", true);
+          this.player.anims.play("walkRight", true);
         }
-
         break;
-
       case "crouchRight":
         this.crouched = true;
-        player.setVelocityX(+this.croutchSpeed);
-
+        this.player.setVelocityX(this.crouchSpeed);
         if (touchingDown) {
-          //changing this.player hitbox
           this.adjustCrouchingHitBox();
-
-          if (touchingDown) {
-            player.anims.play("crouch-walk-right", true);
-          }
+          this.player.anims.play("crouch-walk-right", true);
         }
         break;
-
       case "crouchLeft":
         this.crouched = true;
-        if (this.croutchSpeed < 0) {
-          player.setVelocityX(+Math.abs(this.croutchSpeed));
-        } else {
-          player.setVelocityX(-Math.abs(this.croutchSpeed));
-        }
-
+        this.player.setVelocityX(-Math.abs(this.crouchSpeed));
         if (touchingDown) {
-          //changing this.player hitbox
           this.adjustCrouchingHitBox();
-
-          if (touchingDown) {
-            player.anims.play("crouch-walk-left", true);
-          }
+          this.player.anims.play("crouch-walk-left", true);
         }
         break;
-
       case "crouch":
         this.crouched = true;
-        let y = player.y;
-
-        player.setVelocityX(0);
-
-        //playing animation
-        player.anims.play("crouch-flex", true);
-
-        //changing this.player hitbox
+        this.player.setVelocityX(0);
         this.adjustCrouchingHitBox();
+        this.player.anims.play("crouch-flex", true);
+        break;
+      default:
         break;
     }
   }
