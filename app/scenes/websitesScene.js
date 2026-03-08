@@ -1,9 +1,11 @@
 import BaseScene from "./baseScene";
+import { openExternalLink } from "../shared/browser";
 
 export default class WebsitesScene extends BaseScene {
   constructor() {
     super("websitesScene");
     this.controlsEnabled = false;
+    this.externalLaunchInProgress = false;
   }
 
   preload() {
@@ -61,12 +63,18 @@ export default class WebsitesScene extends BaseScene {
   }
 
   openExternal(url) {
-    window.open(url, "_blank", "noopener,noreferrer");
+    if (this.externalLaunchInProgress) {
+      return;
+    }
+
+    this.externalLaunchInProgress = true;
+    openExternalLink(url);
     this.playerMovement.stopPlayer();
   }
 
   update() {
     if (this.player.body.blocked.left) {
+      this.externalLaunchInProgress = false;
       this.scene.start("choiceScene");
     }
 
@@ -79,6 +87,10 @@ export default class WebsitesScene extends BaseScene {
 
     if (this.controlsEnabled && this.cursors.down.isDown && this.player.body.touching.down) {
       this.openExternal("https://boristhoris.github.io/My-website-demo-React/");
+    }
+
+    if (this.cursors.down.isUp && !this.player.body.blocked.right) {
+      this.externalLaunchInProgress = false;
     }
 
     this.playerMovement.update(this.cursors);

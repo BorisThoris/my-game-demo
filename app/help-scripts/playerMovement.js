@@ -1,18 +1,32 @@
 const DEFAULT_WALK_SPEED = 500;
+const STANDING_HITBOX = {
+  width: 100,
+  height: 225,
+  offsetX: 78,
+  offsetY: 31
+};
+const CROUCHING_HITBOX = {
+  width: 50,
+  height: 140,
+  offsetX: 100,
+  offsetY: 100
+};
 
 export default class PlayerMovement {
   constructor(player) {
     this.player = player;
-    this.playerHeight = 225;
     this.crouched = false;
     this.walkSpeed = DEFAULT_WALK_SPEED;
-    this.crouchSpeed = this.walkSpeed - 100;
+    this.crouchSpeed = this.walkSpeed - 200;
+    this.applyStandingHitBox();
   }
 
   reset() {
     this.walkSpeed = DEFAULT_WALK_SPEED;
     this.crouchSpeed = this.walkSpeed - 200;
     this.crouched = false;
+    this.player.setVelocity(0, 0);
+    this.applyStandingHitBox();
   }
 
   updateSpeed(speed) {
@@ -49,7 +63,7 @@ export default class PlayerMovement {
       this.player.setVelocityX(0);
 
       if (!this.crouched) {
-        this.player.setSize(100, this.playerHeight, true);
+        this.applyStandingHitBox();
         this.player.anims.play("flex", true);
       }
     }
@@ -58,7 +72,7 @@ export default class PlayerMovement {
       this.player.setVelocityY(-330);
       this.crouched = false;
     } else if (!touchingDown && !this.crouched) {
-      this.player.setSize(100, this.playerHeight, true);
+      this.applyStandingHitBox();
       this.player.anims.play("jump", true);
     }
 
@@ -71,23 +85,28 @@ export default class PlayerMovement {
     this.player.setVelocity(0, this.player.body.velocity.y);
   }
 
+  applyStandingHitBox() {
+    this.player.setSize(STANDING_HITBOX.width, STANDING_HITBOX.height);
+    this.player.setOffset(STANDING_HITBOX.offsetX, STANDING_HITBOX.offsetY);
+  }
+
   adjustCrouchingHitBox() {
-    this.player.setSize(50, 140);
-    this.player.setOffset(100, 100);
+    this.player.setSize(CROUCHING_HITBOX.width, CROUCHING_HITBOX.height);
+    this.player.setOffset(CROUCHING_HITBOX.offsetX, CROUCHING_HITBOX.offsetY);
   }
 
   move(direction, touchingDown) {
     switch (direction) {
       case "left":
         this.player.setVelocityX(-this.walkSpeed);
-        this.player.setSize(50, this.playerHeight, true);
+        this.applyStandingHitBox();
         if (touchingDown) {
           this.player.anims.play("walkLeft", true);
         }
         break;
       case "right":
         this.player.setVelocityX(this.walkSpeed);
-        this.player.setSize(50, this.playerHeight, true);
+        this.applyStandingHitBox();
         if (touchingDown) {
           this.player.anims.play("walkRight", true);
         }

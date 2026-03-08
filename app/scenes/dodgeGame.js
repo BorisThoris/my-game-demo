@@ -38,9 +38,11 @@ export default class DodgeGame extends BaseScene {
     super.createSceneShell(600, "mummy");
 
     this.music = this.sound.add("musicBack");
+    this.music.setLoop(true);
     this.gameOverMusic = this.sound.add("gameOver");
     this.ooGnome = this.sound.add("ooGnome");
     this.music.play();
+    this.events.once("shutdown", () => this.stopAudio());
 
     this.scoreText = this.add.text(16, 16, "Score: 0", {
       fontSize: "62px",
@@ -71,11 +73,11 @@ export default class DodgeGame extends BaseScene {
   }
 
   handleSpikeCollision() {
-    if (!this.player.body.touching.up) {
+    if (this.gameOverState || !this.player.body.touching.up) {
       return;
     }
 
-    this.music.pause();
+    this.stopAudio();
     this.gameOverMusic.play();
 
     const score = Math.floor(this.timer / 50);
@@ -132,16 +134,17 @@ export default class DodgeGame extends BaseScene {
       return;
     }
 
-    const spike = this.spikes.children.entries[0];
-    const powerUp = this.powerUps.children.entries[0];
+    this.spikes.children.each(spike => {
+      if (spike.y > 1000) {
+        spike.destroy();
+      }
+    });
 
-    if (spike && spike.y > 1000) {
-      spike.destroy();
-    }
-
-    if (powerUp && powerUp.y > 1000) {
-      powerUp.destroy();
-    }
+    this.powerUps.children.each(powerUp => {
+      if (powerUp.y > 1000) {
+        powerUp.destroy();
+      }
+    });
   }
 
   resetRun() {
@@ -154,7 +157,17 @@ export default class DodgeGame extends BaseScene {
     this.powerUps.clear(true, true);
     this.player.setPosition(600, 540);
     this.playerMovement.reset();
+    this.scoreText.setText("Score: 0");
+    this.highestScore.setText(`Highest score: ${this.highestScoreValue}`);
     this.music.play();
+  }
+
+  stopAudio() {
+    [this.music, this.gameOverMusic, this.ooGnome].forEach(sound => {
+      if (sound?.isPlaying) {
+        sound.stop();
+      }
+    });
   }
 
   showReplayButton() {
@@ -200,7 +213,7 @@ export default class DodgeGame extends BaseScene {
     }
 
     if (this.player.body.blocked.right) {
-      this.music.pause();
+      this.stopAudio();
       this.scene.start("choiceScene");
     }
 
