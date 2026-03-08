@@ -21,7 +21,7 @@ test("RunnerSpawnDirector only emits a miniboss from heat windows", () => {
   director.bossCooldownMs = 0;
   director.timeUntilNextPatternMs = 0;
 
-  const heatUpdate = director.update(16, 25, false);
+  const heatUpdate = director.update(16, 30, false);
   assert.equal(heatUpdate.events.some(event => event.kind === "boss"), true);
 
   director.reset();
@@ -29,6 +29,6 @@ test("RunnerSpawnDirector only emits a miniboss from heat windows", () => {
   director.bossCooldownMs = 0;
   director.timeUntilNextPatternMs = 0;
 
-  const recoveryUpdate = director.update(16, 25, false);
+  const recoveryUpdate = director.update(16, 30, false);
   assert.equal(recoveryUpdate.events.some(event => event.kind === "boss"), false);
 });
