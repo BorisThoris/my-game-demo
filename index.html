@@ -14,7 +14,16 @@
         <p class="subtitle">Procedural top-down dodger with heat and recovery cycles.</p>
       </header>
       <main class="game-shell">
-        <div id="phaser-example" class="game-frame"></div>
+        <div id="phaser-example" class="game-frame">
+          <div id="mobile-controls-overlay" class="mobile-controls-overlay" aria-hidden="true">
+            <div class="mobile-dpad">
+              <button type="button" id="mobile-btn-up" class="mobile-btn mobile-btn-up" aria-label="Move up"></button>
+              <button type="button" id="mobile-btn-left" class="mobile-btn mobile-btn-left" aria-label="Move left"></button>
+              <button type="button" id="mobile-btn-down" class="mobile-btn mobile-btn-down" aria-label="Move down"></button>
+              <button type="button" id="mobile-btn-right" class="mobile-btn mobile-btn-right" aria-label="Move right"></button>
+            </div>
+          </div>
+        </div>
       </main>
     </div>
     <script type="module" src="/main.js"></script>

@@ -1,4 +1,5 @@
 import Phaser from "phaser";
+import { virtualKeys } from "../input/mobileControls";
 import runningMan from "../assets/runningMan.png";
 import runningMan2 from "../assets/runningMan2.png";
 import flexingMan from "../assets/flexingMan.png";
@@ -74,7 +75,13 @@ export default class BaseScene extends Phaser.Scene {
 
     this.registerSharedAnimations();
     this.createPlatforms();
-    this.cursors = this.input.keyboard.createCursorKeys();
+    const realCursors = this.input.keyboard.createCursorKeys();
+    this.cursors = {
+      left: { get isDown() { return realCursors.left.isDown || virtualKeys.left; }, get isUp() { return !realCursors.left.isDown && !virtualKeys.left; } },
+      right: { get isDown() { return realCursors.right.isDown || virtualKeys.right; }, get isUp() { return !realCursors.right.isDown && !virtualKeys.right; } },
+      up: { get isDown() { return realCursors.up.isDown || virtualKeys.up; }, get isUp() { return !realCursors.up.isDown && !virtualKeys.up; } },
+      down: { get isDown() { return realCursors.down.isDown || virtualKeys.down; }, get isUp() { return !realCursors.down.isDown && !virtualKeys.down; } }
+    };
     this.player = this.createPlayer(playerX, playerTexture);
 
     return this.player;

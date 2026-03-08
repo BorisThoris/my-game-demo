@@ -4,6 +4,7 @@ import BeginningScene from "./scenes/beginningScene";
 import IntroductionScene from "./scenes/introductionScene";
 import ChoiceScene from "./scenes/choiceScene";
 import WebsitesScene from "./scenes/websitesScene";
+import { initMobileControls } from "./input/mobileControls";
 import {
   GAME_HEIGHT,
   GAME_WIDTH
@@ -35,4 +36,5 @@ const config = {
   ]
 };
 
-export default new Phaser.Game(config);
+const game = new Phaser.Game(config);
+initMobileControls();
