@@ -8,8 +8,14 @@ import { SCENE_KEYS } from "../config/sceneKeys";
 import BaseScene from "./baseScene";
 import RunnerSpawnDirector from "../game/runnerSpawnDirector";
 import { EXIT_UNLOCK_SCORE } from "../game/runnerContent";
+import ChallengeDirector from "../game/challengeDirector";
+import {
+  applyPerk,
+  buildPerkChoices,
+  createBaseModifiers
+} from "../game/perkSystem";
+import ObjectiveDirector from "../game/objectiveDirector";
 
-const MAX_SHIELDS = 3;
 const SCORE_TICK_MS = 1000;
 const PLAYER_SPEED = 430;
 const PLAYER_START_X = GAME_WIDTH / 2;
@@ -56,6 +62,20 @@ export default class DodgeGame extends BaseScene {
     this.phaseKey = "";
     this.lastFacing = "right";
     this.spawnDirector = new RunnerSpawnDirector();
+    this.challengeDirector = new ChallengeDirector();
+    this.challengePanel = null;
+    this.challengeText = null;
+    this.challengeTimerText = null;
+    this.challengeOptionTexts = [];
+    this.challengeInputKeys = null;
+    this.activeChallenge = null;
+    this.challengeRemainingMs = 0;
+    this.pendingPerkChoices = null;
+    this.perkPoints = 0;
+    this.ownedPerks = [];
+    this.runModifiers = createBaseModifiers();
+    this.objectiveDirector = new ObjectiveDirector();
+    this.objectiveText = null;
   }
 
   preload() {
@@ -78,6 +98,7 @@ export default class DodgeGame extends BaseScene {
     this.movementKeys = this.input.keyboard.addKeys("W,A,S,D");
     this.createRuntimeTextures();
     this.createHud();
+    this.createChallengeUi();
     this.createAudio();
     this.createGroups();
     this.createCollisions();
@@ -262,6 +283,12 @@ export default class DodgeGame extends BaseScene {
       STATUS_TEXT_STYLE
     );
     this.exitText.setOrigin(0.5, 0.5);
+
+    this.objectiveText = this.add.text(24, 108, "Objectives", {
+      fontSize: "20px",
+      fill: "#a6d9ff",
+      align: "left"
+    });
   }
 
   resetRun() {
@@ -283,6 +310,16 @@ export default class DodgeGame extends BaseScene {
     this.phaseKey = "";
     this.lastFacing = "right";
     this.activeBoss = null;
+    this.challengeDirector.reset();
+    this.activeChallenge = null;
+    this.challengeRemainingMs = 0;
+    this.pendingPerkChoices = null;
+    this.perkPoints = 0;
+    this.ownedPerks = [];
+    this.runModifiers = createBaseModifiers();
+    this.objectiveDirector.reset();
+    this.challengePanel?.setVisible(false);
+    this.renderObjectives();
 
     this.player.clearTint();
     this.player.setAlpha(1);
@@ -347,12 +384,15 @@ export default class DodgeGame extends BaseScene {
     pickup.destroy();
     this.ooGnome.play();
 
-    if (this.shieldCharges < MAX_SHIELDS) {
+    if (this.shieldCharges < this.runModifiers.maxShields) {
       this.shieldCharges += 1;
     } else {
       this.bonusScore += 3;
       this.setStatusText("Shield bank full. Pickup converted into bonus score.", 0xfff2b5);
     }
+
+    this.objectiveDirector.recordPickup();
+    this.processObjectiveRewards();
 
     this.tweens.add({
       targets: this.player,
@@ -378,7 +418,7 @@ export default class DodgeGame extends BaseScene {
 
   consumeShield(source) {
     this.shieldCharges -= 1;
-    this.damageRecoveryMs = 1150;
+    this.damageRecoveryMs = this.runModifiers.invulnerabilityMs;
 
     if (!source?.getData?.("persistent")) {
       source?.destroy();
@@ -453,8 +493,15 @@ export default class DodgeGame extends BaseScene {
 
   update(_, delta) {
     if (this.gameOverState === false) {
+      if (this.activeChallenge || this.pendingPerkChoices) {
+        this.updateChallengeState(delta);
+        this.updateHud(this.spawnDirector.getContext(this.getScore()));
+        return;
+      }
+
       this.runTimeMs += delta;
       this.damageRecoveryMs = Math.max(0, this.damageRecoveryMs - delta);
+      this.objectiveDirector.recordSurvival(delta);
 
       const score = this.getScore();
       const { events, context } = this.spawnDirector.update(
@@ -477,6 +524,8 @@ export default class DodgeGame extends BaseScene {
       this.updateBoss(delta);
       this.updatePlayerMovement();
       this.unlockExitIfNeeded(score);
+      this.maybeStartChallenge(score, context.intensity);
+      this.processObjectiveRewards();
 
       if (this.exitUnlocked && this.player.body.blocked.right) {
         this.stopAudio();
@@ -515,8 +564,9 @@ export default class DodgeGame extends BaseScene {
 
     if (velocityX !== 0 || velocityY !== 0) {
       const magnitude = Math.hypot(velocityX, velocityY) || 1;
-      velocityX = (velocityX / magnitude) * PLAYER_SPEED;
-      velocityY = (velocityY / magnitude) * PLAYER_SPEED;
+      const liveSpeed = PLAYER_SPEED * this.runModifiers.moveSpeedMultiplier;
+      velocityX = (velocityX / magnitude) * liveSpeed;
+      velocityY = (velocityY / magnitude) * liveSpeed;
       this.player.setVelocity(velocityX, velocityY);
 
       if (velocityX < 0) {
@@ -567,9 +617,191 @@ export default class DodgeGame extends BaseScene {
     this.highestScore.setText(`Best: ${this.highestScoreValue}`);
     this.phaseText.setText(`Phase: ${context.phaseLabel}`);
     this.phaseText.setColor(`#${context.phaseColor.toString(16).padStart(6, "0")}`);
-    this.shieldText.setText(`Shields: ${this.shieldCharges}/${MAX_SHIELDS}`);
+    this.shieldText.setText(`Shields: ${this.shieldCharges}/${this.runModifiers.maxShields}`);
     this.phaseBarFill.width = Math.max(6, 320 * context.phaseProgress);
     this.phaseBarFill.fillColor = context.phaseColor;
+  }
+
+  createChallengeUi() {
+    this.challengeInputKeys = this.input.keyboard.addKeys("ONE,TWO,THREE");
+    const panelBg = this.add
+      .rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, 740, 330, 0x08131d, 0.95)
+      .setStrokeStyle(3, 0x55d6ff, 0.9);
+    this.challengeText = this.add.text(GAME_WIDTH / 2, GAME_HEIGHT / 2 - 104, "", {
+      font: "700 34px Arial",
+      fill: "#d7f9ff",
+      align: "center"
+    });
+    this.challengeText.setOrigin(0.5, 0.5);
+
+    this.challengeTimerText = this.add.text(GAME_WIDTH / 2, GAME_HEIGHT / 2 - 34, "", {
+      font: "700 24px Arial",
+      fill: "#ffd166",
+      align: "center"
+    });
+    this.challengeTimerText.setOrigin(0.5, 0.5);
+
+    this.challengeOptionTexts = [0, 1, 2].map(index => {
+      const optionText = this.add.text(
+        GAME_WIDTH / 2,
+        GAME_HEIGHT / 2 + 30 + index * 54,
+        "",
+        { font: "700 28px Arial", fill: "#ffffff", align: "center" }
+      );
+      optionText.setOrigin(0.5, 0.5);
+      return optionText;
+    });
+
+    this.challengePanel = this.add.container(0, 0, [
+      panelBg,
+      this.challengeText,
+      this.challengeTimerText,
+      ...this.challengeOptionTexts
+    ]);
+    this.challengePanel.setDepth(15);
+    this.challengePanel.setVisible(false);
+  }
+
+  maybeStartChallenge(score, intensity) {
+    const challenge = this.challengeDirector.maybeCreateChallenge(score, intensity);
+    if (!challenge) {
+      return;
+    }
+
+    this.activeChallenge = challenge;
+    this.challengeRemainingMs = challenge.durationMs;
+    this.challengePanel.setVisible(true);
+    this.challengeText.setText(`${challenge.title}\n${challenge.prompt}`);
+    this.challengeOptionTexts.forEach((entry, index) => {
+      entry.setText(`${index + 1}. ${challenge.options[index]}`);
+    });
+    this.physics.pause();
+    this.setStatusText("Challenge break: answer before the timer expires.", 0x55d6ff);
+  }
+
+  updateChallengeState(delta) {
+    if (this.pendingPerkChoices) {
+      this.captureOptionInput(this.pendingPerkChoices, chosenPerk => {
+        this.runModifiers = applyPerk(this.runModifiers, chosenPerk.id);
+        this.ownedPerks.push(chosenPerk.id);
+        this.pendingPerkChoices = null;
+        this.challengePanel.setVisible(false);
+        this.physics.resume();
+        this.setStatusText(`Perk online: ${chosenPerk.title}.`, 0x8be9b1);
+      });
+      return;
+    }
+
+    if (!this.activeChallenge) {
+      return;
+    }
+
+    this.challengeRemainingMs = Math.max(0, this.challengeRemainingMs - delta);
+    const secondsLeft = (this.challengeRemainingMs / 1000).toFixed(1);
+    this.challengeTimerText.setText(`Timer: ${secondsLeft}s (press 1 / 2 / 3)`);
+
+    if (this.challengeRemainingMs <= 0) {
+      this.resolveChallenge(-1);
+      return;
+    }
+
+    this.captureOptionInput(this.activeChallenge.options, (_, index) => {
+      this.resolveChallenge(index);
+    });
+  }
+
+  captureOptionInput(options, onChoice) {
+    const keyMap = [this.challengeInputKeys.ONE, this.challengeInputKeys.TWO, this.challengeInputKeys.THREE];
+    for (let index = 0; index < options.length; index += 1) {
+      if (Phaser.Input.Keyboard.JustDown(keyMap[index])) {
+        onChoice(options[index], index);
+        break;
+      }
+    }
+  }
+
+  resolveChallenge(selectedIndex) {
+    const result = this.challengeDirector.evaluate(
+      this.activeChallenge,
+      selectedIndex,
+      this.challengeRemainingMs
+    );
+
+    this.challengePanel.setVisible(false);
+    this.activeChallenge = null;
+
+    if (!result.success) {
+      this.shieldCharges = Math.max(0, this.shieldCharges - (result.reward.shieldPenalty ?? 0));
+      this.physics.resume();
+      this.setStatusText(result.message, 0xff8072);
+      return;
+    }
+
+    const challengeScore = Math.round(
+      result.reward.scoreBonus * this.runModifiers.challengeScoreMultiplier
+    );
+    this.bonusScore += challengeScore;
+    this.shieldCharges = Math.min(
+      this.runModifiers.maxShields,
+      this.shieldCharges + result.reward.shieldBonus
+    );
+    this.perkPoints += result.reward.perkPoint;
+    this.setStatusText(result.message, 0x8be9b1);
+
+    if (this.perkPoints > 0) {
+      this.perkPoints -= 1;
+      const perkChoices = buildPerkChoices(this.ownedPerks);
+      if (perkChoices.length > 0) {
+        this.pendingPerkChoices = perkChoices;
+        this.challengePanel.setVisible(true);
+        this.challengeText.setText("Pick a perk");
+        this.challengeTimerText.setText("Press 1 / 2 / 3");
+        this.challengeOptionTexts.forEach((entry, index) => {
+          const perk = perkChoices[index];
+          entry.setText(perk ? `${index + 1}. ${perk.title} — ${perk.description}` : "");
+        });
+        return;
+      }
+    }
+
+    this.physics.resume();
+  }
+
+
+  processObjectiveRewards() {
+    const completed = this.objectiveDirector.consumeCompletedRewards();
+    if (completed.length === 0) {
+      this.renderObjectives();
+      return;
+    }
+
+    completed.forEach(objective => {
+      this.bonusScore += objective.reward.scoreBonus;
+      this.shieldCharges = Math.min(
+        this.runModifiers.maxShields,
+        this.shieldCharges + objective.reward.shieldBonus
+      );
+      this.perkPoints += objective.reward.perkPoint;
+      this.setStatusText(`Objective complete: ${objective.title}`, 0x8be9b1);
+    });
+
+    this.renderObjectives();
+  }
+
+  renderObjectives() {
+    if (!this.objectiveText) {
+      return;
+    }
+
+    const lines = this.objectiveDirector.getObjectives().map(objective => {
+      const done = objective.claimed ? "✓" : objective.completed ? "★" : "•";
+      const progress = objective.id === "survivor"
+        ? `${Math.floor(objective.progress / 1000)}s/${Math.floor(objective.target / 1000)}s`
+        : `${objective.progress}/${objective.target}`;
+      return `${done} ${objective.title}: ${progress}`;
+    });
+
+    this.objectiveText.setText(["Objectives", ...lines].join("\n"));
   }
 
   updateParallax(delta) {
@@ -802,6 +1034,8 @@ export default class DodgeGame extends BaseScene {
       boss.setVelocity(0, -config.exitSpeed);
       this.setStatusText("Boss wave cleared. One reward pocket before the next cycle.", 0x8be9b1);
       this.spawnPickup(config.rewardPickup);
+      this.objectiveDirector.recordBossClear();
+      this.processObjectiveRewards();
       return;
     }
 
