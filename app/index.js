@@ -4,12 +4,16 @@ import BeginningScene from "./scenes/beginningScene";
 import IntroductionScene from "./scenes/introductionScene";
 import ChoiceScene from "./scenes/choiceScene";
 import WebsitesScene from "./scenes/websitesScene";
+import {
+  GAME_HEIGHT,
+  GAME_WIDTH
+} from "./config/gameConfig";
 
 const config = {
   type: Phaser.AUTO,
   parent: "phaser-example",
-  width: 1280,
-  height: 720,
+  width: GAME_WIDTH,
+  height: GAME_HEIGHT,
   backgroundColor: "#08131d",
   physics: {
     default: "arcade",

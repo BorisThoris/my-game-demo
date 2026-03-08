@@ -4,11 +4,28 @@ import powerUp from "../assets/powerUp.png";
 import musicBack from "../assets/backMusic(2).mp3";
 import gameOver from "../assets/gameOver.mp3";
 import ooGnome from "../assets/oo.mp3";
+import {
+  GAME_WIDTH,
+  MENU_PLAYER_X,
+  PLAYER_START_Y
+} from "../config/gameConfig";
+import { SCENE_KEYS } from "../config/sceneKeys";
 import BaseScene from "./baseScene";
+
+const SCORE_TICK_RATE = 50;
+const EARLY_GAME_THRESHOLD = 10;
+const EARLY_SPAWN_INTERVAL = 20;
+const LATE_SPAWN_INTERVAL = 10;
+const SPIKE_SPAWN_CHANCE = {
+  earlyMin: 1,
+  earlyMax: 4,
+  standardMax: 6
+};
+const POWER_UP_SPEEDS = [-500, 500, 700, -700, 1000];
 
 export default class DodgeGame extends BaseScene {
   constructor() {
-    super("gameScene");
+    super(SCENE_KEYS.game);
     this.scoreText = null;
     this.highestScore = null;
     this.spikes = null;
@@ -36,7 +53,7 @@ export default class DodgeGame extends BaseScene {
   }
 
   create() {
-    super.createSceneShell(600, "mummy");
+    super.createSceneShell(MENU_PLAYER_X, "mummy");
 
     this.music = this.sound.add("musicBack");
     this.music.setLoop(true);
@@ -46,20 +63,7 @@ export default class DodgeGame extends BaseScene {
     this.events.once("shutdown", () => this.stopAudio());
     this.clearGameOverUi();
 
-    this.scoreText = this.add.text(16, 16, "Score: 0", {
-      fontSize: "62px",
-      fill: "#f6ff00"
-    });
-
-    this.highestScore = this.add.text(
-      900,
-      16,
-      `Highest score: ${this.highestScoreValue}`,
-      {
-        fontSize: "32px",
-        fill: "#f6ff00"
-      }
-    );
+    this.createHud();
 
     this.spikes = this.physics.add.group();
     this.powerUps = this.physics.add.group();
@@ -82,7 +86,7 @@ export default class DodgeGame extends BaseScene {
     this.stopAudio();
     this.gameOverMusic.play();
 
-    const score = Math.floor(this.timer / 50);
+    const score = this.getScore();
     if (this.highestScoreValue < score) {
       this.highestScoreValue = score;
       this.highestScore.setText(`Highest score: ${this.highestScoreValue}`);
@@ -94,37 +98,47 @@ export default class DodgeGame extends BaseScene {
   handlePowerUpCollision(tempPowerUp) {
     tempPowerUp.destroy();
 
-    const powerUp = Math.floor(Math.random() * 6);
     this.ooGnome.play();
-
-    if (powerUp === 1) {
-      this.playerMovement.updateSpeed(-500);
-    } else if (powerUp === 2) {
-      this.playerMovement.updateSpeed(500);
-    } else if (powerUp === 3) {
-      this.playerMovement.updateSpeed(700);
-    } else if (powerUp === 4) {
-      this.playerMovement.updateSpeed(-700);
-    } else {
-      this.playerMovement.updateSpeed(1000);
-    }
+    const powerUpIndex = Math.floor(Math.random() * POWER_UP_SPEEDS.length);
+    this.playerMovement.updateSpeed(POWER_UP_SPEEDS[powerUpIndex]);
   }
 
   addSpike() {
     this.spikes
-      .create(Math.random() * 1280, -100, "spike")
+      .create(Math.random() * GAME_WIDTH, -100, "spike")
       .setScale(Math.random() * (1 - 0.4) + this.spikeMax);
   }
 
   addPowerUp() {
-    this.powerUps.create(Math.random() * 1280, -100, "powerUp").setScale(0.15);
+    this.powerUps.create(Math.random() * GAME_WIDTH, -100, "powerUp").setScale(0.15);
+  }
+
+  createHud() {
+    this.scoreText = this.add.text(16, 16, "Score: 0", {
+      fontSize: "62px",
+      fill: "#f6ff00"
+    });
+
+    this.highestScore = this.add.text(
+      900,
+      16,
+      `Highest score: ${this.highestScoreValue}`,
+      {
+        fontSize: "32px",
+        fill: "#f6ff00"
+      }
+    );
+  }
+
+  getScore() {
+    return Math.floor(this.timer / SCORE_TICK_RATE);
   }
 
   showGameOver() {
     this.gameOverText = this.add.text(
       260,
       90,
-      `Game Over\nYou scored:\n${Math.floor(this.timer / 50)} points`,
+      `Game Over\nYou scored:\n${this.getScore()} points`,
       { fontSize: "100px", fill: "#ff0000", align: "center" }
     );
     this.gameOverState = "ended";
@@ -157,7 +171,7 @@ export default class DodgeGame extends BaseScene {
     this.clearGameOverUi();
     this.spikes.clear(true, true);
     this.powerUps.clear(true, true);
-    this.player.setPosition(600, 540);
+    this.player.setPosition(MENU_PLAYER_X, PLAYER_START_Y);
     this.playerMovement.reset();
     this.scoreText.setText("Score: 0");
     this.highestScore.setText(`Highest score: ${this.highestScoreValue}`);
@@ -210,23 +224,12 @@ export default class DodgeGame extends BaseScene {
   update() {
     if (this.gameOverState === false) {
       this.timer += 1;
-      this.scoreText.setText(`Score: ${Math.floor(this.timer / 50)}`);
+      const score = this.getScore();
+      this.scoreText.setText(`Score: ${score}`);
 
-      const score = Math.floor(this.timer / 50);
-      const randomNum = Math.floor(Math.random() * 10);
-      const shouldSpawn =
-        (score < 10 && (this.timer % 20 === 0 || this.timer === 1)) ||
-        (score >= 10 && (this.timer % 10 === 0 || this.timer === 1));
+      this.spawnFallingObject(score);
 
-      if (shouldSpawn) {
-        if ((score < 10 && randomNum >= 1 && randomNum <= 4) || randomNum <= 6) {
-          this.addSpike();
-        } else {
-          this.addPowerUp();
-        }
-      }
-
-      this.playerMovement.update(this.cursors);
+      this.updatePlayerMovement();
     } else if (this.gameOverState === "ended") {
       this.player.setVelocityX(0);
       this.player.anims.play("flex", true);
@@ -234,9 +237,33 @@ export default class DodgeGame extends BaseScene {
 
     if (this.player.body.blocked.right) {
       this.stopAudio();
-      this.scene.start("choiceScene");
+      this.scene.start(SCENE_KEYS.choice);
+      return;
     }
 
     this.clearOffscreenObjects();
+  }
+
+  spawnFallingObject(score) {
+    const randomNum = Math.floor(Math.random() * 10);
+    const isEarlyGame = score < EARLY_GAME_THRESHOLD;
+    const spawnInterval = isEarlyGame ? EARLY_SPAWN_INTERVAL : LATE_SPAWN_INTERVAL;
+    const shouldSpawn = this.timer % spawnInterval === 0 || this.timer === 1;
+
+    if (!shouldSpawn) {
+      return;
+    }
+
+    const shouldAddSpike = isEarlyGame
+      ? randomNum >= SPIKE_SPAWN_CHANCE.earlyMin &&
+        randomNum <= SPIKE_SPAWN_CHANCE.earlyMax
+      : randomNum <= SPIKE_SPAWN_CHANCE.standardMax;
+
+    if (shouldAddSpike) {
+      this.addSpike();
+      return;
+    }
+
+    this.addPowerUp();
   }
 }

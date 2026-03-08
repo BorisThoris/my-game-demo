@@ -9,6 +9,14 @@ import floor from "../assets/floor.png";
 import background from "../assets/background.png";
 import arrowRight from "../assets/arrowRight.png";
 import PlayerMovement from "../help-scripts/playerMovement";
+import {
+  GAME_CENTER_X,
+  GAME_CENTER_Y,
+  GAME_HEIGHT,
+  GAME_WIDTH,
+  PLAYER_START_Y,
+  WORLD_BOUNDS
+} from "../config/gameConfig";
 
 const SHARED_SPRITESHEETS = [
   { key: "mummy", asset: runningMan },
@@ -37,7 +45,6 @@ export default class BaseScene extends Phaser.Scene {
     this.platforms = null;
     this.cursors = null;
     this.playerMovement = null;
-    this.playerHeight = 225;
   }
 
   preload() {
@@ -54,7 +61,13 @@ export default class BaseScene extends Phaser.Scene {
   }
 
   createSceneShell(playerX = 100, playerTexture = "flex") {
-    this.add.tileSprite(640, 360, 1280, 720, "background");
+    this.add.tileSprite(
+      GAME_CENTER_X,
+      GAME_CENTER_Y,
+      GAME_WIDTH,
+      GAME_HEIGHT,
+      "background"
+    );
 
     this.registerSharedAnimations();
     this.createPlatforms();
@@ -80,16 +93,15 @@ export default class BaseScene extends Phaser.Scene {
   createPlatforms() {
     this.platforms = this.physics.add.staticGroup();
     this.platforms
-      .create(1280, 768, "ground")
+      .create(WORLD_BOUNDS.groundX, WORLD_BOUNDS.groundY, "ground")
       .setScale(2)
       .refreshBody();
   }
 
   createPlayer(x, texture) {
-    const player = this.physics.add.sprite(x, 540, texture);
+    const player = this.physics.add.sprite(x, PLAYER_START_Y, texture);
     player.setBounce(0);
     player.setCollideWorldBounds(true);
-    player.setSize(100, this.playerHeight, true);
 
     this.physics.add.collider(player, this.platforms);
 
@@ -104,5 +116,9 @@ export default class BaseScene extends Phaser.Scene {
     label.setOrigin(originX, originY);
     label.setShadow(10, 10, "rgba(0,0,0,0.5)", 2);
     return label;
+  }
+
+  updatePlayerMovement() {
+    this.playerMovement.update(this.cursors);
   }
 }

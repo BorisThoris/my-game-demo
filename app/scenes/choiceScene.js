@@ -1,78 +1,45 @@
-import BaseScene from "./baseScene";
+import { MENU_PLAYER_X } from "../config/gameConfig";
+import { SCENE_KEYS } from "../config/sceneKeys";
+import { PANEL_TITLE_STYLE } from "../config/sceneStyles";
+import NavigationScene from "./navigationScene";
 
-export default class ChoiceScene extends BaseScene {
+export default class ChoiceScene extends NavigationScene {
   constructor() {
-    super("choiceScene");
-    this.controlsEnabled = false;
-  }
-
-  preload() {
-    super.preload();
+    super(SCENE_KEYS.choice);
   }
 
   create() {
-    super.createSceneShell(600, "flex");
+    this.resetNavigationState();
+    super.createSceneShell(MENU_PLAYER_X, "flex");
 
-    const titleStyle = {
-      font: "700 40px Arial",
-      fill: "#fff",
-      align: "center"
-    };
+    this.arrowLeft = this.createArrow(100, 380, 0, true);
+    this.arrowRight = this.createArrow(1160, 380);
+    this.arrowDown = this.createArrow(640, 580, -270);
 
-    this.arrowLeft = this.add.sprite(100, 380, "arrow").setScale(0.25);
-    this.arrowLeft.scaleX = -0.25;
-    this.arrowRight = this.add.sprite(1160, 380, "arrow").setScale(0.25);
-    this.arrowDown = this.add.sprite(640, 580, "arrow").setScale(0.25);
-    this.arrowDown.angle -= 270;
+    this.createText(380, 60, "Welcome To The Midpoint", PANEL_TITLE_STYLE);
+    this.createText(0, 250, "Go Back To Info", PANEL_TITLE_STYLE);
+    this.createText(980, 250, "View Websites", PANEL_TITLE_STYLE);
+    this.createText(500, 450, "Play My Game", PANEL_TITLE_STYLE);
 
-    this.createText(380, 60, "Welcome To The Midpoint", titleStyle);
-    this.createText(0, 250, "Go Back To Info", titleStyle);
-    this.createText(980, 250, "View Websites", titleStyle);
-    this.createText(500, 450, "Play My Game", titleStyle);
-
-    [
-      this.arrowLeft,
-      this.arrowRight,
-      this.arrowDown
-    ].forEach(element => {
-      element.alpha = 0;
-    });
-
-    this.tweens.timeline({
-      ease: "Power2",
-      tweens: [
-        {
-          targets: this.children.list,
-          duration: 1500,
-          alpha: 1,
-          onComplete: () => {
-            this.controlsEnabled = true;
-          }
-        },
-        {
-          targets: [this.arrowLeft, this.arrowRight, this.arrowDown],
-          duration: 3000,
-          alpha: 0.2,
-          repeat: -1,
-          yoyo: true
-        }
-      ]
-    });
+    this.fadeInScene();
   }
 
   update() {
     if (this.player.body.blocked.left) {
-      this.scene.start("introScene");
+      this.scene.start(SCENE_KEYS.intro);
+      return;
     }
 
     if (this.controlsEnabled && this.cursors.down.isDown) {
-      this.scene.start("gameScene");
+      this.scene.start(SCENE_KEYS.game);
+      return;
     }
 
     if (this.controlsEnabled && this.player.body.blocked.right) {
-      this.scene.start("websitesScene");
+      this.scene.start(SCENE_KEYS.websites);
+      return;
     }
 
-    this.playerMovement.update(this.cursors);
+    this.updatePlayerMovement();
   }
 }

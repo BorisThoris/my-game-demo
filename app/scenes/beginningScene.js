@@ -1,57 +1,45 @@
+import { GAME_CENTER_X } from "../config/gameConfig";
+import { SCENE_KEYS } from "../config/sceneKeys";
+import {
+  BODY_STYLE,
+  HINT_STYLE,
+  TITLE_STYLE
+} from "../config/sceneStyles";
 import BaseScene from "./baseScene";
 
 export default class BeginningScene extends BaseScene {
   constructor() {
-    super("beginningScene");
+    super(SCENE_KEYS.beginning);
     this.hasStarted = false;
-  }
-
-  preload() {
-    super.preload();
   }
 
   create() {
     super.createSceneShell(220, "flex");
+    this.hasStarted = false;
 
-    const titleStyle = {
-      font: "700 72px Arial",
-      fill: "#fff3b0",
-      align: "center"
-    };
-    const bodyStyle = {
-      font: "700 34px Arial",
-      fill: "#ffffff",
-      align: "center"
-    };
-    const hintStyle = {
-      font: "700 28px Arial",
-      fill: "#9ae6ff",
-      align: "center"
-    };
-
-    this.createText(640, 130, "Dodge Game", titleStyle, 0.5, 0.5);
+    this.createText(GAME_CENTER_X, 130, "Dodge Game", TITLE_STYLE, 0.5, 0.5);
     this.createText(
-      640,
+      GAME_CENTER_X,
       230,
       "Survive the falling spikes and push for a higher score.",
-      bodyStyle,
+      BODY_STYLE,
       0.5,
       0.5
     );
     this.createText(
-      640,
+      GAME_CENTER_X,
       330,
       "Left / Right: Move\nUp: Jump\nDown: Crouch\nReach the right edge to continue",
-      bodyStyle,
+      BODY_STYLE,
       0.5,
       0.5
     );
 
     const startPrompt = this.createText(
-      640,
+      GAME_CENTER_X,
       560,
       "Press SPACE, ENTER, UP or click to start",
-      hintStyle,
+      HINT_STYLE,
       0.5,
       0.5
     );
@@ -71,7 +59,7 @@ export default class BeginningScene extends BaseScene {
       }
 
       this.hasStarted = true;
-      this.scene.start("gameScene");
+      this.scene.start(SCENE_KEYS.game);
     };
 
     this.input.keyboard.once("keydown-SPACE", startGame);

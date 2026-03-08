@@ -1,65 +1,31 @@
-import BaseScene from "./baseScene";
+import { GAME_CENTER_X, MENU_PLAYER_X } from "../config/gameConfig";
+import { SCENE_KEYS } from "../config/sceneKeys";
+import { PANEL_TITLE_STYLE } from "../config/sceneStyles";
+import { WEBSITE_LINKS } from "../config/websites";
 import { openExternalLink } from "../shared/browser";
+import NavigationScene from "./navigationScene";
 
-export default class WebsitesScene extends BaseScene {
+export default class WebsitesScene extends NavigationScene {
   constructor() {
-    super("websitesScene");
-    this.controlsEnabled = false;
+    super(SCENE_KEYS.websites);
     this.externalLaunchInProgress = false;
   }
 
-  preload() {
-    super.preload();
-  }
-
   create() {
-    super.createSceneShell(600, "flex");
+    this.resetNavigationState();
+    this.externalLaunchInProgress = false;
+    super.createSceneShell(MENU_PLAYER_X, "flex");
 
-    const titleStyle = {
-      font: "700 40px Arial",
-      fill: "#fff",
-      align: "center"
-    };
+    this.arrowLeft = this.createArrow(100, 380, 0, true);
+    this.arrowRight = this.createArrow(1160, 380);
+    this.arrowDown = this.createArrow(GAME_CENTER_X, 580, -270);
 
-    this.arrowLeft = this.add.sprite(100, 380, "arrow").setScale(0.25);
-    this.arrowLeft.scaleX = -0.25;
-    this.arrowRight = this.add.sprite(1160, 380, "arrow").setScale(0.25);
-    this.arrowDown = this.add.sprite(640, 580, "arrow").setScale(0.25);
-    this.arrowDown.angle -= 270;
+    this.createText(440, 60, "Choose a Website", PANEL_TITLE_STYLE);
+    this.createText(20, 250, "Go Back", PANEL_TITLE_STYLE);
+    this.createText(980, 250, "View Cat World", PANEL_TITLE_STYLE);
+    this.createText(460, 450, "View Gorilla Gainz", PANEL_TITLE_STYLE);
 
-    this.createText(440, 60, "Choose a Website", titleStyle);
-    this.createText(20, 250, "Go Back", titleStyle);
-    this.createText(980, 250, "View Cat World", titleStyle);
-    this.createText(460, 450, "View Gorilla Gainz", titleStyle);
-
-    [
-      this.arrowLeft,
-      this.arrowRight,
-      this.arrowDown
-    ].forEach(element => {
-      element.alpha = 0;
-    });
-
-    this.tweens.timeline({
-      ease: "Power2",
-      tweens: [
-        {
-          targets: this.children.list,
-          duration: 1500,
-          alpha: 1
-        },
-        {
-          targets: [this.arrowLeft, this.arrowRight, this.arrowDown],
-          duration: 3000,
-          alpha: 0.2,
-          repeat: -1,
-          yoyo: true,
-          onStart: () => {
-            this.controlsEnabled = true;
-          }
-        }
-      ]
-    });
+    this.fadeInScene();
   }
 
   openExternal(url) {
@@ -75,24 +41,23 @@ export default class WebsitesScene extends BaseScene {
   update() {
     if (this.player.body.blocked.left) {
       this.externalLaunchInProgress = false;
-      this.scene.start("choiceScene");
+      this.scene.start(SCENE_KEYS.choice);
+      return;
     }
 
     if (this.controlsEnabled && this.player.body.blocked.right) {
-      this.openExternal(
-        "https://boristhoris.github.io/My-website-demo-Angular/viewAll"
-      );
+      this.openExternal(WEBSITE_LINKS.angularPortfolio);
       this.player.x = 500;
     }
 
     if (this.controlsEnabled && this.cursors.down.isDown && this.player.body.touching.down) {
-      this.openExternal("https://boristhoris.github.io/My-website-demo-React/");
+      this.openExternal(WEBSITE_LINKS.reactPortfolio);
     }
 
     if (this.cursors.down.isUp && !this.player.body.blocked.right) {
       this.externalLaunchInProgress = false;
     }
 
-    this.playerMovement.update(this.cursors);
+    this.updatePlayerMovement();
   }
 }
