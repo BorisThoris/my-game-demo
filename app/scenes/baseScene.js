@@ -1,3 +1,4 @@
+import Phaser from "phaser";
 import runningMan from "../assets/runningMan.png";
 import runningMan2 from "../assets/runningMan2.png";
 import flexingMan from "../assets/flexingMan.png";
@@ -41,6 +42,7 @@ const SHARED_ANIMATIONS = [
 export default class BaseScene extends Phaser.Scene {
   constructor(key) {
     super({ key });
+    this.backgroundLayer = null;
     this.player = null;
     this.platforms = null;
     this.cursors = null;
@@ -61,13 +63,14 @@ export default class BaseScene extends Phaser.Scene {
   }
 
   createSceneShell(playerX = 100, playerTexture = "flex") {
-    this.add.tileSprite(
+    this.backgroundLayer = this.add.tileSprite(
       GAME_CENTER_X,
       GAME_CENTER_Y,
       GAME_WIDTH,
       GAME_HEIGHT,
       "background"
     );
+    this.backgroundLayer.setScrollFactor(0);
 
     this.registerSharedAnimations();
     this.createPlatforms();

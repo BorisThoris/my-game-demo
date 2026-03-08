@@ -15,22 +15,30 @@ export default class BeginningScene extends BaseScene {
 
   create() {
     super.createSceneShell(220, "flex");
+    this.input.keyboard.resetKeys();
     this.hasStarted = false;
 
-    this.createText(GAME_CENTER_X, 130, "Dodge Game", TITLE_STYLE, 0.5, 0.5);
+    this.createText(GAME_CENTER_X, 130, "Interval Dodger", TITLE_STYLE, 0.5, 0.5);
     this.createText(
       GAME_CENTER_X,
       230,
-      "Survive the falling spikes and push for a higher score.",
-      BODY_STYLE,
+      "A procedural endless dodger with easy phases, heat phases, and falling miniboss patterns.",
+      {
+        ...BODY_STYLE,
+        font: "700 30px Arial",
+        wordWrap: { width: 960 }
+      },
       0.5,
       0.5
     );
     this.createText(
       GAME_CENTER_X,
       330,
-      "Left / Right: Move\nUp: Jump\nDown: Crouch\nReach the right edge to continue",
-      BODY_STYLE,
+      "Arrows or WASD: Move freely\nDodge the falling shapes from above\nSurvive to 35 score, then touch the right edge to continue",
+      {
+        ...BODY_STYLE,
+        font: "700 30px Arial"
+      },
       0.5,
       0.5
     );
