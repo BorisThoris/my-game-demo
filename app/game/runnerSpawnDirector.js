@@ -6,7 +6,7 @@ import {
   buildRunnerContext
 } from "./runnerContent.js";
 
-const INITIAL_PATTERN_DELAY_MS = 950;
+const INITIAL_PATTERN_DELAY_MS = 1200;
 
 const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
 
@@ -37,7 +37,7 @@ export default class RunnerSpawnDirector {
     this.cycleCount = 0;
     this.pendingSpawns = [];
     this.timeUntilNextPatternMs = INITIAL_PATTERN_DELAY_MS;
-    this.bossCooldownMs = 15000;
+    this.bossCooldownMs = 20000;
   }
 
   getPhaseState() {
@@ -79,8 +79,8 @@ export default class RunnerSpawnDirector {
       if (this.pendingSpawns.length === 0 && this.timeUntilNextPatternMs <= 0) {
         if (this.shouldSpawnBoss(context, score)) {
           events.push(buildMiniBossWave(context, this.random));
-          this.bossCooldownMs = 22000 - Math.min(context.intensity, 1) * 5000;
-          this.timeUntilNextPatternMs = 1800;
+          this.bossCooldownMs = 28000 - Math.min(context.intensity, 1) * 6000;
+          this.timeUntilNextPatternMs = 2200;
         } else {
           const pattern = this.pickPattern(context);
 
@@ -141,11 +141,11 @@ export default class RunnerSpawnDirector {
   }
 
   nextPatternDelay(context) {
-    const minDelay = 600;
-    const maxDelay = 1550;
+    const minDelay = 750;
+    const maxDelay = 2000;
     const intensity = Math.min(context.intensity, 1);
     const baseline = maxDelay - (maxDelay - minDelay) * intensity;
-    const jitter = 120 + this.random() * 240;
+    const jitter = 150 + this.random() * 300;
 
     return baseline + jitter;
   }

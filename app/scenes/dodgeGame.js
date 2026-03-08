@@ -616,9 +616,13 @@ export default class DodgeGame extends BaseScene {
     hazard.setAlpha(descriptor.alpha ?? 1);
     hazard.body.setAllowGravity(false);
     hazard.setImmovable(true);
-    hazard.setVelocity(0, descriptor.speed);
+    const vx = descriptor.velocityX ?? 0;
+    const vy = descriptor.velocityY ?? descriptor.speed;
+    hazard.setVelocity(vx, vy);
     hazard.setDataEnabled();
     hazard.setData("speed", descriptor.speed);
+    hazard.setData("velocityX", vx);
+    hazard.setData("velocityY", vy);
     hazard.setData("baseX", descriptor.x);
     hazard.setData("baseY", descriptor.y);
     hazard.setData("ageMs", 0);
@@ -634,9 +638,13 @@ export default class DodgeGame extends BaseScene {
     pickup.setDepth(3);
     pickup.body.setAllowGravity(false);
     pickup.setImmovable(true);
-    pickup.setVelocity(0, descriptor.speed);
+    const vx = descriptor.velocityX ?? 0;
+    const vy = descriptor.velocityY ?? descriptor.speed;
+    pickup.setVelocity(vx, vy);
     pickup.setDataEnabled();
     pickup.setData("speed", descriptor.speed);
+    pickup.setData("velocityX", vx);
+    pickup.setData("velocityY", vy);
     pickup.setData("baseX", descriptor.x);
     pickup.setData("baseY", descriptor.y);
     pickup.setData("ageMs", 0);
@@ -715,11 +723,13 @@ export default class DodgeGame extends BaseScene {
       const ageMs = entry.getData("ageMs") + delta;
       const motion = entry.getData("motion") ?? { type: "none" };
       const rotationSpeed = entry.getData("rotationSpeed") ?? 0;
+      const vx = entry.getData("velocityX") ?? 0;
+      const vy = entry.getData("velocityY") ?? entry.getData("speed");
 
       entry.setData("ageMs", ageMs);
-      entry.setVelocity(0, entry.getData("speed"));
+      entry.setVelocity(vx, vy);
 
-      if (motion.type === "sway") {
+      if (motion.type === "sway" && vx === 0) {
         const phaseOffset = motion.phaseOffset ?? 0;
         entry.x =
           entry.getData("baseX") +

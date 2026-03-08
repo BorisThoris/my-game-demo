@@ -1,38 +1,93 @@
-import { GAME_WIDTH } from "../config/gameConfig.js";
+import { GAME_WIDTH, GAME_HEIGHT } from "../config/gameConfig.js";
 
 const SPAWN_Y = -140;
 const SAFE_MARGIN = 110;
 const LANES = [136, 316, 496, 676, 856, 1036, 1160];
 
-export const EXIT_UNLOCK_SCORE = 35;
-export const BOSS_TRIGGER_SCORE = 18;
+const DIAG = 0.707; // 1/sqrt(2) for 45° diagonals
+
+/** Spawn edges: where things come from. Unlock with intensity for dynamic stages. */
+export const SPAWN_EDGES = {
+  top: {
+    xRange: [SAFE_MARGIN, GAME_WIDTH - SAFE_MARGIN],
+    yRange: [SPAWN_Y, SPAWN_Y],
+    velocityX: 0,
+    velocityY: 1
+  },
+  bottom: {
+    xRange: [SAFE_MARGIN, GAME_WIDTH - SAFE_MARGIN],
+    yRange: [GAME_HEIGHT + 80, GAME_HEIGHT + 80],
+    velocityX: 0,
+    velocityY: -1
+  },
+  left: {
+    xRange: [-80, -80],
+    yRange: [120, GAME_HEIGHT - 120],
+    velocityX: 1,
+    velocityY: 0
+  },
+  right: {
+    xRange: [GAME_WIDTH + 80, GAME_WIDTH + 80],
+    yRange: [120, GAME_HEIGHT - 120],
+    velocityX: -1,
+    velocityY: 0
+  },
+  topLeft: {
+    xRange: [-100, -60],
+    yRange: [-100, -60],
+    velocityX: DIAG,
+    velocityY: DIAG
+  },
+  topRight: {
+    xRange: [GAME_WIDTH + 60, GAME_WIDTH + 100],
+    yRange: [-100, -60],
+    velocityX: -DIAG,
+    velocityY: DIAG
+  },
+  bottomLeft: {
+    xRange: [-100, -60],
+    yRange: [GAME_HEIGHT + 60, GAME_HEIGHT + 100],
+    velocityX: DIAG,
+    velocityY: -DIAG
+  },
+  bottomRight: {
+    xRange: [GAME_WIDTH + 60, GAME_WIDTH + 100],
+    yRange: [GAME_HEIGHT + 60, GAME_HEIGHT + 100],
+    velocityX: -DIAG,
+    velocityY: -DIAG
+  }
+};
+
+// Scaled for 20+ minute sessions: slower ramp, longer phases, exit/boss later
+export const EXIT_UNLOCK_SCORE = 120;
+export const BOSS_TRIGGER_SCORE = 28;
 
 export const RUNNER_PHASES = [
   {
     key: "recovery",
     label: "Recovery",
-    durationMs: 9000,
+    durationMs: 22000,
     pressure: 0.26,
     color: 0x55d6ff
   },
   {
     key: "push",
     label: "Push",
-    durationMs: 7000,
+    durationMs: 18000,
     pressure: 0.52,
     color: 0xffd166
   },
   {
     key: "heat",
     label: "Heat",
-    durationMs: 9000,
+    durationMs: 22000,
     pressure: 0.9,
     color: 0xff6b6b
   },
   {
     key: "reset",
     label: "Reset",
-    durationMs: 6000,
+    durationMs: 15000,
     pressure: 0.38,
     color: 0x8be9b1
   }
@@ -131,6 +186,33 @@ const shuffle = (items, rng) => {
 const pickLanes = (count, rng) => shuffle(LANES, rng).slice(0, count);
 
 const pickRandomX = rng => randomBetween(SAFE_MARGIN, GAME_WIDTH - SAFE_MARGIN, rng);
+const pickRandomY = rng => randomBetween(120, GAME_HEIGHT - 120, rng);
+
+/** Which edges unlock at which intensity (ramp for dynamic stages). */
+function getAllowedSpawnEdges(intensity) {
+  const edges = ["top"];
+  if (intensity >= 0.32) edges.push("left", "right");
+  if (intensity >= 0.48) edges.push("bottom");
+  if (intensity >= 0.58) edges.push("topLeft", "topRight");
+  if (intensity >= 0.72) edges.push("bottomLeft", "bottomRight");
+  return edges;
+}
+
+function pickSpawnEdge(context, rng) {
+  const allowed = context.allowedSpawnEdges || ["top"];
+  return allowed[Math.floor(rng() * allowed.length)];
+}
+
+function resolveSpawnPositionAndVelocity(edgeKey, speed, rng) {
+  const edge = SPAWN_EDGES[edgeKey] || SPAWN_EDGES.top;
+  const [xMin, xMax] = edge.xRange;
+  const [yMin, yMax] = edge.yRange;
+  const x = xMin === xMax ? xMin : randomBetween(xMin, xMax, rng);
+  const y = yMin === yMax ? yMin : randomBetween(yMin, yMax, rng);
+  const velocityX = edge.velocityX * speed;
+  const velocityY = edge.velocityY * speed;
+  return { x, y, velocityX, velocityY };
+}
 
 const createHazard = (type, context, rng, overrides = {}) => {
   const template = OBSTACLE_LIBRARY[type];
@@ -149,17 +231,41 @@ const createHazard = (type, context, rng, overrides = {}) => {
           ...(overrides.motion ?? {})
         };
 
+  const speed =
+    overrides.speed ??
+    context.fallSpeed * template.speedFactor +
+      randomBetween(-35, 40, rng);
+
+  const spawnEdge = overrides.spawnEdge ?? pickSpawnEdge(context, rng);
+  let x; let y; let velocityX; let velocityY;
+  if (overrides.x !== undefined && overrides.y !== undefined) {
+    x = overrides.x;
+    y = overrides.y;
+    velocityX = 0;
+    velocityY = speed;
+  } else if (spawnEdge !== "top") {
+    const resolved = resolveSpawnPositionAndVelocity(spawnEdge, Math.abs(speed), rng);
+    x = resolved.x;
+    y = resolved.y;
+    velocityX = resolved.velocityX;
+    velocityY = resolved.velocityY;
+  } else {
+    x = overrides.x ?? pickRandomX(rng);
+    y = overrides.y ?? SPAWN_Y;
+    velocityX = 0;
+    velocityY = speed;
+  }
+
   return {
     kind: "hazard",
     type,
     texture: template.texture,
     tint: overrides.tint ?? template.tint,
-    x: overrides.x ?? pickRandomX(rng),
-    y: overrides.y ?? SPAWN_Y,
-    speed:
-      overrides.speed ??
-      context.fallSpeed * template.speedFactor +
-        randomBetween(-35, 40, rng),
+    x,
+    y,
+    speed: Math.abs(speed),
+    velocityX: overrides.velocityX ?? velocityX,
+    velocityY: overrides.velocityY ?? velocityY,
     scaleX,
     scaleY,
     hitbox: overrides.hitbox ?? template.hitbox,
@@ -170,28 +276,44 @@ const createHazard = (type, context, rng, overrides = {}) => {
   };
 };
 
-const createPickup = (context, rng, overrides = {}) => ({
-  kind: "pickup",
-  texture: "powerUp",
-  tint: overrides.tint ?? 0xffffff,
-  x: overrides.x ?? pickRandomX(rng),
-  y: overrides.y ?? SPAWN_Y,
-  speed: overrides.speed ?? context.fallSpeed * 0.72,
-  scaleX: overrides.scaleX ?? 0.18,
-  scaleY: overrides.scaleY ?? 0.18,
-  hitbox: overrides.hitbox ?? {
-    shape: "circle",
-    radius: 96
-  },
-  rotationSpeed: overrides.rotationSpeed ?? 180,
-  motion: {
-    type: "sway",
-    amplitude: overrides.amplitude ?? 26,
-    frequency: overrides.frequency ?? 2.6,
-    phaseOffset: overrides.phaseOffset ?? randomBetween(0, Math.PI * 2, rng)
-  },
-  delayMs: overrides.delayMs ?? 0
-});
+const createPickup = (context, rng, overrides = {}) => {
+  const speed = overrides.speed ?? context.fallSpeed * 0.72;
+  const spawnEdge = overrides.spawnEdge ?? "top";
+  const { x, y, velocityX, velocityY } =
+    spawnEdge !== "top"
+      ? resolveSpawnPositionAndVelocity(spawnEdge, Math.abs(speed), rng)
+      : {
+          x: overrides.x ?? pickRandomX(rng),
+          y: overrides.y ?? SPAWN_Y,
+          velocityX: 0,
+          velocityY: speed
+        };
+
+  return {
+    kind: "pickup",
+    texture: "powerUp",
+    tint: overrides.tint ?? 0xffffff,
+    x: overrides.x ?? x,
+    y: overrides.y ?? y,
+    speed: Math.abs(speed),
+    velocityX: overrides.velocityX ?? velocityX,
+    velocityY: overrides.velocityY ?? velocityY,
+    scaleX: overrides.scaleX ?? 0.18,
+    scaleY: overrides.scaleY ?? 0.18,
+    hitbox: overrides.hitbox ?? {
+      shape: "circle",
+      radius: 96
+    },
+    rotationSpeed: overrides.rotationSpeed ?? 180,
+    motion: {
+      type: "sway",
+      amplitude: overrides.amplitude ?? 26,
+      frequency: overrides.frequency ?? 2.6,
+      phaseOffset: overrides.phaseOffset ?? randomBetween(0, Math.PI * 2, rng)
+    },
+    delayMs: overrides.delayMs ?? 0
+  };
+};
 
 export const PATTERN_LIBRARY = [
   {
@@ -327,13 +449,74 @@ export const PATTERN_LIBRARY = [
         })
       ];
     }
+  },
+  {
+    key: "side-rush",
+    phases: ["push", "heat"],
+    minIntensity: 0.38,
+    weight: 3,
+    build(context, rng) {
+      const fromLeft = rng() > 0.5;
+      return [
+        createHazard("meteor", context, rng, { spawnEdge: fromLeft ? "left" : "right" }),
+        createHazard("shard", context, rng, {
+          spawnEdge: fromLeft ? "right" : "left",
+          delayMs: 200
+        })
+      ];
+    }
+  },
+  {
+    key: "bottom-rise",
+    phases: ["push", "heat"],
+    minIntensity: 0.5,
+    weight: 3,
+    build(context, rng) {
+      return [
+        createHazard("crusher", context, rng, { spawnEdge: "bottom" }),
+        createHazard("meteor", context, rng, {
+          spawnEdge: "bottom",
+          delayMs: 180
+        })
+      ];
+    }
+  },
+  {
+    key: "diagonal-cross",
+    phases: ["heat"],
+    minIntensity: 0.62,
+    weight: 4,
+    build(context, rng) {
+      const corners = ["topLeft", "topRight", "bottomLeft", "bottomRight"];
+      const [a, b] = shuffle(corners, rng).slice(0, 2);
+      return [
+        createHazard("zigzag", context, rng, { spawnEdge: a }),
+        createHazard("shard", context, rng, {
+          spawnEdge: b,
+          delayMs: 120
+        })
+      ];
+    }
+  },
+  {
+    key: "flank-pincer",
+    phases: ["heat"],
+    minIntensity: 0.7,
+    weight: 3,
+    build(context, rng) {
+      return [
+        createHazard("meteor", context, rng, { spawnEdge: "left" }),
+        createHazard("meteor", context, rng, { spawnEdge: "right", delayMs: 90 }),
+        createHazard("sentinel", context, rng, { spawnEdge: "bottom", delayMs: 200 })
+      ];
+    }
   }
 ];
 
 export const buildRunnerContext = ({ score, phaseIndex, phaseElapsedMs, cycleCount }) => {
   const phase = RUNNER_PHASES[phaseIndex];
-  const scorePressure = clamp(score / 90, 0, 0.28);
-  const cyclePressure = clamp(cycleCount * 0.07, 0, 0.22);
+  const scorePressure = clamp(score / 350, 0, 0.28);
+  const cyclePressure = clamp(cycleCount * 0.016, 0, 0.22);
   const intensity = clamp(
     phase.pressure + scorePressure + cyclePressure,
     0.2,
@@ -350,7 +533,8 @@ export const buildRunnerContext = ({ score, phaseIndex, phaseElapsedMs, cycleCou
     phaseDurationMs: phase.durationMs,
     phaseProgress: clamp(phaseElapsedMs / phase.durationMs, 0, 1),
     fallSpeed: lerp(260, 700, Math.min(intensity, 1)),
-    backgroundSpeed: lerp(14, 40, Math.min(intensity, 1))
+    backgroundSpeed: lerp(14, 40, Math.min(intensity, 1)),
+    allowedSpawnEdges: getAllowedSpawnEdges(intensity)
   };
 };
 
