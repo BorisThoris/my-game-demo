@@ -18,6 +18,7 @@ export default class DodgeGame extends BaseScene {
     this.music = null;
     this.gameOverMusic = null;
     this.ooGnome = null;
+    this.replayTween = null;
     this.highestScoreValue = 0;
     this.timer = 0;
     this.gameOverState = false;
@@ -43,6 +44,7 @@ export default class DodgeGame extends BaseScene {
     this.ooGnome = this.sound.add("ooGnome");
     this.music.play();
     this.events.once("shutdown", () => this.stopAudio());
+    this.clearGameOverUi();
 
     this.scoreText = this.add.text(16, 16, "Score: 0", {
       fontSize: "62px",
@@ -151,8 +153,8 @@ export default class DodgeGame extends BaseScene {
     this.timer = 0;
     this.spikeMax = 0.4;
     this.gameOverState = false;
-    this.gameOverText.destroy();
-    this.replayButton.destroy();
+    this.stopAudio();
+    this.clearGameOverUi();
     this.spikes.clear(true, true);
     this.powerUps.clear(true, true);
     this.player.setPosition(600, 540);
@@ -170,12 +172,30 @@ export default class DodgeGame extends BaseScene {
     });
   }
 
+  clearGameOverUi() {
+    if (this.replayTween) {
+      this.replayTween.stop();
+      this.replayTween = null;
+    }
+
+    if (this.replayButton) {
+      this.replayButton.removeAllListeners();
+      this.replayButton.destroy();
+      this.replayButton = null;
+    }
+
+    if (this.gameOverText) {
+      this.gameOverText.destroy();
+      this.gameOverText = null;
+    }
+  }
+
   showReplayButton() {
     this.replayButton = this.add.sprite(640, 540, "replay");
     this.replayButton.setScale(0.2);
     this.replayButton.setInteractive();
 
-    this.tweens.add({
+    this.replayTween = this.tweens.add({
       targets: this.replayButton,
       ease: "Sine.easeInOut",
       duration: 2000,
