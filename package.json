@@ -1,20 +1,35 @@
 {
-  "name": "my-game-demo",
+  "name": "skyfall",
   "version": "1.0.0",
-  "description": "",
+  "description": "Procedural endless dodger — heat phases, bosses, perks.",
   "type": "module",
+  "main": "electron/main.js",
   "scripts": {
     "test": "node --test",
+    "test:e2e": "playwright test --project=chromium",
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "electron:dev": "electron .",
+    "electron:build": "vite build && electron-builder"
   },
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "phaser": "^3.90.0"
+    "phaser": "^3.90.0",
+    "phaser3-juice-plugin": "github:RetroVX/phaser3-juice-plugin"
   },
   "devDependencies": {
+    "@playwright/test": "^1.58.2",
+    "electron": "^28.0.0",
+    "electron-builder": "^24.9.1",
     "vite": "^6.4.1"
+  },
+  "build": {
+    "appId": "com.skyfall.game",
+    "productName": "Skyfall",
+    "directories": { "output": "release" },
+    "files": ["dist/**/*", "electron/**/*"],
+    "win": { "target": "nsis" }
   }
 }

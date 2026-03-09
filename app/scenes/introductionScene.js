@@ -13,7 +13,7 @@ export default class IntroductionScene extends BaseScene {
   }
 
   create() {
-    super.createSceneShell(INTRO_PLAYER_X, "flex");
+    super.createSceneShell(INTRO_PLAYER_X, "flex", false);
     this.isStarted = false;
 
     this.helloText = this.createText(60, 100, "My name is Boris.", INFO_HEADING_STYLE);

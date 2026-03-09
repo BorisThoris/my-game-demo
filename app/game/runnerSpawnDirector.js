@@ -2,7 +2,7 @@ import {
   BOSS_TRIGGER_SCORE,
   PATTERN_LIBRARY,
   RUNNER_PHASES,
-  buildMiniBossWave,
+  buildProceduralBoss,
   buildRunnerContext
 } from "./runnerContent.js";
 
@@ -78,7 +78,7 @@ export default class RunnerSpawnDirector {
 
       if (this.pendingSpawns.length === 0 && this.timeUntilNextPatternMs <= 0) {
         if (this.shouldSpawnBoss(context, score)) {
-          events.push(buildMiniBossWave(context, this.random));
+          events.push(buildProceduralBoss(context, this.random));
           this.bossCooldownMs = 28000 - Math.min(context.intensity, 1) * 6000;
           this.timeUntilNextPatternMs = 2200;
         } else {

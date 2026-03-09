@@ -1,5 +1,6 @@
-import { GAME_CENTER_X } from "../config/gameConfig";
+import { GAME_CENTER_X, GAME_HEIGHT } from "../config/gameConfig";
 import { SCENE_KEYS } from "../config/sceneKeys";
+import { EXIT_UNLOCK_SCORE } from "../game/runnerContent";
 import {
   BODY_STYLE,
   HINT_STYLE,
@@ -14,18 +15,25 @@ export default class BeginningScene extends BaseScene {
   }
 
   create() {
-    super.createSceneShell(220, "flex");
+    super.createSceneShell(220, "flex", false);
     this.input.keyboard.resetKeys();
     this.hasStarted = false;
 
-    this.createText(GAME_CENTER_X, 130, "Interval Dodger", TITLE_STYLE, 0.5, 0.5);
+    const layout = {
+      titleY: 100,
+      subtitleY: 200,
+      bodyY: 300,
+      hintY: GAME_HEIGHT - 120
+    };
+
+    this.createText(GAME_CENTER_X, layout.titleY, "Skyfall", TITLE_STYLE, 0.5, 0.5);
     this.createText(
       GAME_CENTER_X,
-      230,
+      layout.subtitleY,
       "A procedural endless dodger with easy phases, heat phases, and falling miniboss patterns.",
       {
         ...BODY_STYLE,
-        font: "700 30px Arial",
+        font: "700 28px Arial",
         wordWrap: { width: 960 }
       },
       0.5,
@@ -33,11 +41,11 @@ export default class BeginningScene extends BaseScene {
     );
     this.createText(
       GAME_CENTER_X,
-      330,
-      "Arrows or WASD: Move freely\nDodge the falling shapes from above\nSurvive to 35 score, then touch the right edge to continue",
+      layout.bodyY,
+      `Arrows or WASD: Move freely\nDodge the falling shapes from above\nReach score ${EXIT_UNLOCK_SCORE} and touch the right edge to continue`,
       {
         ...BODY_STYLE,
-        font: "700 30px Arial"
+        font: "700 26px Arial"
       },
       0.5,
       0.5
@@ -45,17 +53,25 @@ export default class BeginningScene extends BaseScene {
 
     const startPrompt = this.createText(
       GAME_CENTER_X,
-      560,
-      "Press SPACE, ENTER, UP or click to start",
-      HINT_STYLE,
+      layout.hintY,
+      "Press to start",
+      { ...HINT_STYLE, fontSize: "32px" },
       0.5,
       0.5
     );
+    startPrompt.setInteractive({ useHandCursor: true });
+    startPrompt.on("pointerover", () => {
+      startPrompt.setScale(1.08);
+      startPrompt.setAlpha(1);
+    });
+    startPrompt.on("pointerout", () => {
+      startPrompt.setScale(1);
+    });
 
     this.tweens.add({
       targets: startPrompt,
-      alpha: 0.25,
-      duration: 850,
+      alpha: 0.4,
+      duration: 900,
       yoyo: true,
       repeat: -1,
       ease: "Sine.easeInOut"
@@ -74,5 +90,6 @@ export default class BeginningScene extends BaseScene {
     this.input.keyboard.once("keydown-ENTER", startGame);
     this.input.keyboard.once("keydown-UP", startGame);
     this.input.once("pointerdown", startGame);
+    startPrompt.on("pointerdown", startGame);
   }
 }

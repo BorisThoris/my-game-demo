@@ -14,7 +14,7 @@ export default class WebsitesScene extends NavigationScene {
   create() {
     this.resetNavigationState();
     this.externalLaunchInProgress = false;
-    super.createSceneShell(MENU_PLAYER_X, "flex");
+    super.createSceneShell(MENU_PLAYER_X, "flex", false);
 
     this.arrowLeft = this.createArrow(100, 380, 0, true);
     this.arrowRight = this.createArrow(1160, 380);

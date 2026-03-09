@@ -1,16 +1,9 @@
 import Phaser from "phaser";
 import { virtualKeys } from "../input/mobileControls";
-import runningMan from "../assets/runningMan.png";
-import runningMan2 from "../assets/runningMan2.png";
-import flexingMan from "../assets/flexingMan.png";
-import crouchingFlex from "../assets/croutching-flex.png";
-import crouchingWalkLeft from "../assets/croutching-walk-left.png";
-import crouchingWalkRight from "../assets/croutching-walk-right.png";
-import jumpingMan from "../assets/jumpingMan.png";
-import floor from "../assets/floor.png";
-import background from "../assets/background.png";
-import arrowRight from "../assets/arrowRight.png";
 import PlayerMovement from "../help-scripts/playerMovement";
+import { ensureProceduralPlayerSheets } from "../game/ensureProceduralPlayerSheets";
+import { ensureProceduralBaseAssets } from "../game/proceduralBaseAssets";
+import StickmanPlayer from "../game/StickmanPlayer";
 import {
   GAME_CENTER_X,
   GAME_CENTER_Y,
@@ -19,16 +12,6 @@ import {
   PLAYER_START_Y,
   WORLD_BOUNDS
 } from "../config/gameConfig";
-
-const SHARED_SPRITESHEETS = [
-  { key: "mummy", asset: runningMan },
-  { key: "mummy2", asset: runningMan2 },
-  { key: "flex", asset: flexingMan },
-  { key: "crouch-flex", asset: crouchingFlex },
-  { key: "crouch-walk-left", asset: crouchingWalkLeft },
-  { key: "crouch-walk-right", asset: crouchingWalkRight },
-  { key: "jump", asset: jumpingMan }
-];
 
 const SHARED_ANIMATIONS = [
   { key: "walkRight", sheet: "mummy", frameRate: 10 },
@@ -51,19 +34,12 @@ export default class BaseScene extends Phaser.Scene {
   }
 
   preload() {
-    SHARED_SPRITESHEETS.forEach(({ key, asset }) => {
-      this.load.spritesheet(key, asset, {
-        frameWidth: 256,
-        frameHeight: 256
-      });
-    });
-
-    this.load.image("ground", floor);
-    this.load.image("background", background);
-    this.load.image("arrow", arrowRight);
+    // Ground, background, arrow and player sheets are generated procedurally in createSceneShell.
   }
 
-  createSceneShell(playerX = 100, playerTexture = "flex") {
+  createSceneShell(playerX = 100, playerTexture = "flex", gravity = true) {
+    ensureProceduralPlayerSheets(this);
+    ensureProceduralBaseAssets(this);
     this.backgroundLayer = this.add.tileSprite(
       GAME_CENTER_X,
       GAME_CENTER_Y,
@@ -83,7 +59,9 @@ export default class BaseScene extends Phaser.Scene {
       down: { get isDown() { return realCursors.down.isDown || virtualKeys.down; }, get isUp() { return !realCursors.down.isDown && !virtualKeys.down; } }
     };
     this.player = this.createPlayer(playerX, playerTexture);
-
+    if (!gravity) {
+      this.player.body.setAllowGravity(false);
+    }
     return this.player;
   }
 
@@ -109,15 +87,10 @@ export default class BaseScene extends Phaser.Scene {
   }
 
   createPlayer(x, texture) {
-    const player = this.physics.add.sprite(x, PLAYER_START_Y, texture);
-    player.setBounce(0);
-    player.setCollideWorldBounds(true);
-
+    const player = new StickmanPlayer(this, x, PLAYER_START_Y, texture);
     this.physics.add.collider(player, this.platforms);
-
     this.playerMovement = new PlayerMovement(player);
     player.anims.play("flex", true);
-
     return player;
   }
 

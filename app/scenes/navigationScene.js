@@ -26,29 +26,26 @@ export default class NavigationScene extends BaseScene {
   }
 
   fadeInScene(onReady) {
-    this.tweens.timeline({
+    this.tweens.add({
+      targets: this.children.list,
+      duration: 1500,
+      alpha: 1,
       ease: "Power2",
-      tweens: [
-        {
-          targets: this.children.list,
-          duration: 1500,
-          alpha: 1,
-          onComplete: () => {
-            this.controlsEnabled = true;
-
-            if (onReady) {
-              onReady();
-            }
-          }
-        },
-        {
-          targets: this.navigationIndicators,
-          duration: 3000,
-          alpha: 0.2,
-          repeat: -1,
-          yoyo: true
+      onComplete: () => {
+        this.controlsEnabled = true;
+        if (onReady) {
+          onReady();
         }
-      ]
+      }
+    });
+
+    this.tweens.add({
+      targets: this.navigationIndicators,
+      duration: 3000,
+      alpha: 0.2,
+      repeat: -1,
+      yoyo: true,
+      ease: "Power2"
     });
   }
 

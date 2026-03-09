@@ -10,7 +10,7 @@ export default class ChoiceScene extends NavigationScene {
 
   create() {
     this.resetNavigationState();
-    super.createSceneShell(MENU_PLAYER_X, "flex");
+    super.createSceneShell(MENU_PLAYER_X, "flex", false);
 
     this.arrowLeft = this.createArrow(100, 380, 0, true);
     this.arrowRight = this.createArrow(1160, 380);

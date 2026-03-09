@@ -1,9 +1,10 @@
 import Phaser from "phaser";
+import phaserJuicePlugin from "phaser3-juice-plugin";
+import LoadingScene from "./scenes/loadingScene";
+import MainMenuScene from "./scenes/mainMenuScene";
+import OptionsScene from "./scenes/optionsScene";
+import CreditsScene from "./scenes/creditsScene";
 import DodgeGame from "./scenes/dodgeGame";
-import BeginningScene from "./scenes/beginningScene";
-import IntroductionScene from "./scenes/introductionScene";
-import ChoiceScene from "./scenes/choiceScene";
-import WebsitesScene from "./scenes/websitesScene";
 import { initMobileControls } from "./input/mobileControls";
 import {
   GAME_HEIGHT,
@@ -27,12 +28,17 @@ const config = {
     mode: Phaser.Scale.FIT,
     autoCenter: Phaser.Scale.CENTER_BOTH
   },
+  plugins: {
+    scene: [
+      { key: "phaserJuice", plugin: phaserJuicePlugin, mapping: "juice" }
+    ]
+  },
   scene: [
-    BeginningScene,
-    DodgeGame,
-    IntroductionScene,
-    ChoiceScene,
-    WebsitesScene
+    LoadingScene,
+    MainMenuScene,
+    OptionsScene,
+    CreditsScene,
+    DodgeGame
   ]
 };
 

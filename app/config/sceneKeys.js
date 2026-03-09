@@ -1,6 +1,10 @@
 export const SCENE_KEYS = {
-  beginning: "beginningScene",
+  loading: "loadingScene",
+  mainMenu: "mainMenuScene",
+  options: "optionsScene",
+  credits: "creditsScene",
   game: "gameScene",
+  beginning: "beginningScene",
   intro: "introScene",
   choice: "choiceScene",
   websites: "websitesScene"
