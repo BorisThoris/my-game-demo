@@ -61,6 +61,7 @@ export default class MainMenuScene extends BaseScene {
           this.scene.start(SCENE_KEYS.options, { returnTo: SCENE_KEYS.mainMenu })
       },
       { label: "Credits", action: () => this.scene.start(SCENE_KEYS.credits) },
+      { label: "Progression", action: () => this.scene.start(SCENE_KEYS.meta) },
       { label: "Quit", action: () => this.quit() }
     ];
 
