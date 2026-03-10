@@ -14,13 +14,22 @@ import {
   getPerkIconFrame,
   PERK_LIBRARY
 } from "../game/perkSystem";
+import { applyArchetypeToModifiers, getArchetypeById } from "../game/archetypeSystem";
 import ObjectiveDirector from "../game/objectiveDirector";
 import { ensureProceduralTexture, DEFAULT_PROCEDURAL_PARAMS } from "../game/proceduralSprites";
 import { ensureProceduralUiAssets } from "../game/proceduralUiAssets";
 import { impactSquash, cameraShake, cameraZoomPulse, emitPhaseChangeBurst, emitObjectiveCompleteBurst } from "../game/juiceHelper";
 import { showFloatingText } from "../game/floatingText";
 import { DODGE_HUD_STYLES, HUD_STROKE, DODGE_AUDIO } from "../config/dodgeHudStyles";
-import { getHighScore, setHighScore, getSettings, getLastCompletedLevel, setLastCompletedLevel } from "../save/saveManager";
+import {
+  getHighScore,
+  setHighScore,
+  getSettings,
+  getLastCompletedLevel,
+  setLastCompletedLevel,
+  getSelectedArchetype,
+  setSelectedArchetype
+} from "../save/saveManager";
 import { GAME_MODES, getModeConfig, isHazardDescriptor, normalizeGameMode } from "../game/modeConfig";
 import { unlockAchievement, submitLeaderboardScore, setRichPresence } from "../services/onlineService";
 import { grantMetaCurrency, getRunStartModifiers } from "../game/metaProgression";
@@ -119,6 +128,9 @@ export default class DodgeGame extends BaseScene {
     this.modeConfig = getModeConfig(this.mode);
     this.nextChallengeScore = 0;
     this.nextDraftPerkAtMs = Infinity;
+    this.archetypeText = null;
+    this.selectedArchetypeId = "all-rounder";
+    this.currentArchetypeName = "All-Rounder";
   }
 
   init(data) {
@@ -130,6 +142,9 @@ export default class DodgeGame extends BaseScene {
       bossChanceBonus: this.mode === GAME_MODES.BossRush ? 0.2 : 0,
       bossTriggerScore: this.mode === GAME_MODES.BossRush ? 8 : undefined
     });
+    this.selectedArchetypeId = this._returnData.archetypeId || getSelectedArchetype();
+    setSelectedArchetype(this.selectedArchetypeId);
+    this.currentArchetypeName = getArchetypeById(this.selectedArchetypeId).name;
   }
 
   preload() {
@@ -340,6 +355,7 @@ export default class DodgeGame extends BaseScene {
     this.phaseText.setStroke(HUD_STROKE.color, HUD_STROKE.width);
 
     this.shieldText = this.add.text(912, 66, "Shields: 0/3", DODGE_HUD_STYLES.shieldText);
+    this.archetypeText = this.add.text(24, 142, `Archetype: ${this.currentArchetypeName}`, DODGE_HUD_STYLES.objectiveText);
 
     this.statusText = this.add.text(
       GAME_WIDTH / 2,
@@ -432,11 +448,18 @@ export default class DodgeGame extends BaseScene {
     this.pendingPerkChoices = null;
     this.perkPoints = 0;
     this.ownedPerks = [];
-    this.runModifiers = getRunStartModifiers(createBaseModifiers());
+    this.runModifiers = applyArchetypeToModifiers(
+      getRunStartModifiers(createBaseModifiers()),
+      this.selectedArchetypeId
+    );
+    this.currentArchetypeName = getArchetypeById(this.selectedArchetypeId).name;
     this.nextChallengeScore = this.modeConfig.challengeScoreInterval;
     this.nextDraftPerkAtMs = this.modeConfig.draftPerkIntervalSeconds
       ? this.modeConfig.draftPerkIntervalSeconds * 1000
       : Infinity;
+    if (this.archetypeText) {
+      this.archetypeText.setText(`Archetype: ${this.currentArchetypeName}`);
+    }
     this.objectiveDirector.reset();
     this.shieldCharges = this.runModifiers.maxShields;
     this.challengePanel?.setVisible(false);
