@@ -27,7 +27,16 @@ const weightedPick = (entries, rng) => {
 export default class RunnerSpawnDirector {
   constructor(random = Math.random) {
     this.random = random;
+    this.setModeTuning();
     this.reset();
+  }
+
+  setModeTuning(tuning = {}) {
+    this.modeTuning = {
+      bossCooldownScale: tuning.bossCooldownScale ?? 1,
+      bossChanceBonus: tuning.bossChanceBonus ?? 0,
+      bossTriggerScore: tuning.bossTriggerScore ?? BOSS_TRIGGER_SCORE
+    };
   }
 
   reset() {
@@ -37,7 +46,7 @@ export default class RunnerSpawnDirector {
     this.cycleCount = 0;
     this.pendingSpawns = [];
     this.timeUntilNextPatternMs = INITIAL_PATTERN_DELAY_MS;
-    this.bossCooldownMs = 20000;
+    this.bossCooldownMs = 20000 * this.modeTuning.bossCooldownScale;
   }
 
   getPhaseState() {
@@ -79,7 +88,9 @@ export default class RunnerSpawnDirector {
       if (this.pendingSpawns.length === 0 && this.timeUntilNextPatternMs <= 0) {
         if (this.shouldSpawnBoss(context, score)) {
           events.push(buildProceduralBoss(context, this.random));
-          this.bossCooldownMs = 28000 - Math.min(context.intensity, 1) * 6000;
+          this.bossCooldownMs =
+            (28000 - Math.min(context.intensity, 1) * 6000) *
+            this.modeTuning.bossCooldownScale;
           this.timeUntilNextPatternMs = 2200;
         } else {
           const pattern = this.pickPattern(context);
@@ -152,14 +163,18 @@ export default class RunnerSpawnDirector {
 
   shouldSpawnBoss(context, score) {
     if (
-      score < BOSS_TRIGGER_SCORE ||
+      score < this.modeTuning.bossTriggerScore ||
       context.phaseKey !== "heat" ||
       this.bossCooldownMs > 0
     ) {
       return false;
     }
 
-    const chance = clamp(0.28 + this.cycleCount * 0.04, 0.28, 0.44);
+    const chance = clamp(
+      0.28 + this.cycleCount * 0.04 + this.modeTuning.bossChanceBonus,
+      0.28,
+      0.75
+    );
     return this.random() <= chance;
   }
 

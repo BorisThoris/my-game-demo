@@ -128,3 +128,24 @@ Researched **free, open-source** libraries that work with this project (Phaser 3
 ---
 
 *Last updated from agent research (4 parallel agents): structure map, library search, integration notes, implementation.*
+
+---
+
+## Mode-specific difficulty targets (v1)
+
+- **Classic**
+  - Baseline pacing for new/returning players.
+  - Challenge cadence target: roughly every 12 score.
+  - Boss target: normal heat-phase schedule (default cooldown scale `1.0`).
+
+- **Boss Rush**
+  - Goal: high-pressure run focused on miniboss mechanics.
+  - Boss cadence target: ~2x+ boss presence versus Classic (`bossCooldownScale: 0.4`, extra boss chance bonus).
+  - Filler hazard target: reduced to ~55% of normal to keep reads clear during frequent bosses.
+  - Challenge cadence target: less frequent than Classic (every 18 score) so combat focus remains intact.
+
+- **Draft**
+  - Goal: build-crafting identity with mandatory choices.
+  - Forced perk cadence target: every 20 seconds (`draftPerkIntervalSeconds: 20`).
+  - Challenge cadence target: reduced pressure (every 20 score) so draft decisions stay primary.
+  - Boss cadence target: close to Classic but slightly gentler (`bossCooldownScale: 0.85`).
