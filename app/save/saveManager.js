@@ -3,6 +3,8 @@
  * Migrates from legacy skyfall_highscore. Optional cloud sync via onlineService (placeholder).
  */
 
+import { createDifficultyProfile, generateDailyContracts, getContractDateKey } from "../game/contractDirector.js";
+
 const SAVE_KEY = "skyfall_save";
 const LEGACY_HIGH_SCORE_KEY = "skyfall_highscore";
 const SAVE_VERSION = 2;
@@ -37,11 +39,51 @@ const DEFAULT_SAVE = {
   metaCurrency: 0,
   tutorialCompleted: false,
   tutorialOptOut: false,
-  unlockTree: { ...DEFAULT_UNLOCK_TREE }
+  unlockTree: { ...DEFAULT_UNLOCK_TREE },
+  contracts: {
+    seedDate: "",
+    expiresAt: "",
+    difficultyKey: "",
+    active: [],
+    claimed: {}
+  }
 };
 
 function normalizeMode(mode) {
   return mode || "Classic";
+}
+
+function getNextDateKey(dateKey) {
+  const base = new Date(`${dateKey}T00:00:00.000Z`);
+  base.setUTCDate(base.getUTCDate() + 1);
+  return getContractDateKey(base);
+}
+
+function ensureContracts(save, date = new Date()) {
+  const dateKey = getContractDateKey(date);
+  const contracts = {
+    ...DEFAULT_SAVE.contracts,
+    ...(save.contracts || {}),
+    claimed: { ...(save.contracts?.claimed || {}) }
+  };
+  const profile = createDifficultyProfile(save);
+
+  const isExpired = !contracts.expiresAt || contracts.expiresAt <= dateKey;
+  const profileChanged = contracts.difficultyKey !== profile.key;
+  if (isExpired || profileChanged || !Array.isArray(contracts.active) || contracts.active.length === 0) {
+    contracts.seedDate = dateKey;
+    contracts.expiresAt = getNextDateKey(dateKey);
+    contracts.difficultyKey = profile.key;
+    contracts.active = generateDailyContracts({ dateKey, difficultyProfile: profile });
+  } else {
+    contracts.active = contracts.active.map((entry) => ({
+      ...entry,
+      claimed: Boolean(entry.claimed || contracts.claimed[entry.id])
+    }));
+  }
+
+  save.contracts = contracts;
+  return save;
 }
 
 function readFromStorage() {
@@ -140,16 +182,65 @@ export function getSave() {
   let save = migrateSave(raw);
   save = migrateLegacyHighScore(save);
   save = migrateHighScoresByMode(save);
+  save = ensureContracts(save);
   return save;
 }
 
 /** Persist full save and optionally trigger cloud sync (placeholder). */
 export function setSave(data) {
-  const toWrite = migrateSave(data);
+  const toWrite = ensureContracts(migrateSave(data));
   writeToStorage(toWrite);
   import("../services/onlineService.js").then(({ saveToCloud }) => {
     saveToCloud(toWrite, () => {});
   }).catch(() => {});
+}
+
+export function getMetaProgression() {
+  const save = getSave();
+  return {
+    currency: save.metaCurrency ?? 0,
+    unlockFragments: save.metaFragments ?? 0
+  };
+}
+
+export function addMetaRewards({ currency = 0, fragments = 0 }) {
+  const save = getSave();
+  save.metaCurrency += Math.max(0, Math.floor(currency));
+  save.metaFragments += Math.max(0, Math.floor(fragments));
+  setSave(save);
+  return getMetaProgression();
+}
+
+export function getActiveContracts() {
+  return getSave().contracts.active;
+}
+
+export function updateContracts(updater) {
+  const save = getSave();
+  const current = save.contracts.active || [];
+  const next = typeof updater === "function" ? updater(current) : current;
+  save.contracts.active = Array.isArray(next) ? next : current;
+  save.contracts.active.forEach((contract) => {
+    if (contract.claimed) {
+      save.contracts.claimed[contract.id] = true;
+    }
+  });
+  setSave(save);
+  return save.contracts.active;
+}
+
+export function claimCompletedContract(contractId) {
+  const save = getSave();
+  const contract = (save.contracts.active || []).find((entry) => entry.id === contractId);
+  if (!contract || !contract.completed || contract.claimed || save.contracts.claimed[contractId]) {
+    return null;
+  }
+  contract.claimed = true;
+  save.contracts.claimed[contractId] = true;
+  save.metaCurrency += contract.reward?.currency || 0;
+  save.metaFragments += contract.reward?.fragments || 0;
+  setSave(save);
+  return contract.reward || null;
 }
 
 /** Get settings object. */

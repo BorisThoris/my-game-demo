@@ -4,7 +4,15 @@ import { EXIT_UNLOCK_SCORE } from "../game/runnerContent";
 import { ensureProceduralTexture, DEFAULT_PROCEDURAL_PARAMS } from "../game/proceduralSprites";
 import { ARCHETYPE_LIBRARY } from "../game/archetypeSystem";
 import { setRichPresence } from "../services/onlineService";
-import { getSelectedArchetype, getSettings, initSaveFromCloud, setSelectedArchetype } from "../save/saveManager";
+import {
+  getSelectedArchetype,
+  getSettings,
+  initSaveFromCloud,
+  setSelectedArchetype,
+  getActiveContracts,
+  getMetaProgression,
+  claimCompletedContract
+} from "../save/saveManager";
 import { GAME_VERSION } from "../config/version";
 import BaseScene from "./baseScene";
 import { getModeList, normalizeGameMode } from "../game/modeConfig";
@@ -43,6 +51,16 @@ export default class MainMenuScene extends BaseScene {
     this._addProceduralEnemies();
     this._poseAndSizePlayer();
     this.selectedArchetypeId = getSelectedArchetype();
+
+    const contracts = getActiveContracts();
+    const contractClaims = [];
+    contracts.forEach((contract) => {
+      const reward = claimCompletedContract(contract.id);
+      if (reward) {
+        contractClaims.push({ title: contract.title, reward });
+      }
+    });
+    const refreshedMeta = getMetaProgression();
 
     // Left panel (Valve/GMod style)
     const panel = this.add.graphics();
@@ -163,16 +181,41 @@ export default class MainMenuScene extends BaseScene {
     });
     updateArchetypeText();
 
+    const completedContracts = contracts.filter((contract) => contract.completed || contract.claimed).length;
+    const contractHeadline = `Contracts: ${completedContracts}/${contracts.length} complete`;
+    const contractProgress = contracts
+      .map((contract) => {
+        const progress = contract.metric === "survivalMs"
+          ? `${Math.floor(contract.progress / 1000)}s/${Math.floor(contract.target / 1000)}s`
+          : `${contract.progress}/${contract.target}`;
+        return `${contract.title} ${progress}`;
+      })
+      .join("\n");
+    this.add.text(PANEL_PADDING, 622, [contractHeadline, contractProgress].join("\n"), {
+      font: "700 11px Arial",
+      fill: "#b9d7f5",
+      wordWrap: { width: PANEL_WIDTH - PANEL_PADDING * 2 }
+    }).setDepth(10);
+
+    const claimSummary = contractClaims.length
+      ? `Claimed: ${contractClaims.map((entry) => `+${entry.reward.currency}c/+${entry.reward.fragments}f ${entry.title}`).join(" • ")}`
+      : `Currency: ${refreshedMeta.currency} • Fragments: ${refreshedMeta.unlockFragments}`;
+    this.add.text(PANEL_PADDING, 672, claimSummary, {
+      font: "700 11px Arial",
+      fill: contractClaims.length ? "#8be9b1" : "#fff2b5",
+      wordWrap: { width: PANEL_WIDTH - PANEL_PADDING * 2 }
+    }).setDepth(10);
+
     // Bottom-left: version and tagline (n-ish, left bottom left)
     const tagline = this.add.text(
       PANEL_PADDING,
-      GAME_HEIGHT - 72,
+      GAME_HEIGHT - 92,
       `Mode: ${this.selectedMode} • Reach score ${EXIT_UNLOCK_SCORE} and touch the right edge to finish a run.`,
       { font: "700 14px Arial", fill: "#6a7a8a", wordWrap: { width: PANEL_WIDTH - PANEL_PADDING * 2 } }
     );
     tagline.setDepth(10);
 
-    const versionText = this.add.text(PANEL_PADDING, GAME_HEIGHT - 36, `v${GAME_VERSION}`, {
+    const versionText = this.add.text(PANEL_PADDING, GAME_HEIGHT - 34, `v${GAME_VERSION}`, {
       font: "700 16px Arial",
       fill: "#5a6a7a"
     });
