@@ -7,5 +7,6 @@ export const SCENE_KEYS = {
   beginning: "beginningScene",
   intro: "introScene",
   choice: "choiceScene",
-  websites: "websitesScene"
+  websites: "websitesScene",
+  meta: "metaScene"
 };

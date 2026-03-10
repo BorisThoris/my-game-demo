@@ -22,6 +22,7 @@ import { showFloatingText } from "../game/floatingText";
 import { DODGE_HUD_STYLES, HUD_STROKE, DODGE_AUDIO } from "../config/dodgeHudStyles";
 import { getHighScore, setHighScore, getSettings, getLastCompletedLevel, setLastCompletedLevel } from "../save/saveManager";
 import { unlockAchievement, submitLeaderboardScore, setRichPresence } from "../services/onlineService";
+import { grantMetaCurrency, getRunStartModifiers } from "../game/metaProgression";
 
 const SCORE_TICK_MS = 1000;
 const MILESTONES = [25, 50, 100, 250];
@@ -110,6 +111,9 @@ export default class DodgeGame extends BaseScene {
     this.pausePanel = null;
     this._initialHighScore = 0;
     this._richPresenceThrottle = 0;
+    this.bossClears = 0;
+    this.completedChallenges = 0;
+    this._lastRunSummary = null;
   }
 
   init(data) {
@@ -396,9 +400,11 @@ export default class DodgeGame extends BaseScene {
 
     this.runTimeMs = 0;
     this.bonusScore = 0;
+    this.bossClears = 0;
+    this.completedChallenges = 0;
+    this._lastRunSummary = null;
     this.currentFallSpeed = 260;
     this.backgroundSpeed = 14;
-    this.shieldCharges = this.runModifiers.maxShields;
     this.damageRecoveryMs = 0;
     this.gameOverState = false;
     this.exitUnlocked = false;
@@ -411,8 +417,9 @@ export default class DodgeGame extends BaseScene {
     this.pendingPerkChoices = null;
     this.perkPoints = 0;
     this.ownedPerks = [];
-    this.runModifiers = createBaseModifiers();
+    this.runModifiers = getRunStartModifiers(createBaseModifiers());
     this.objectiveDirector.reset();
+    this.shieldCharges = this.runModifiers.maxShields;
     this.challengePanel?.setVisible(false);
     this.stopChallengeUrgencyTween();
     this.bossTimerText?.setVisible(false);
@@ -668,7 +675,23 @@ export default class DodgeGame extends BaseScene {
     this.player.setVelocity(0, 0);
     this.player.anims.play("flex", true);
 
+    const runSummary = this.buildRunSummary();
+    const metaReward = grantMetaCurrency(runSummary);
+    this._lastRunSummary = { ...runSummary, metaReward };
+
     this.showGameOver();
+  }
+
+  buildRunSummary() {
+    const objectives = this.objectiveDirector ? this.objectiveDirector.getObjectives() : [];
+    const objectivesCompleted = objectives.filter(objective => objective.completed).length;
+    return {
+      survivalTimeSec: Math.floor(this.runTimeMs / 1000),
+      score: this.getScore(),
+      bossClears: this.bossClears,
+      objectivesCompleted,
+      challengesCompleted: this.completedChallenges
+    };
   }
 
   showGameOver() {
@@ -707,10 +730,8 @@ export default class DodgeGame extends BaseScene {
       delay: 60,
       ease: "Power2.Out"
     });
-    const survivedSec = Math.floor(this.runTimeMs / 1000);
-    const objectives = this.objectiveDirector ? this.objectiveDirector.getObjectives() : [];
-    const completedCount = objectives.filter(o => o.completed).length;
-    const summaryLine = `Time: ${survivedSec}s${objectives.length ? ` · Objectives: ${completedCount}/${objectives.length}` : ""}`;
+    const runSummary = this._lastRunSummary || this.buildRunSummary();
+    const summaryLine = `Time: ${runSummary.survivalTimeSec}s · Objectives: ${runSummary.objectivesCompleted} · Challenges: ${runSummary.challengesCompleted} · Bosses: ${runSummary.bossClears}`;
     const summaryText = this.add.text(GAME_WIDTH / 2, 235, summaryLine, {
       fontSize: "22px",
       fill: "#d7f9ff",
@@ -720,6 +741,17 @@ export default class DodgeGame extends BaseScene {
     summaryText.setDepth(11);
     summaryText.setAlpha(0);
     this.tweens.add({ targets: summaryText, alpha: 1, duration: 240, delay: 120, ease: "Power2.Out" });
+    if (runSummary.metaReward > 0) {
+      const metaText = this.add.text(GAME_WIDTH / 2, 267, `Meta currency earned: +${runSummary.metaReward}`, {
+        fontSize: "22px",
+        fill: "#fff2b5",
+        align: "center"
+      });
+      metaText.setOrigin(0.5, 0);
+      metaText.setDepth(11);
+      metaText.setAlpha(0);
+      this.tweens.add({ targets: metaText, alpha: 1, duration: 240, delay: 150, ease: "Power2.Out" });
+    }
     if (this._justSetNewRecord) {
       this.cameras.main.flash(100, 200, 200, 100, false);
       showFloatingText(this, GAME_WIDTH / 2, 220, "New record!", "#fff2b5");
@@ -1515,6 +1547,7 @@ export default class DodgeGame extends BaseScene {
     const challengeScore = Math.round(
       result.reward.scoreBonus * this.runModifiers.challengeScoreMultiplier
     );
+    this.completedChallenges += 1;
     this.bonusScore += challengeScore;
     if (challengeScore > 0) {
       showFloatingText(this, GAME_WIDTH / 2, GAME_HEIGHT / 2 - 100, `+${challengeScore}`, "#8be9b1");
@@ -1934,6 +1967,7 @@ export default class DodgeGame extends BaseScene {
       this.setStatusText("Boss wave cleared. One reward pocket before the next cycle.", 0x8be9b1);
       this.spawnPickup(config.rewardPickup);
       this.objectiveDirector.recordBossClear();
+      this.bossClears += 1;
       this.processObjectiveRewards();
       return;
     }

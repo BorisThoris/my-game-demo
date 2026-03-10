@@ -5,6 +5,7 @@
 
 const SAVE_KEY = "skyfall_save";
 const LEGACY_HIGH_SCORE_KEY = "skyfall_highscore";
+const SAVE_VERSION = 2;
 
 const DEFAULT_SETTINGS = {
   musicVolume: 1,
@@ -13,12 +14,18 @@ const DEFAULT_SETTINGS = {
   resolutionOrQuality: "1280x720"
 };
 
+const DEFAULT_UNLOCK_TREE = {
+  unlockedNodes: []
+};
+
 const DEFAULT_SAVE = {
-  version: 1,
+  version: SAVE_VERSION,
   highScore: 0,
   lastCompletedLevel: 0,
   settings: { ...DEFAULT_SETTINGS },
-  unlockedAchievements: []
+  unlockedAchievements: [],
+  metaCurrency: 0,
+  unlockTree: { ...DEFAULT_UNLOCK_TREE }
 };
 
 function readFromStorage() {
@@ -63,19 +70,48 @@ function migrateLegacyHighScore(save) {
   return save;
 }
 
+function normalizeUnlockTree(unlockTree) {
+  return {
+    unlockedNodes: Array.isArray(unlockTree?.unlockedNodes) ? unlockTree.unlockedNodes : []
+  };
+}
+
+export function migrateSave(raw) {
+  if (!raw || typeof raw !== "object") {
+    return { ...DEFAULT_SAVE, settings: { ...DEFAULT_SETTINGS }, unlockTree: { ...DEFAULT_UNLOCK_TREE } };
+  }
+
+  const version = Number.isFinite(raw.version) ? raw.version : 1;
+  let save = {
+    ...DEFAULT_SAVE,
+    ...raw,
+    settings: { ...DEFAULT_SETTINGS, ...(raw.settings || {}) },
+    unlockTree: normalizeUnlockTree(raw.unlockTree)
+  };
+
+  if (version < 2) {
+    save = {
+      ...save,
+      metaCurrency: Number.isFinite(raw.metaCurrency) ? Math.max(0, Math.floor(raw.metaCurrency)) : 0,
+      unlockTree: normalizeUnlockTree(raw.unlockTree)
+    };
+  }
+
+  save.version = SAVE_VERSION;
+  return save;
+}
+
 /** Full save object from storage (with defaults and migration). */
 export function getSave() {
   const raw = readFromStorage();
-  let save = raw
-    ? { ...DEFAULT_SAVE, ...raw, settings: { ...DEFAULT_SETTINGS, ...(raw.settings || {}) } }
-    : { ...DEFAULT_SAVE };
+  let save = migrateSave(raw);
   save = migrateLegacyHighScore(save);
   return save;
 }
 
 /** Persist full save and optionally trigger cloud sync (placeholder). */
 export function setSave(data) {
-  const toWrite = { ...DEFAULT_SAVE, ...data, settings: { ...DEFAULT_SETTINGS, ...(data.settings || {}) } };
+  const toWrite = migrateSave(data);
   writeToStorage(toWrite);
   import("../services/onlineService.js").then(({ saveToCloud }) => {
     saveToCloud(toWrite, () => {});
