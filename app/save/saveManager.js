@@ -14,9 +14,10 @@ const DEFAULT_SETTINGS = {
 };
 
 const DEFAULT_SAVE = {
-  version: 1,
+  version: 2,
   highScore: 0,
   lastCompletedLevel: 0,
+  metaFragments: 0,
   settings: { ...DEFAULT_SETTINGS },
   unlockedAchievements: []
 };
@@ -123,6 +124,20 @@ export function setLastCompletedLevel(level) {
     return;
   }
   save.lastCompletedLevel = next;
+  setSave(save);
+}
+
+export function getMetaFragments() {
+  const save = getSave();
+  return save.metaFragments != null ? save.metaFragments : 0;
+}
+
+export function addMetaFragments(amount) {
+  if (!Number.isFinite(amount) || amount <= 0) {
+    return;
+  }
+  const save = getSave();
+  save.metaFragments = (save.metaFragments ?? 0) + Math.floor(amount);
   setSave(save);
 }
 
