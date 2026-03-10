@@ -11,7 +11,8 @@
     "build": "vite build",
     "preview": "vite preview",
     "electron:dev": "electron .",
-    "electron:build": "vite build && electron-builder"
+    "electron:build": "vite build && electron-builder",
+    "telemetry:aggregate": "node scripts/telemetry/aggregateTelemetry.js"
   },
   "author": "",
   "license": "ISC",
@@ -28,8 +29,15 @@
   "build": {
     "appId": "com.skyfall.game",
     "productName": "Skyfall",
-    "directories": { "output": "release" },
-    "files": ["dist/**/*", "electron/**/*"],
-    "win": { "target": "nsis" }
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "electron/**/*"
+    ],
+    "win": {
+      "target": "nsis"
+    }
   }
 }

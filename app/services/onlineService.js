@@ -1,4 +1,9 @@
 import { ACHIEVEMENTS } from "../config/achievements.js";
+import {
+  flushTelemetryBatch,
+  getTelemetryBatch,
+  setTelemetryUploadHook
+} from "../game/telemetry.js";
 
 const ONLINE_STATE_KEY = "skyfall_online_state";
 const ONLINE_QUEUE_KEY = "skyfall_online_queue";
@@ -349,4 +354,20 @@ if (typeof window !== "undefined") {
   window.addEventListener("online", () => {
     flushQueue().catch(() => {});
   });
+}
+
+export function getTelemetryQueueSize() {
+  return getTelemetryBatch().length;
+}
+
+export function registerTelemetryUploader(uploadFn) {
+  setTelemetryUploadHook(uploadFn);
+}
+
+export async function uploadTelemetryBatch(uploadFn) {
+  const result = await flushTelemetryBatch(uploadFn);
+  if (typeof console !== "undefined" && console.debug) {
+    console.debug("[online] uploadTelemetryBatch:", result);
+  }
+  return result;
 }

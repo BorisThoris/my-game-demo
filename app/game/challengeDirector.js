@@ -1,3 +1,5 @@
+import { emitTelemetryEvent } from "./telemetry.js";
+
 const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
 
 const pickWrongAnswers = (answer, rng) => {
@@ -88,7 +90,6 @@ const buildLogicChallenge = (rng, intensity) => {
   };
 };
 
-
 const buildSequenceChallenge = (rng, intensity) => {
   const base = 2 + Math.floor(rng() * 4);
   const step = 1 + Math.floor(intensity * 3);
@@ -133,6 +134,11 @@ export default class ChallengeDirector {
     const builder = CHALLENGE_BUILDERS[Math.floor(this.random() * CHALLENGE_BUILDERS.length)];
     const challenge = builder(this.random, clamp(intensity, 0.2, 1.2));
 
+    emitTelemetryEvent("challenge_spawned", {
+      challengeType: challenge.type,
+      intensity
+    });
+
     return {
       ...challenge,
       durationMs: 6500 - Math.floor(clamp(intensity, 0, 1) * 1800),
@@ -147,6 +153,14 @@ export default class ChallengeDirector {
   evaluate(challenge, selectedIndex, remainingMs) {
     const success =
       selectedIndex === challenge.correctIndex && remainingMs > 0;
+
+    emitTelemetryEvent("challenge_evaluated", {
+      challengeType: challenge?.type ?? "unknown",
+      selectedIndex,
+      correctIndex: challenge?.correctIndex,
+      remainingMs,
+      success
+    });
 
     if (!success) {
       return {
