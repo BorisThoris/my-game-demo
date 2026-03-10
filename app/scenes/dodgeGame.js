@@ -20,8 +20,14 @@ import { ensureProceduralUiAssets } from "../game/proceduralUiAssets";
 import { impactSquash, cameraShake, cameraZoomPulse, emitPhaseChangeBurst, emitObjectiveCompleteBurst } from "../game/juiceHelper";
 import { showFloatingText } from "../game/floatingText";
 import { DODGE_HUD_STYLES, HUD_STROKE, DODGE_AUDIO } from "../config/dodgeHudStyles";
+import {
+  BOSS_CLEAR_ACHIEVEMENTS,
+  CHALLENGE_STREAK_ACHIEVEMENTS,
+  NO_HIT_WINDOWS_MS,
+  SCORE_ACHIEVEMENT_MILESTONES
+} from "../config/achievements";
 import { getHighScore, setHighScore, getSettings, getLastCompletedLevel, setLastCompletedLevel } from "../save/saveManager";
-import { unlockAchievement, submitLeaderboardScore, setRichPresence } from "../services/onlineService";
+import { unlockAchievement, submitRunLeaderboards, setRichPresence } from "../services/onlineService";
 
 const SCORE_TICK_MS = 1000;
 const MILESTONES = [25, 50, 100, 250];
@@ -110,6 +116,10 @@ export default class DodgeGame extends BaseScene {
     this.pausePanel = null;
     this._initialHighScore = 0;
     this._richPresenceThrottle = 0;
+    this.challengeSuccessStreak = 0;
+    this.bossClearsThisRun = 0;
+    this.noHitWindowMs = 0;
+    this._lastNoHitAchievementMs = 0;
   }
 
   init(data) {
@@ -422,6 +432,10 @@ export default class DodgeGame extends BaseScene {
     this.tempScoreMultMultiplier = 1;
     this._lastMilestoneCelebrated = 0;
     this._lastScoreTickSecond = -1;
+    this.challengeSuccessStreak = 0;
+    this.bossClearsThisRun = 0;
+    this.noHitWindowMs = 0;
+    this._lastNoHitAchievementMs = 0;
     this._getReadyRemainingMs = 0;
     this.renderObjectives();
 
@@ -605,10 +619,12 @@ export default class DodgeGame extends BaseScene {
     }
 
     if (this.shieldCharges > 0) {
+      this.noHitWindowMs = 0;
       this.consumeShield(source);
       return;
     }
 
+    this.noHitWindowMs = 0;
     this.endRun();
   }
 
@@ -660,8 +676,10 @@ export default class DodgeGame extends BaseScene {
     } else {
       this._justSetNewRecord = false;
     }
-    submitLeaderboardScore("best_score", this.highestScoreValue);
-    submitLeaderboardScore("longest_survival_sec", Math.floor(this.runTimeMs / 1000));
+    submitRunLeaderboards({
+      runScore: this.highestScoreValue,
+      survivalSeconds: Math.floor(this.runTimeMs / 1000)
+    });
 
     this.highestScore.setText(`Best: ${this.highestScoreValue}`);
     this.gameOverState = "ended";
@@ -955,6 +973,7 @@ export default class DodgeGame extends BaseScene {
       }
 
       this.runTimeMs += delta;
+      this.noHitWindowMs += delta;
       const currentSecond = Math.floor(this.runTimeMs / 1000);
       if (currentSecond > this._lastScoreTickSecond) {
         const skipFirstTick = this._lastScoreTickSecond === -1 && currentSecond === 0;
@@ -997,10 +1016,20 @@ export default class DodgeGame extends BaseScene {
           toCelebrate + "!",
           "#fff2b5"
         );
-        if (toCelebrate >= 50) unlockAchievement("score_50");
-        if (toCelebrate >= 100) unlockAchievement("score_100");
-        if (toCelebrate >= 120) unlockAchievement("score_120");
+        SCORE_ACHIEVEMENT_MILESTONES.forEach(milestone => {
+          if (toCelebrate >= milestone.score) {
+            unlockAchievement(milestone.achievementId);
+          }
+        });
       }
+
+      NO_HIT_WINDOWS_MS.forEach(window => {
+        if (this.noHitWindowMs >= window.ms && this._lastNoHitAchievementMs < window.ms) {
+          this._lastNoHitAchievementMs = window.ms;
+          unlockAchievement(window.achievementId);
+          showFloatingText(this, GAME_WIDTH / 2, 116, "No-hit " + Math.floor(window.ms / 1000) + "s!", "#95e1d3");
+        }
+      });
       this.handlePhaseChange(context);
       this.updateHud(context);
       this.updateParallax(delta);
@@ -1026,8 +1055,10 @@ export default class DodgeGame extends BaseScene {
         this.cameras.main.fade(400, 0, 0, 0);
         this.cameras.main.once("camerafadeoutcomplete", () => {
           this.stopAudio();
-          submitLeaderboardScore("best_score", this.highestScoreValue);
-          submitLeaderboardScore("longest_survival_sec", Math.floor(this.runTimeMs / 1000));
+          submitRunLeaderboards({
+            runScore: this.highestScoreValue,
+            survivalSeconds: Math.floor(this.runTimeMs / 1000)
+          });
           this.scene.start(SCENE_KEYS.mainMenu);
         });
         return;
@@ -1501,6 +1532,7 @@ export default class DodgeGame extends BaseScene {
     this.hideChallengePanelTransitionOut(() => {});
 
     if (!result.success) {
+      this.challengeSuccessStreak = 0;
       this.shieldCharges = Math.max(0, this.shieldCharges - (result.reward.shieldPenalty ?? 0));
       this.music.setVolume(DODGE_AUDIO.musicNormalVolume);
       this.physics.resume();
@@ -1509,6 +1541,12 @@ export default class DodgeGame extends BaseScene {
     }
 
     this.playEventSfx("sfxChallengeComplete");
+    this.challengeSuccessStreak += 1;
+    CHALLENGE_STREAK_ACHIEVEMENTS.forEach(entry => {
+      if (this.challengeSuccessStreak >= entry.streak) {
+        unlockAchievement(entry.achievementId);
+      }
+    });
     showFloatingText(this, GAME_WIDTH / 2, GAME_HEIGHT / 2 - 140, "Correct!", "#8be9b1");
     this.emitParticleBurst(GAME_WIDTH / 2, GAME_HEIGHT / 2 - 80, 6, 280, 0.3, 0x8be9b1);
 
@@ -1926,6 +1964,12 @@ export default class DodgeGame extends BaseScene {
     }
 
     if (state === "fight" && lifeMs >= config.durationMs) {
+      this.bossClearsThisRun += 1;
+      BOSS_CLEAR_ACHIEVEMENTS.forEach(entry => {
+        if (this.bossClearsThisRun >= entry.clears) {
+          unlockAchievement(entry.achievementId);
+        }
+      });
       boss.setData("state", "exit");
       this.bossTimerText?.setVisible(false);
       cameraShake(this, 200, 0.005);

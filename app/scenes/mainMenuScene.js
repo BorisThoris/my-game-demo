@@ -2,7 +2,7 @@ import { GAME_HEIGHT, GAME_WIDTH, PLAYER_START_Y } from "../config/gameConfig";
 import { SCENE_KEYS } from "../config/sceneKeys";
 import { EXIT_UNLOCK_SCORE } from "../game/runnerContent";
 import { ensureProceduralTexture, DEFAULT_PROCEDURAL_PARAMS } from "../game/proceduralSprites";
-import { setRichPresence } from "../services/onlineService";
+import { getOnlineStatus, listAchievementStates, setRichPresence } from "../services/onlineService";
 import { getSettings, initSaveFromCloud } from "../save/saveManager";
 import { GAME_VERSION } from "../config/version";
 import BaseScene from "./baseScene";
@@ -83,6 +83,27 @@ export default class MainMenuScene extends BaseScene {
       text.on("pointerdown", item.action);
     });
 
+
+    const onlineStatus = getOnlineStatus();
+    const unlockedCount = listAchievementStates().filter(item => item.unlocked).length;
+    const onlineLabel = this.add.text(PANEL_PADDING, 470, `Online: ${onlineStatus.adapter} · Queue: ${onlineStatus.queueLength}`, {
+      font: "700 14px Arial",
+      fill: "#9fc5e8"
+    });
+    onlineLabel.setDepth(10);
+
+    const achievementsLabel = this.add.text(PANEL_PADDING, 496, `Achievements: ${unlockedCount} unlocked`, {
+      font: "700 14px Arial",
+      fill: "#9fc5e8"
+    });
+    achievementsLabel.setDepth(10);
+
+    const bestSubmitted = onlineStatus.leaderboards?.best_score?.score ?? 0;
+    const leaderboardLabel = this.add.text(PANEL_PADDING, 522, `Leaderboard best submit: ${bestSubmitted}`, {
+      font: "700 14px Arial",
+      fill: "#9fc5e8"
+    });
+    leaderboardLabel.setDepth(10);
     // Bottom-left: version and tagline (n-ish, left bottom left)
     const tagline = this.add.text(
       PANEL_PADDING,
