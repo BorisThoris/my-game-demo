@@ -6,6 +6,7 @@ import { setRichPresence } from "../services/onlineService";
 import { getSettings, initSaveFromCloud } from "../save/saveManager";
 import { GAME_VERSION } from "../config/version";
 import BaseScene from "./baseScene";
+import { getModeList, normalizeGameMode } from "../game/modeConfig";
 
 /** Valve/GMod-style main menu: options panel on the left, visuals (player + bg) on the right. */
 const PANEL_WIDTH = 380;
@@ -20,6 +21,12 @@ const MENU_PLAYER_SCALE = 1.4;
 export default class MainMenuScene extends BaseScene {
   constructor() {
     super(SCENE_KEYS.mainMenu);
+    this.selectedMode = "Classic";
+  }
+
+  init(data) {
+    this._menuData = data || {};
+    this.selectedMode = normalizeGameMode(this._menuData.mode || this.selectedMode);
   }
 
   create() {
@@ -50,11 +57,37 @@ export default class MainMenuScene extends BaseScene {
     });
     title.setDepth(10);
 
+    const modes = getModeList();
+    const modeLabel = this.add.text(PANEL_PADDING, 138, "Mode", {
+      font: "700 18px Arial",
+      fill: "#8ea0b2"
+    });
+    modeLabel.setDepth(10);
+
+    modes.forEach((entry, index) => {
+      const modeText = this.add.text(PANEL_PADDING, 164 + index * 24, "", {
+        font: "700 16px Arial",
+        fill: "#6a7a8a"
+      });
+      const refresh = () => {
+        const isSelected = this.selectedMode === entry.mode;
+        modeText.setText(`${isSelected ? "▶" : "•"} ${entry.label}`);
+        modeText.setColor(isSelected ? "#ffffff" : "#8ea0b2");
+      };
+      refresh();
+      modeText.setDepth(10);
+      modeText.setInteractive({ useHandCursor: true });
+      modeText.on("pointerdown", () => {
+        this.selectedMode = entry.mode;
+        this.scene.restart({ mode: this.selectedMode });
+      });
+    });
+
     // Menu options on the left, vertical list
-    const menuYStart = 200;
+    const menuYStart = 252;
     const menuSpacing = 56;
     const menuItems = [
-      { label: "Play", action: () => this.scene.start(SCENE_KEYS.game) },
+      { label: "Play", action: () => this.scene.start(SCENE_KEYS.game, { mode: this.selectedMode }) },
       {
         label: "Options",
         action: () =>
@@ -88,7 +121,7 @@ export default class MainMenuScene extends BaseScene {
     const tagline = this.add.text(
       PANEL_PADDING,
       GAME_HEIGHT - 72,
-      `Reach score ${EXIT_UNLOCK_SCORE} and touch the right edge to finish a run.`,
+      `Mode: ${this.selectedMode} • Reach score ${EXIT_UNLOCK_SCORE} and touch the right edge to finish a run.`,
       { font: "700 14px Arial", fill: "#6a7a8a", wordWrap: { width: PANEL_WIDTH - PANEL_PADDING * 2 } }
     );
     tagline.setDepth(10);

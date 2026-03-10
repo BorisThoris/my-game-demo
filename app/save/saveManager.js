@@ -21,12 +21,21 @@ const DEFAULT_UNLOCK_TREE = {
 const DEFAULT_SAVE = {
   version: SAVE_VERSION,
   highScore: 0,
+  highScoresByMode: {
+    Classic: 0,
+    BossRush: 0,
+    Draft: 0
+  },
   lastCompletedLevel: 0,
   settings: { ...DEFAULT_SETTINGS },
   unlockedAchievements: [],
   metaCurrency: 0,
   unlockTree: { ...DEFAULT_UNLOCK_TREE }
 };
+
+function normalizeMode(mode) {
+  return mode || "Classic";
+}
 
 function readFromStorage() {
   try {
@@ -98,6 +107,22 @@ export function migrateSave(raw) {
   }
 
   save.version = SAVE_VERSION;
+  return migrateHighScoresByMode(save);
+}
+
+function migrateHighScoresByMode(save) {
+  if (!save.highScoresByMode || typeof save.highScoresByMode !== "object") {
+    save.highScoresByMode = { ...DEFAULT_SAVE.highScoresByMode };
+  } else {
+    save.highScoresByMode = {
+      ...DEFAULT_SAVE.highScoresByMode,
+      ...save.highScoresByMode
+    };
+  }
+
+  if ((save.highScore ?? 0) > (save.highScoresByMode.Classic ?? 0)) {
+    save.highScoresByMode.Classic = save.highScore;
+  }
   return save;
 }
 
@@ -106,6 +131,7 @@ export function getSave() {
   const raw = readFromStorage();
   let save = migrateSave(raw);
   save = migrateLegacyHighScore(save);
+  save = migrateHighScoresByMode(save);
   return save;
 }
 
@@ -131,17 +157,28 @@ export function setSettings(partial) {
 }
 
 /** Get high score. */
-export function getHighScore() {
-  return getSave().highScore;
+export function getHighScore(mode = "Classic") {
+  const save = getSave();
+  const normalizedMode = normalizeMode(mode);
+  return save.highScoresByMode?.[normalizedMode] ?? 0;
 }
 
 /** Update high score and persist. */
-export function setHighScore(value) {
+export function setHighScore(value, mode = "Classic") {
   const save = getSave();
-  if (value <= save.highScore) {
+  const normalizedMode = normalizeMode(mode);
+  const currentModeBest = save.highScoresByMode?.[normalizedMode] ?? 0;
+  if (value <= currentModeBest) {
     return;
   }
-  save.highScore = value;
+  save.highScoresByMode = {
+    ...DEFAULT_SAVE.highScoresByMode,
+    ...(save.highScoresByMode || {})
+  };
+  save.highScoresByMode[normalizedMode] = value;
+  if (normalizedMode === "Classic") {
+    save.highScore = value;
+  }
   setSave(save);
 }
 

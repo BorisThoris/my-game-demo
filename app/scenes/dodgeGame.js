@@ -21,6 +21,7 @@ import { impactSquash, cameraShake, cameraZoomPulse, emitPhaseChangeBurst, emitO
 import { showFloatingText } from "../game/floatingText";
 import { DODGE_HUD_STYLES, HUD_STROKE, DODGE_AUDIO } from "../config/dodgeHudStyles";
 import { getHighScore, setHighScore, getSettings, getLastCompletedLevel, setLastCompletedLevel } from "../save/saveManager";
+import { GAME_MODES, getModeConfig, isHazardDescriptor, normalizeGameMode } from "../game/modeConfig";
 import { unlockAchievement, submitLeaderboardScore, setRichPresence } from "../services/onlineService";
 import { grantMetaCurrency, getRunStartModifiers } from "../game/metaProgression";
 
@@ -114,10 +115,21 @@ export default class DodgeGame extends BaseScene {
     this.bossClears = 0;
     this.completedChallenges = 0;
     this._lastRunSummary = null;
+    this.mode = GAME_MODES.Classic;
+    this.modeConfig = getModeConfig(this.mode);
+    this.nextChallengeScore = 0;
+    this.nextDraftPerkAtMs = Infinity;
   }
 
   init(data) {
     this._returnData = data || {};
+    this.mode = normalizeGameMode(this._returnData.mode);
+    this.modeConfig = getModeConfig(this.mode);
+    this.spawnDirector.setModeTuning({
+      bossCooldownScale: this.modeConfig.bossCooldownScale,
+      bossChanceBonus: this.mode === GAME_MODES.BossRush ? 0.2 : 0,
+      bossTriggerScore: this.mode === GAME_MODES.BossRush ? 8 : undefined
+    });
   }
 
   preload() {
@@ -200,8 +212,11 @@ export default class DodgeGame extends BaseScene {
     this.createRuntimeTextures();
     ensureProceduralUiAssets(this);
     this.createHud();
-    this._initialHighScore = getHighScore();
+    this._initialHighScore = getHighScore(this.mode);
     this.highestScoreValue = this._initialHighScore;
+    if (this.highestScore) {
+      this.highestScore.setText(`${this.modeConfig.label} Best: ${this.highestScoreValue}`);
+    }
     this.createChallengeUi();
     this.createAudio();
     this.createGroups();
@@ -418,6 +433,10 @@ export default class DodgeGame extends BaseScene {
     this.perkPoints = 0;
     this.ownedPerks = [];
     this.runModifiers = getRunStartModifiers(createBaseModifiers());
+    this.nextChallengeScore = this.modeConfig.challengeScoreInterval;
+    this.nextDraftPerkAtMs = this.modeConfig.draftPerkIntervalSeconds
+      ? this.modeConfig.draftPerkIntervalSeconds * 1000
+      : Infinity;
     this.objectiveDirector.reset();
     this.shieldCharges = this.runModifiers.maxShields;
     this.challengePanel?.setVisible(false);
@@ -445,7 +464,7 @@ export default class DodgeGame extends BaseScene {
     this._lastHudScore = this.getScore();
     this._lastHudPhaseProgress = 0;
     this.setStatusText(
-      "Recovery phases widen the rain. Heat phases compress the fall lanes.",
+      `${this.modeConfig.label}: Recovery phases widen the rain. Heat phases compress the fall lanes.`,
       0xd7f9ff
     );
     if (this._exitTextPulseTween) {
@@ -659,7 +678,7 @@ export default class DodgeGame extends BaseScene {
     const score = this.getScore();
     if (score > this.highestScoreValue) {
       this.highestScoreValue = score;
-      setHighScore(score);
+      setHighScore(score, this.mode);
       this._justSetNewRecord = true;
       if (this._initialHighScore === 0) {
         unlockAchievement("first_run");
@@ -670,7 +689,7 @@ export default class DodgeGame extends BaseScene {
     submitLeaderboardScore("best_score", this.highestScoreValue);
     submitLeaderboardScore("longest_survival_sec", Math.floor(this.runTimeMs / 1000));
 
-    this.highestScore.setText(`Best: ${this.highestScoreValue}`);
+    this.highestScore.setText(`${this.modeConfig.label} Best: ${this.highestScoreValue}`);
     this.gameOverState = "ended";
     this.player.setVelocity(0, 0);
     this.player.anims.play("flex", true);
@@ -1013,6 +1032,9 @@ export default class DodgeGame extends BaseScene {
         score,
         Boolean(this.activeBoss)
       );
+      const modeFilteredEvents = this.mode === GAME_MODES.BossRush
+        ? events.filter(event => !isHazardDescriptor(event) || Math.random() <= this.modeConfig.fillerHazardSpawnChance || event.kind === "boss")
+        : events;
 
       this.currentFallSpeed = context.fallSpeed;
       this.backgroundSpeed = context.backgroundSpeed;
@@ -1037,7 +1059,7 @@ export default class DodgeGame extends BaseScene {
       this.updateHud(context);
       this.updateParallax(delta);
 
-      events.forEach(event => this.spawnFromDescriptor(event));
+      modeFilteredEvents.forEach(event => this.spawnFromDescriptor(event));
 
       this.updateMovingGroup(this.hazards, delta);
       this.updateMovingGroup(this.pickups, delta);
@@ -1046,6 +1068,7 @@ export default class DodgeGame extends BaseScene {
       this.updatePlayerMovement();
       this.unlockExitIfNeeded(score);
       this.maybeStartChallenge(score, context.intensity);
+      this.maybeForceDraftPerk();
       this.processObjectiveRewards();
 
       this._richPresenceThrottle = (this._richPresenceThrottle || 0) + delta;
@@ -1238,7 +1261,7 @@ export default class DodgeGame extends BaseScene {
     }
 
     this.scoreText.setText(`Score: ${score}`);
-    this.highestScore.setText(`Best: ${this.highestScoreValue}`);
+    this.highestScore.setText(`${this.modeConfig.label} Best: ${this.highestScoreValue}`);
     this.phaseText.setText(`Phase: ${context.phaseLabel}`);
     this.phaseText.setColor(`#${context.phaseColor.toString(16).padStart(6, "0")}`);
     this.shieldText.setText(`Shields: ${this.shieldCharges}/${this.runModifiers.maxShields}`);
@@ -1400,10 +1423,16 @@ export default class DodgeGame extends BaseScene {
   }
 
   maybeStartChallenge(score, intensity) {
+    if (score < this.nextChallengeScore) {
+      return;
+    }
+
     const challenge = this.challengeDirector.maybeCreateChallenge(score, intensity);
     if (!challenge) {
       return;
     }
+
+    this.nextChallengeScore += this.modeConfig.challengeScoreInterval;
 
     this.activeChallenge = challenge;
     this.challengeRemainingMs = challenge.durationMs;
@@ -1416,6 +1445,43 @@ export default class DodgeGame extends BaseScene {
     this.physics.pause();
     this.music.setVolume(0.25);
     this.setStatusText("Challenge break: answer before the timer expires.", 0x55d6ff);
+  }
+
+  maybeForceDraftPerk() {
+    if (this.mode !== GAME_MODES.Draft || this.pendingPerkChoices || this.activeChallenge) {
+      return;
+    }
+    if (this.runTimeMs < this.nextDraftPerkAtMs) {
+      return;
+    }
+
+    const perkChoices = buildPerkChoices(this.ownedPerks);
+    if (perkChoices.length === 0) {
+      this.nextDraftPerkAtMs += this.modeConfig.draftPerkIntervalSeconds * 1000;
+      return;
+    }
+
+    this.pendingPerkChoices = perkChoices;
+    this.showChallengePanelTransitionIn();
+    this.challengeText.setText("Draft pick");
+    this.challengeTimerText.setText("Choose one now (1 / 2 / 3)");
+    this.challengeOptionTexts.forEach((entry, index) => {
+      const perk = perkChoices[index];
+      entry.setText(perk ? `${index + 1}. ${perk.title} — ${perk.description}` : "");
+    });
+    this.perkOptionIcons.forEach((icon, index) => {
+      const perk = perkChoices[index];
+      if (perk && this.textures.exists("perkIcons")) {
+        icon.setFrame(getPerkIconFrame(perk.id));
+        icon.setVisible(true);
+      } else {
+        icon.setVisible(false);
+      }
+    });
+    this.physics.pause();
+    this.music.setVolume(0.25);
+    this.setStatusText("Draft mode: mandatory perk selection.", 0xb6f0ff);
+    this.nextDraftPerkAtMs += this.modeConfig.draftPerkIntervalSeconds * 1000;
   }
 
   updateChallengeState(delta) {
