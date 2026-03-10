@@ -20,7 +20,7 @@ import { ensureProceduralUiAssets } from "../game/proceduralUiAssets";
 import { impactSquash, cameraShake, cameraZoomPulse, emitPhaseChangeBurst, emitObjectiveCompleteBurst } from "../game/juiceHelper";
 import { showFloatingText } from "../game/floatingText";
 import { DODGE_HUD_STYLES, HUD_STROKE, DODGE_AUDIO } from "../config/dodgeHudStyles";
-import { getHighScore, setHighScore, getSettings, getLastCompletedLevel, setLastCompletedLevel } from "../save/saveManager";
+import { getHighScore, setHighScore, getSettings, getLastCompletedLevel, setLastCompletedLevel, shouldShowTutorial } from "../save/saveManager";
 import { unlockAchievement, submitLeaderboardScore, setRichPresence } from "../services/onlineService";
 
 const SCORE_TICK_MS = 1000;
@@ -110,6 +110,11 @@ export default class DodgeGame extends BaseScene {
     this.pausePanel = null;
     this._initialHighScore = 0;
     this._richPresenceThrottle = 0;
+    this.accessibilitySettings = null;
+    this.lastDeathSource = "Unknown hazard";
+    this.runRewardTotals = { score: 0, shields: 0, perkPoints: 0 };
+    this.challengeOutcomeLog = [];
+    this.objectiveOutcomeLog = [];
   }
 
   init(data) {
@@ -144,6 +149,11 @@ export default class DodgeGame extends BaseScene {
       retry.on("pointerdown", () => this.scene.restart());
       return;
     }
+    if (!this._returnData?.skipTutorialGate && shouldShowTutorial()) {
+      this.scene.start(SCENE_KEYS.tutorial, { returnTo: SCENE_KEYS.game, returnData: { skipTutorialGate: true } });
+      return;
+    }
+
     super.createSceneShell(PLAYER_START_X, "mummy");
     this.input.keyboard.resetKeys();
     this.platforms.clear(true, true);
@@ -195,6 +205,7 @@ export default class DodgeGame extends BaseScene {
     this.escKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ESC);
     this.createRuntimeTextures();
     ensureProceduralUiAssets(this);
+    this.refreshAccessibilitySettings();
     this.createHud();
     this._initialHighScore = getHighScore();
     this.highestScoreValue = this._initialHighScore;
@@ -275,6 +286,43 @@ export default class DodgeGame extends BaseScene {
     this.gameOverMusic = this.sound.add("gameOver");
     this.ooGnome = this.sound.add("ooGnome");
     this._sfxVolume = settings.sfxVolume != null ? settings.sfxVolume : 1;
+  }
+
+  refreshAccessibilitySettings() {
+    const settings = getSettings();
+    this.accessibilitySettings = {
+      screenShakeIntensity: settings.screenShakeIntensity ?? 1,
+      flashIntensity: settings.flashIntensity ?? 1,
+      colorBlindPaletteMode: settings.colorBlindPaletteMode || "off"
+    };
+  }
+
+  shakeCamera(duration, amount) {
+    const intensity = this.accessibilitySettings?.screenShakeIntensity ?? 1;
+    if (intensity <= 0) return;
+    cameraShake(this, duration, amount * intensity);
+  }
+
+  flashCamera(duration, r, g, b) {
+    const intensity = this.accessibilitySettings?.flashIntensity ?? 1;
+    if (intensity <= 0) return;
+    this.cameras.main.flash(duration, Math.floor(r * intensity), Math.floor(g * intensity), Math.floor(b * intensity), false);
+  }
+
+  mapHazardTint(baseTint) {
+    const mode = this.accessibilitySettings?.colorBlindPaletteMode || "off";
+    if (mode === "off") return baseTint;
+    const rgb = Phaser.Display.Color.IntegerToRGB(baseTint ?? 0xffffff);
+    const isWarm = rgb.r >= rgb.g && rgb.r >= rgb.b;
+    const isCool = rgb.b >= rgb.r && rgb.b >= rgb.g;
+    const palette = {
+      protanopia: { warm: 0xe69f00, cool: 0x56b4e9, mid: 0x009e73 },
+      deuteranopia: { warm: 0xd55e00, cool: 0x0072b2, mid: 0xcc79a7 },
+      tritanopia: { warm: 0xff8c42, cool: 0x2e86de, mid: 0x7d5fff }
+    }[mode] || { warm: 0xf4a261, cool: 0x2a9d8f, mid: 0xe9c46a };
+    if (isWarm) return palette.warm;
+    if (isCool) return palette.cool;
+    return palette.mid;
   }
 
   /**
@@ -422,6 +470,10 @@ export default class DodgeGame extends BaseScene {
     this.tempScoreMultMultiplier = 1;
     this._lastMilestoneCelebrated = 0;
     this._lastScoreTickSecond = -1;
+    this.lastDeathSource = "Unknown hazard";
+    this.runRewardTotals = { score: 0, shields: 0, perkPoints: 0 };
+    this.challengeOutcomeLog = [];
+    this.objectiveOutcomeLog = [];
     this._getReadyRemainingMs = 0;
     this.renderObjectives();
 
@@ -609,6 +661,7 @@ export default class DodgeGame extends BaseScene {
       return;
     }
 
+    this.lastDeathSource = source?.getData?.("sourceName") || source?.getData?.("sourceKey") || "Hazard";
     this.endRun();
   }
 
@@ -620,7 +673,7 @@ export default class DodgeGame extends BaseScene {
       source?.destroy();
     }
 
-    cameraShake(this, 150, 0.005);
+    this.shakeCamera(150, 0.005);
     this.setStatusText("Shield popped. Short invulnerability window active.", 0xffd166);
 
     this.emitParticleBurst(this.player.x, this.player.y, 6, 280, 0.25, 0xffd166);
@@ -644,9 +697,9 @@ export default class DodgeGame extends BaseScene {
   endRun() {
     this.stopAudio();
     this.gameOverMusic.play();
-    cameraShake(this, 220, 0.008);
+    this.shakeCamera(220, 0.008);
     this.emitParticleBurst(this.player.x, this.player.y, 14, 400, 0.35);
-    this.cameras.main.flash(200, 255, 80, 80, false);
+    this.flashCamera(200, 255, 80, 80);
     this.physics.pause();
 
     const score = this.getScore();
@@ -674,54 +727,43 @@ export default class DodgeGame extends BaseScene {
   showGameOver() {
     this.pauseButton?.setVisible(false);
     this.gameOverPanel = this.add
-      .rectangle(GAME_WIDTH / 2, 170, 600, 280, 0x0d1823, 0.92)
+      .rectangle(GAME_WIDTH / 2, 220, 760, 410, 0x0d1823, 0.94)
       .setStrokeStyle(2, 0xff8072, 0.8)
       .setDepth(10);
-    this.gameOverPanel.setAlpha(0);
-    this.gameOverPanel.setScale(0.96);
-    this.tweens.add({
-      targets: this.gameOverPanel,
-      alpha: 1,
-      scale: 1,
-      duration: 280,
-      ease: "Power2.Out"
-    });
 
-    this.gameOverText = this.add.text(
-      GAME_WIDTH / 2,
-      150,
-      `Skyfall Ended\nScore: ${this.getScore()}\nBest: ${this.highestScoreValue}`,
-      {
-        fontSize: "72px",
-        fill: "#ff8072",
-        align: "center"
-      }
-    );
-    this.gameOverText.setOrigin(0.5, 0);
-    this.gameOverText.setDepth(11);
-    this.gameOverText.setAlpha(0);
-    this.tweens.add({
-      targets: this.gameOverText,
-      alpha: 1,
-      duration: 240,
-      delay: 60,
-      ease: "Power2.Out"
-    });
+    const score = this.getScore();
     const survivedSec = Math.floor(this.runTimeMs / 1000);
     const objectives = this.objectiveDirector ? this.objectiveDirector.getObjectives() : [];
     const completedCount = objectives.filter(o => o.completed).length;
-    const summaryLine = `Time: ${survivedSec}s${objectives.length ? ` · Objectives: ${completedCount}/${objectives.length}` : ""}`;
-    const summaryText = this.add.text(GAME_WIDTH / 2, 235, summaryLine, {
-      fontSize: "22px",
-      fill: "#d7f9ff",
-      align: "center"
+    const challengeSummary = this.challengeOutcomeLog.length ? this.challengeOutcomeLog.slice(-3).join("\n") : "No challenge resolutions";
+    const objectiveSummary = this.objectiveOutcomeLog.length ? this.objectiveOutcomeLog.slice(-3).join("\n") : "No objective rewards claimed";
+    const buildSummary = this.ownedPerks.length ? this.ownedPerks.join(", ") : "Base build";
+
+    const recapLines = [
+      `Skyfall Ended   Score: ${score}   Best: ${this.highestScoreValue}`,
+      `Death source: ${this.lastDeathSource}`,
+      `Run build: ${buildSummary}`,
+      `Objectives: ${completedCount}/${objectives.length}`,
+      `Challenges:`,
+      challengeSummary,
+      `Objective outcomes:`,
+      objectiveSummary,
+      `Rewards gained: +${this.runRewardTotals.score} score, +${this.runRewardTotals.shields} shields, +${this.runRewardTotals.perkPoints} perk points`,
+      `Time survived: ${survivedSec}s`
+    ];
+
+    this.gameOverText = this.add.text(GAME_WIDTH / 2, 58, recapLines.join("\n"), {
+      fontSize: "24px",
+      fill: "#f3f8ff",
+      align: "center",
+      lineSpacing: 8,
+      wordWrap: { width: 700 }
     });
-    summaryText.setOrigin(0.5, 0);
-    summaryText.setDepth(11);
-    summaryText.setAlpha(0);
-    this.tweens.add({ targets: summaryText, alpha: 1, duration: 240, delay: 120, ease: "Power2.Out" });
+    this.gameOverText.setOrigin(0.5, 0);
+    this.gameOverText.setDepth(11);
+
     if (this._justSetNewRecord) {
-      this.cameras.main.flash(100, 200, 200, 100, false);
+      this.flashCamera(100, 200, 200, 100);
       showFloatingText(this, GAME_WIDTH / 2, 220, "New record!", "#fff2b5");
       this._justSetNewRecord = false;
     }
@@ -1113,7 +1155,7 @@ export default class DodgeGame extends BaseScene {
     const r = (phaseColor >> 16) & 0xff;
     const g = (phaseColor >> 8) & 0xff;
     const b = phaseColor & 0xff;
-    this.cameras.main.flash(120, r >> 1, g >> 1, b >> 1, false);
+    this.flashCamera(120, r >> 1, g >> 1, b >> 1);
     this.emitParticleBurst(GAME_WIDTH / 2, GAME_HEIGHT / 2, 7, 250, 0.35);
     emitPhaseChangeBurst(this, GAME_WIDTH / 2, GAME_HEIGHT / 2 - 30);
 
@@ -1502,6 +1544,7 @@ export default class DodgeGame extends BaseScene {
 
     if (!result.success) {
       this.shieldCharges = Math.max(0, this.shieldCharges - (result.reward.shieldPenalty ?? 0));
+      this.challengeOutcomeLog.push(`${this.activeChallenge?.title || "Challenge"}: failed (${result.message})`);
       this.music.setVolume(DODGE_AUDIO.musicNormalVolume);
       this.physics.resume();
       this.setStatusText(result.message, 0xff8072);
@@ -1516,6 +1559,7 @@ export default class DodgeGame extends BaseScene {
       result.reward.scoreBonus * this.runModifiers.challengeScoreMultiplier
     );
     this.bonusScore += challengeScore;
+    this.runRewardTotals.score += challengeScore;
     if (challengeScore > 0) {
       showFloatingText(this, GAME_WIDTH / 2, GAME_HEIGHT / 2 - 100, `+${challengeScore}`, "#8be9b1");
     }
@@ -1523,7 +1567,10 @@ export default class DodgeGame extends BaseScene {
       this.runModifiers.maxShields,
       this.shieldCharges + result.reward.shieldBonus
     );
+    this.runRewardTotals.shields += result.reward.shieldBonus || 0;
     this.perkPoints += result.reward.perkPoint;
+    this.runRewardTotals.perkPoints += result.reward.perkPoint || 0;
+    this.challengeOutcomeLog.push(`${result.challenge?.title || "Challenge"}: success (${result.message})`);
     this.setStatusText(result.message, 0x8be9b1);
 
     if (this.perkPoints > 0) {
@@ -1567,6 +1614,7 @@ export default class DodgeGame extends BaseScene {
     this.playEventSfx("sfxObjectiveComplete");
     completed.forEach(objective => {
       this.bonusScore += objective.reward.scoreBonus;
+      this.runRewardTotals.score += objective.reward.scoreBonus || 0;
       if (objective.reward.scoreBonus > 0) {
         showFloatingText(this, GAME_WIDTH / 2, 160, `+${objective.reward.scoreBonus}`, "#8be9b1");
       }
@@ -1574,11 +1622,14 @@ export default class DodgeGame extends BaseScene {
         this.runModifiers.maxShields,
         this.shieldCharges + objective.reward.shieldBonus
       );
+      this.runRewardTotals.shields += objective.reward.shieldBonus || 0;
       this.perkPoints += objective.reward.perkPoint;
+      this.runRewardTotals.perkPoints += objective.reward.perkPoint || 0;
+      this.objectiveOutcomeLog.push(`${objective.title}: complete`);
       this.setStatusText(`Objective complete: ${objective.title}`, 0x8be9b1);
     });
 
-    this.cameras.main.flash(120, 100, 200, 255, false);
+    this.flashCamera(120, 100, 200, 255);
     this.emitParticleBurst(this.player.x, this.player.y, 8, 300, 0.3);
     if (this._objectivePulseTween) {
       this._objectivePulseTween.stop();
@@ -1636,7 +1687,7 @@ export default class DodgeGame extends BaseScene {
     );
     this.exitText.setText("Exit unlocked: touch the right wall to continue");
 
-    this.cameras.main.flash(120, 100, 255, 150, false);
+    this.flashCamera(120, 100, 255, 150);
     this.emitParticleBurst(GAME_WIDTH - 80, GAME_HEIGHT / 2, 7, 250, 0.35);
 
     this.exitText.setAlpha(0.85);
@@ -1673,7 +1724,7 @@ export default class DodgeGame extends BaseScene {
     const hazard = this.physics.add.image(descriptor.x, descriptor.y, texture);
     hazard.setScale(descriptor.scaleX ?? HAZARD_VISUAL_DEFAULTS.scale, descriptor.scaleY ?? HAZARD_VISUAL_DEFAULTS.scale);
     hazard.setDepth(4);
-    hazard.setTint(descriptor.tint ?? HAZARD_VISUAL_DEFAULTS.tint);
+    hazard.setTint(this.mapHazardTint(descriptor.tint ?? HAZARD_VISUAL_DEFAULTS.tint));
     hazard.setAlpha(descriptor.alpha ?? 1);
     hazard.body.setAllowGravity(false);
     hazard.setImmovable(true);
@@ -1689,6 +1740,8 @@ export default class DodgeGame extends BaseScene {
     hazard.setData("ageMs", 0);
     hazard.setData("rotationSpeed", descriptor.rotationSpeed ?? 0);
     hazard.setData("motion", descriptor.motion ?? { type: "none" });
+    hazard.setData("sourceKey", descriptor.obstacleKey || descriptor.kind || "hazard");
+    hazard.setData("sourceName", descriptor.obstacleLabel || descriptor.obstacleKey || "Hazard");
     this.applyHitbox(hazard, descriptor.hitbox);
     this.hazards.add(hazard);
 
@@ -1760,7 +1813,7 @@ export default class DodgeGame extends BaseScene {
     const boss = this.physics.add.image(descriptor.x, descriptor.y, texture);
     boss.setScale(descriptor.scaleX ?? 1, descriptor.scaleY ?? 1);
     boss.setDepth(5);
-    boss.setTint(descriptor.tint ?? 0xffffff);
+    boss.setTint(this.mapHazardTint(descriptor.tint ?? 0xffffff));
     boss.body.setAllowGravity(false);
     boss.setImmovable(true);
     boss.setDataEnabled();
@@ -1776,9 +1829,9 @@ export default class DodgeGame extends BaseScene {
     this.activeBoss = boss;
 
     this.setStatusText(`${descriptor.name} inbound. Dodge the storm pattern.`, 0xff8072);
-    cameraShake(this, 250, 0.006);
+    this.shakeCamera(250, 0.006);
     cameraZoomPulse(this, 1.03, 220);
-    this.cameras.main.flash(180, 255, 110, 110, false);
+    this.flashCamera(180, 255, 110, 110);
     this.emitParticleBurst(descriptor.x, descriptor.y, 20, 400, 0.3, 0xff6644);
     if (!this.activeChallenge && !this.pendingPerkChoices && this.music?.isPlaying) {
       this.tweens.add({
@@ -1928,7 +1981,7 @@ export default class DodgeGame extends BaseScene {
     if (state === "fight" && lifeMs >= config.durationMs) {
       boss.setData("state", "exit");
       this.bossTimerText?.setVisible(false);
-      cameraShake(this, 200, 0.005);
+      this.shakeCamera(200, 0.005);
       this.emitParticleBurst(boss.x, boss.y, 16, 350, 0.4, 0x8be9b1);
       boss.setVelocity(0, -config.exitSpeed);
       this.setStatusText("Boss wave cleared. One reward pocket before the next cycle.", 0x8be9b1);
@@ -1973,12 +2026,14 @@ export default class DodgeGame extends BaseScene {
       const travelTime = Math.max(0.7, (GAME_HEIGHT - projectile.y) / speedY);
       const speedX = (targetX - projectile.x) / travelTime;
 
-      projectile.setTint(0xff9f43);
+      projectile.setTint(this.mapHazardTint(0xff9f43));
       projectile.setDepth(4);
       projectile.body.setAllowGravity(false);
       projectile.setImmovable(true);
       projectile.setVelocity(speedX, speedY);
       projectile.setDataEnabled();
+      projectile.setData("sourceKey", "boss-projectile");
+      projectile.setData("sourceName", "Boss projectile");
       projectile.setData("rotationSpeed", 420);
       this.applyHitbox(projectile, {
         shape: "circle",

@@ -10,7 +10,10 @@ const DEFAULT_SETTINGS = {
   musicVolume: 1,
   sfxVolume: 1,
   fullscreen: false,
-  resolutionOrQuality: "1280x720"
+  resolutionOrQuality: "1280x720",
+  screenShakeIntensity: 1,
+  flashIntensity: 1,
+  colorBlindPaletteMode: "off"
 };
 
 const DEFAULT_SAVE = {
@@ -18,7 +21,9 @@ const DEFAULT_SAVE = {
   highScore: 0,
   lastCompletedLevel: 0,
   settings: { ...DEFAULT_SETTINGS },
-  unlockedAchievements: []
+  unlockedAchievements: [],
+  tutorialCompleted: false,
+  tutorialOptOut: false
 };
 
 function readFromStorage() {
@@ -139,4 +144,27 @@ export function initSaveFromCloud() {
       }
     });
   }).catch(() => {});
+}
+
+export function shouldShowTutorial() {
+  const save = getSave();
+  return !save.tutorialCompleted && !save.tutorialOptOut;
+}
+
+export function setTutorialCompleted(completed = true) {
+  const save = getSave();
+  save.tutorialCompleted = !!completed;
+  if (completed) {
+    save.tutorialOptOut = false;
+  }
+  setSave(save);
+}
+
+export function setTutorialOptOut(optOut = true) {
+  const save = getSave();
+  save.tutorialOptOut = !!optOut;
+  if (optOut) {
+    save.tutorialCompleted = false;
+  }
+  setSave(save);
 }

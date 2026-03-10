@@ -3,7 +3,7 @@ import { SCENE_KEYS } from "../config/sceneKeys";
 import { EXIT_UNLOCK_SCORE } from "../game/runnerContent";
 import { ensureProceduralTexture, DEFAULT_PROCEDURAL_PARAMS } from "../game/proceduralSprites";
 import { setRichPresence } from "../services/onlineService";
-import { getSettings, initSaveFromCloud } from "../save/saveManager";
+import { getSettings, initSaveFromCloud, shouldShowTutorial } from "../save/saveManager";
 import { GAME_VERSION } from "../config/version";
 import BaseScene from "./baseScene";
 
@@ -54,7 +54,10 @@ export default class MainMenuScene extends BaseScene {
     const menuYStart = 200;
     const menuSpacing = 56;
     const menuItems = [
-      { label: "Play", action: () => this.scene.start(SCENE_KEYS.game) },
+      {
+        label: "Play",
+        action: () => this.scene.start(shouldShowTutorial() ? SCENE_KEYS.tutorial : SCENE_KEYS.game)
+      },
       {
         label: "Options",
         action: () =>
