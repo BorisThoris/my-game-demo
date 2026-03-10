@@ -3,7 +3,7 @@ import { SCENE_KEYS } from "../config/sceneKeys";
 import { EXIT_UNLOCK_SCORE } from "../game/runnerContent";
 import { ensureProceduralTexture, DEFAULT_PROCEDURAL_PARAMS } from "../game/proceduralSprites";
 import { setRichPresence } from "../services/onlineService";
-import { getSettings, initSaveFromCloud } from "../save/saveManager";
+import { getSettings, initSaveFromCloud, getActiveContracts, getMetaProgression, claimCompletedContract } from "../save/saveManager";
 import { GAME_VERSION } from "../config/version";
 import BaseScene from "./baseScene";
 
@@ -34,6 +34,16 @@ export default class MainMenuScene extends BaseScene {
     this._ensureMenuProceduralTextures();
     this._addProceduralEnemies();
     this._poseAndSizePlayer();
+
+    const contracts = getActiveContracts();
+    const contractClaims = [];
+    contracts.forEach((contract) => {
+      const reward = claimCompletedContract(contract.id);
+      if (reward) {
+        contractClaims.push({ title: contract.title, reward });
+      }
+    });
+    const refreshedMeta = getMetaProgression();
 
     // Left panel (Valve/GMod style)
     const panel = this.add.graphics();
@@ -82,6 +92,42 @@ export default class MainMenuScene extends BaseScene {
       });
       text.on("pointerdown", item.action);
     });
+
+
+    const contractTitle = this.add.text(PANEL_PADDING, 440, "Daily Contracts", {
+      font: "700 22px Arial",
+      fill: "#9ae6ff"
+    }).setDepth(10);
+
+    const contractLines = contracts.map((contract) => {
+      const mark = contract.claimed ? "✓" : contract.completed ? "★" : "•";
+      const progress = contract.metric === "survivalMs"
+        ? `${Math.floor(contract.progress / 1000)}s/${Math.floor(contract.target / 1000)}s`
+        : `${contract.progress}/${contract.target}`;
+      return `${mark} ${contract.title} ${progress}`;
+    });
+
+    const contractText = this.add.text(PANEL_PADDING, 468, contractLines.join("\n"), {
+      font: "700 14px Arial",
+      fill: "#b9d7f5",
+      wordWrap: { width: PANEL_WIDTH - PANEL_PADDING * 2 }
+    }).setDepth(10);
+
+    const metaText = this.add.text(PANEL_PADDING, 600, `Currency: ${refreshedMeta.currency} · Fragments: ${refreshedMeta.unlockFragments}`, {
+      font: "700 15px Arial",
+      fill: "#fff2b5"
+    }).setDepth(10);
+
+    if (contractClaims.length > 0) {
+      const claimSummary = contractClaims
+        .map((entry) => `+${entry.reward.currency}c/+${entry.reward.fragments}f ${entry.title}`)
+        .join("\n");
+      this.add.text(PANEL_PADDING, 626, `Claimed on return:\n${claimSummary}`, {
+        font: "700 12px Arial",
+        fill: "#8be9b1",
+        wordWrap: { width: PANEL_WIDTH - PANEL_PADDING * 2 }
+      }).setDepth(10);
+    }
 
     // Bottom-left: version and tagline (n-ish, left bottom left)
     const tagline = this.add.text(

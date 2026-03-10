@@ -20,7 +20,17 @@ import { ensureProceduralUiAssets } from "../game/proceduralUiAssets";
 import { impactSquash, cameraShake, cameraZoomPulse, emitPhaseChangeBurst, emitObjectiveCompleteBurst } from "../game/juiceHelper";
 import { showFloatingText } from "../game/floatingText";
 import { DODGE_HUD_STYLES, HUD_STROKE, DODGE_AUDIO } from "../config/dodgeHudStyles";
-import { getHighScore, setHighScore, getSettings, getLastCompletedLevel, setLastCompletedLevel } from "../save/saveManager";
+import { applyRunEventToContracts } from "../game/contractDirector.js";
+import {
+  getHighScore,
+  setHighScore,
+  getSettings,
+  getLastCompletedLevel,
+  setLastCompletedLevel,
+  getActiveContracts,
+  updateContracts,
+  claimCompletedContract
+} from "../save/saveManager";
 import { unlockAchievement, submitLeaderboardScore, setRichPresence } from "../services/onlineService";
 
 const SCORE_TICK_MS = 1000;
@@ -110,6 +120,10 @@ export default class DodgeGame extends BaseScene {
     this.pausePanel = null;
     this._initialHighScore = 0;
     this._richPresenceThrottle = 0;
+    this.contracts = [];
+    this.runArchetypes = new Set();
+    this.lastContractClaims = [];
+    this.contractSummaryText = null;
   }
 
   init(data) {
@@ -424,6 +438,9 @@ export default class DodgeGame extends BaseScene {
     this._lastScoreTickSecond = -1;
     this._getReadyRemainingMs = 0;
     this.renderObjectives();
+    this.contracts = getActiveContracts().map(contract => ({ ...contract }));
+    this.runArchetypes = new Set();
+    this.lastContractClaims = [];
 
     this.player.clearTint();
     this.player.setAlpha(1);
@@ -509,6 +526,10 @@ export default class DodgeGame extends BaseScene {
       this.gameOverPanel.destroy();
       this.gameOverPanel = null;
     }
+    if (this.contractSummaryText) {
+      this.contractSummaryText.destroy();
+      this.contractSummaryText = null;
+    }
   }
 
   stopAudio() {
@@ -589,6 +610,7 @@ export default class DodgeGame extends BaseScene {
 
     this.bonusScore += this.runModifiers.extraScorePerPickup ?? 0;
     this.objectiveDirector.recordPickup();
+    this.recordContractEvent({ type: "pickup" });
     this.processObjectiveRewards();
 
     impactSquash(this, this.player, { flash: true });
@@ -668,6 +690,7 @@ export default class DodgeGame extends BaseScene {
     this.player.setVelocity(0, 0);
     this.player.anims.play("flex", true);
 
+    this.claimCompletedContracts();
     this.showGameOver();
   }
 
@@ -720,6 +743,21 @@ export default class DodgeGame extends BaseScene {
     summaryText.setDepth(11);
     summaryText.setAlpha(0);
     this.tweens.add({ targets: summaryText, alpha: 1, duration: 240, delay: 120, ease: "Power2.Out" });
+    const claimLines = this.lastContractClaims.map(claim => `• ${claim.title}: +${claim.reward.currency}c, +${claim.reward.fragments}f`);
+    const completionCount = this.contracts.filter(contract => contract.completed).length;
+    const summaryLines = [
+      `Contracts: ${completionCount}/${this.contracts.length} completed${this.lastContractClaims.length ? ` · Claims: ${this.lastContractClaims.length}` : ""}`,
+      ...claimLines
+    ];
+    this.contractSummaryText = this.add.text(GAME_WIDTH / 2, 268, summaryLines.join("\n"), {
+      fontSize: "18px",
+      fill: "#9ae6ff",
+      align: "center"
+    });
+    this.contractSummaryText.setOrigin(0.5, 0);
+    this.contractSummaryText.setDepth(11);
+    this.contractSummaryText.setAlpha(0);
+    this.tweens.add({ targets: this.contractSummaryText, alpha: 1, duration: 260, delay: 140, ease: "Power2.Out" });
     if (this._justSetNewRecord) {
       this.cameras.main.flash(100, 200, 200, 100, false);
       showFloatingText(this, GAME_WIDTH / 2, 220, "New record!", "#fff2b5");
@@ -895,6 +933,7 @@ export default class DodgeGame extends BaseScene {
     if (levelToSave > 0) {
       setLastCompletedLevel(Math.max(getLastCompletedLevel(), levelToSave));
     }
+    this.claimCompletedContracts();
     this.stopAudio();
     this.scene.start(SCENE_KEYS.mainMenu);
   }
@@ -967,6 +1006,7 @@ export default class DodgeGame extends BaseScene {
       }
       this.damageRecoveryMs = Math.max(0, this.damageRecoveryMs - delta);
       this.objectiveDirector.recordSurvival(delta);
+      this.recordContractEvent({ type: "survival", deltaMs: delta });
 
       this.tempSpeedBoostMs = Math.max(0, this.tempSpeedBoostMs - delta);
       this.tempInvulnMs = Math.max(0, this.tempInvulnMs - delta);
@@ -1038,6 +1078,22 @@ export default class DodgeGame extends BaseScene {
     }
 
     this.clearOffscreenObjects();
+  }
+
+  recordContractEvent(event) {
+    this.contracts = applyRunEventToContracts(this.contracts, event);
+  }
+
+  claimCompletedContracts() {
+    const active = this.contracts || [];
+    updateContracts(() => active);
+    this.lastContractClaims = [];
+    active.forEach((contract) => {
+      const reward = claimCompletedContract(contract.id);
+      if (reward) {
+        this.lastContractClaims.push({ title: contract.title, reward });
+      }
+    });
   }
 
   updatePlayerMovement() {
@@ -1774,6 +1830,10 @@ export default class DodgeGame extends BaseScene {
     this.applyHitbox(boss, descriptor.hitbox);
     this.bossGroup.add(boss);
     this.activeBoss = boss;
+    const archetype = descriptor.name || "Unknown";
+    const isNewArchetype = !this.runArchetypes.has(archetype);
+    this.runArchetypes.add(archetype);
+    this.recordContractEvent({ type: "archetypeUsed", archetype, isNewArchetype });
 
     this.setStatusText(`${descriptor.name} inbound. Dodge the storm pattern.`, 0xff8072);
     cameraShake(this, 250, 0.006);
@@ -1934,6 +1994,7 @@ export default class DodgeGame extends BaseScene {
       this.setStatusText("Boss wave cleared. One reward pocket before the next cycle.", 0x8be9b1);
       this.spawnPickup(config.rewardPickup);
       this.objectiveDirector.recordBossClear();
+      this.recordContractEvent({ type: "bossClear" });
       this.processObjectiveRewards();
       return;
     }
