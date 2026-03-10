@@ -21,7 +21,8 @@ import { impactSquash, cameraShake, cameraZoomPulse, emitPhaseChangeBurst, emitO
 import { showFloatingText } from "../game/floatingText";
 import { DODGE_HUD_STYLES, HUD_STROKE, DODGE_AUDIO } from "../config/dodgeHudStyles";
 import { getHighScore, setHighScore, getSettings, getLastCompletedLevel, setLastCompletedLevel } from "../save/saveManager";
-import { unlockAchievement, submitLeaderboardScore, setRichPresence } from "../services/onlineService";
+import { unlockAchievement, submitLeaderboardScore, setRichPresence, uploadTelemetryBatch } from "../services/onlineService";
+import { createRunId, emitRunStart, emitRunEnd, emitDeathSource, emitPickupUsage, emitBossOutcome, emitChallengePerformance } from "../game/telemetry";
 
 const SCORE_TICK_MS = 1000;
 const MILESTONES = [25, 50, 100, 250];
@@ -110,6 +111,7 @@ export default class DodgeGame extends BaseScene {
     this.pausePanel = null;
     this._initialHighScore = 0;
     this._richPresenceThrottle = 0;
+    this.currentRunId = null;
   }
 
   init(data) {
@@ -413,6 +415,12 @@ export default class DodgeGame extends BaseScene {
     this.ownedPerks = [];
     this.runModifiers = createBaseModifiers();
     this.objectiveDirector.reset();
+    this.currentRunId = createRunId();
+    emitRunStart({
+      runId: this.currentRunId,
+      phase: "recovery",
+      startingShields: this.shieldCharges
+    });
     this.challengePanel?.setVisible(false);
     this.stopChallengeUrgencyTween();
     this.bossTimerText?.setVisible(false);
@@ -550,6 +558,12 @@ export default class DodgeGame extends BaseScene {
     }
 
     const pickupType = pickup.getData("pickupType") ?? "shield";
+    emitPickupUsage({
+      runId: this.currentRunId,
+      pickupType,
+      scoreBefore: this.getScore(),
+      shieldCharges: this.shieldCharges
+    });
     const px = pickup.x;
     const py = pickup.y;
     const PICKUP_TINTS = {
@@ -609,6 +623,13 @@ export default class DodgeGame extends BaseScene {
       return;
     }
 
+    emitDeathSource({
+      runId: this.currentRunId,
+      sourceType: source?.getData?.("persistent") ? "boss_or_projectile" : "hazard",
+      sourceTexture: source?.texture?.key ?? "unknown",
+      shieldCharges: this.shieldCharges
+    });
+
     this.endRun();
   }
 
@@ -650,6 +671,13 @@ export default class DodgeGame extends BaseScene {
     this.physics.pause();
 
     const score = this.getScore();
+    emitRunEnd({
+      runId: this.currentRunId,
+      score,
+      runTimeMs: this.runTimeMs,
+      exited: false
+    });
+    uploadTelemetryBatch();
     if (score > this.highestScoreValue) {
       this.highestScoreValue = score;
       setHighScore(score);
@@ -890,6 +918,13 @@ export default class DodgeGame extends BaseScene {
   /** Save run as last completed level = current level - 1 (do not save ongoing level), then go to main menu. */
   exitAndSaveRun() {
     const score = this.getScore();
+    emitRunEnd({
+      runId: this.currentRunId,
+      score,
+      runTimeMs: this.runTimeMs,
+      exited: true
+    });
+    uploadTelemetryBatch();
     const currentLevel = getCurrentLevelFromScore(score);
     const levelToSave = Math.max(0, currentLevel - 1);
     if (levelToSave > 0) {
@@ -1019,6 +1054,7 @@ export default class DodgeGame extends BaseScene {
       this._richPresenceThrottle = (this._richPresenceThrottle || 0) + delta;
       if (this._richPresenceThrottle > 3000) {
         this._richPresenceThrottle = 0;
+    this.currentRunId = null;
         setRichPresence(`Score: ${score}`);
       }
 
@@ -1491,11 +1527,19 @@ export default class DodgeGame extends BaseScene {
   resolveChallenge(selectedIndex) {
     this.stopChallengeUrgencyTween();
 
+    const challengeType = this.activeChallenge?.type ?? "unknown";
     const result = this.challengeDirector.evaluate(
       this.activeChallenge,
       selectedIndex,
       this.challengeRemainingMs
     );
+    emitChallengePerformance({
+      runId: this.currentRunId,
+      challengeType,
+      success: result.success,
+      selectedIndex,
+      remainingMs: this.challengeRemainingMs
+    });
 
     this.activeChallenge = null;
     this.hideChallengePanelTransitionOut(() => {});
@@ -1775,6 +1819,11 @@ export default class DodgeGame extends BaseScene {
     this.bossGroup.add(boss);
     this.activeBoss = boss;
 
+    emitBossOutcome({
+      runId: this.currentRunId,
+      bossName: descriptor.name ?? "mini-boss",
+      outcome: "spawned"
+    });
     this.setStatusText(`${descriptor.name} inbound. Dodge the storm pattern.`, 0xff8072);
     cameraShake(this, 250, 0.006);
     cameraZoomPulse(this, 1.03, 220);
@@ -1933,6 +1982,12 @@ export default class DodgeGame extends BaseScene {
       boss.setVelocity(0, -config.exitSpeed);
       this.setStatusText("Boss wave cleared. One reward pocket before the next cycle.", 0x8be9b1);
       this.spawnPickup(config.rewardPickup);
+      emitBossOutcome({
+        runId: this.currentRunId,
+        bossName: config.name ?? "mini-boss",
+        outcome: "cleared",
+        durationMs: lifeMs
+      });
       this.objectiveDirector.recordBossClear();
       this.processObjectiveRewards();
       return;

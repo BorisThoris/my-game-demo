@@ -1,3 +1,5 @@
+import { emitTelemetryEvent } from "./telemetry.js";
+
 const OBJECTIVE_DEFS = [
   {
     id: "pickup-hunter",
@@ -45,6 +47,10 @@ export default class ObjectiveDirector {
       this.objectives.push(cloneObjective(pool[index]));
       pool.splice(index, 1);
     }
+
+    emitTelemetryEvent("objectives_reset", {
+      objectiveIds: this.objectives.map(objective => objective.id)
+    });
   }
 
   getObjectives() {
@@ -73,6 +79,11 @@ export default class ObjectiveDirector {
     if (objective.progress >= objective.target) {
       objective.progress = objective.target;
       objective.completed = true;
+      emitTelemetryEvent("objective_completed", {
+        objectiveId: objective.id,
+        progress: objective.progress,
+        target: objective.target
+      });
     }
   }
 
@@ -82,6 +93,10 @@ export default class ObjectiveDirector {
     );
     newlyCompleted.forEach(objective => {
       objective.claimed = true;
+      emitTelemetryEvent("objective_reward_claimed", {
+        objectiveId: objective.id,
+        reward: objective.reward
+      });
     });
     return newlyCompleted;
   }
