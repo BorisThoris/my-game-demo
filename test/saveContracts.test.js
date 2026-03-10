@@ -20,8 +20,8 @@ function createStorage() {
 test("claimCompletedContract enforces one-time claim", () => {
   global.localStorage = createStorage();
   const save = getSave();
-  save.meta.currency = 0;
-  save.meta.unlockFragments = 0;
+  save.metaCurrency = 0;
+  save.metaFragments = 0;
   save.contracts.active = [
     {
       id: "boss-buster",
@@ -43,8 +43,8 @@ test("claimCompletedContract enforces one-time claim", () => {
   assert.equal(second, null);
 
   const updated = getSave();
-  assert.equal(updated.meta.currency, 55);
-  assert.equal(updated.meta.unlockFragments, 2);
+  assert.equal(updated.metaCurrency, 55);
+  assert.equal(updated.metaFragments, 2);
 });
 
 test("updateContracts persists modified progress", () => {
