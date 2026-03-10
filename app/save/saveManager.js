@@ -17,6 +17,7 @@ const DEFAULT_SAVE = {
   version: 1,
   highScore: 0,
   lastCompletedLevel: 0,
+  selectedArchetype: "all-rounder",
   settings: { ...DEFAULT_SETTINGS },
   unlockedAchievements: []
 };
@@ -123,6 +124,19 @@ export function setLastCompletedLevel(level) {
     return;
   }
   save.lastCompletedLevel = next;
+  setSave(save);
+}
+
+/** Get the selected starting archetype for the next run. */
+export function getSelectedArchetype() {
+  const save = getSave();
+  return save.selectedArchetype || "all-rounder";
+}
+
+/** Persist selected archetype id. */
+export function setSelectedArchetype(archetypeId) {
+  const save = getSave();
+  save.selectedArchetype = archetypeId || "all-rounder";
   setSave(save);
 }
 

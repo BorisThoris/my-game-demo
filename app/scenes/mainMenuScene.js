@@ -2,8 +2,9 @@ import { GAME_HEIGHT, GAME_WIDTH, PLAYER_START_Y } from "../config/gameConfig";
 import { SCENE_KEYS } from "../config/sceneKeys";
 import { EXIT_UNLOCK_SCORE } from "../game/runnerContent";
 import { ensureProceduralTexture, DEFAULT_PROCEDURAL_PARAMS } from "../game/proceduralSprites";
+import { ARCHETYPE_LIBRARY } from "../game/archetypeSystem";
 import { setRichPresence } from "../services/onlineService";
-import { getSettings, initSaveFromCloud } from "../save/saveManager";
+import { getSelectedArchetype, getSettings, initSaveFromCloud, setSelectedArchetype } from "../save/saveManager";
 import { GAME_VERSION } from "../config/version";
 import BaseScene from "./baseScene";
 
@@ -34,6 +35,7 @@ export default class MainMenuScene extends BaseScene {
     this._ensureMenuProceduralTextures();
     this._addProceduralEnemies();
     this._poseAndSizePlayer();
+    this.selectedArchetypeId = getSelectedArchetype();
 
     // Left panel (Valve/GMod style)
     const panel = this.add.graphics();
@@ -54,7 +56,10 @@ export default class MainMenuScene extends BaseScene {
     const menuYStart = 200;
     const menuSpacing = 56;
     const menuItems = [
-      { label: "Play", action: () => this.scene.start(SCENE_KEYS.game) },
+      {
+        label: "Play",
+        action: () => this.scene.start(SCENE_KEYS.game, { archetypeId: this.selectedArchetypeId })
+      },
       {
         label: "Options",
         action: () =>
@@ -82,6 +87,43 @@ export default class MainMenuScene extends BaseScene {
       });
       text.on("pointerdown", item.action);
     });
+
+    const archetypeLabel = this.add.text(PANEL_PADDING, menuYStart + menuItems.length * menuSpacing + 18, "Archetype", {
+      font: "700 18px Arial",
+      fill: "#88a0b8"
+    });
+    archetypeLabel.setDepth(10);
+
+    const archetypeValue = this.add.text(PANEL_PADDING, archetypeLabel.y + 24, "", {
+      font: "700 24px Arial",
+      fill: "#ffffff"
+    });
+    archetypeValue.setDepth(10);
+
+    const archetypeDesc = this.add.text(PANEL_PADDING, archetypeValue.y + 34, "", {
+      font: "700 14px Arial",
+      fill: "#7c8ea0",
+      wordWrap: { width: PANEL_WIDTH - PANEL_PADDING * 2 }
+    });
+    archetypeDesc.setDepth(10);
+
+    const updateArchetypeText = () => {
+      const selected = ARCHETYPE_LIBRARY.find(entry => entry.id === this.selectedArchetypeId) || ARCHETYPE_LIBRARY[0];
+      archetypeValue.setText(`${selected.name}  (click to change)`);
+      archetypeDesc.setText(selected.description);
+    };
+
+    archetypeValue.setInteractive({ useHandCursor: true });
+    archetypeValue.on("pointerover", () => archetypeValue.setFill("#9ae6ff"));
+    archetypeValue.on("pointerout", () => archetypeValue.setFill("#ffffff"));
+    archetypeValue.on("pointerdown", () => {
+      const currentIndex = ARCHETYPE_LIBRARY.findIndex(entry => entry.id === this.selectedArchetypeId);
+      const nextIndex = (Math.max(currentIndex, 0) + 1) % ARCHETYPE_LIBRARY.length;
+      this.selectedArchetypeId = ARCHETYPE_LIBRARY[nextIndex].id;
+      setSelectedArchetype(this.selectedArchetypeId);
+      updateArchetypeText();
+    });
+    updateArchetypeText();
 
     // Bottom-left: version and tagline (n-ish, left bottom left)
     const tagline = this.add.text(
