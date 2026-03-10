@@ -11,7 +11,10 @@ const DEFAULT_SETTINGS = {
   musicVolume: 1,
   sfxVolume: 1,
   fullscreen: false,
-  resolutionOrQuality: "1280x720"
+  resolutionOrQuality: "1280x720",
+  screenShakeIntensity: 1,
+  flashIntensity: 1,
+  colorBlindPaletteMode: "off"
 };
 
 const DEFAULT_UNLOCK_TREE = {
@@ -32,6 +35,8 @@ const DEFAULT_SAVE = {
   unlockedAchievements: [],
   metaFragments: 0,
   metaCurrency: 0,
+  tutorialCompleted: false,
+  tutorialOptOut: false,
   unlockTree: { ...DEFAULT_UNLOCK_TREE }
 };
 
@@ -243,4 +248,27 @@ export function initSaveFromCloud() {
       }
     });
   }).catch(() => {});
+}
+
+export function shouldShowTutorial() {
+  const save = getSave();
+  return !save.tutorialCompleted && !save.tutorialOptOut;
+}
+
+export function setTutorialCompleted(completed = true) {
+  const save = getSave();
+  save.tutorialCompleted = !!completed;
+  if (completed) {
+    save.tutorialOptOut = false;
+  }
+  setSave(save);
+}
+
+export function setTutorialOptOut(optOut = true) {
+  const save = getSave();
+  save.tutorialOptOut = !!optOut;
+  if (optOut) {
+    save.tutorialCompleted = false;
+  }
+  setSave(save);
 }

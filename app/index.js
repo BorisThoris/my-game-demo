@@ -6,6 +6,7 @@ import OptionsScene from "./scenes/optionsScene";
 import CreditsScene from "./scenes/creditsScene";
 import DodgeGame from "./scenes/dodgeGame";
 import MetaScene from "./scenes/metaScene";
+import TutorialScene from "./scenes/tutorialScene";
 import { initMobileControls } from "./input/mobileControls";
 import {
   GAME_HEIGHT,
@@ -38,6 +39,7 @@ const config = {
     LoadingScene,
     MainMenuScene,
     OptionsScene,
+    TutorialScene,
     CreditsScene,
     DodgeGame,
     MetaScene
