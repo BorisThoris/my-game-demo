@@ -3,7 +3,11 @@ import { SCENE_KEYS } from "../config/sceneKeys";
 import { EXIT_UNLOCK_SCORE } from "../game/runnerContent";
 import { ensureProceduralTexture, DEFAULT_PROCEDURAL_PARAMS } from "../game/proceduralSprites";
 import { ARCHETYPE_LIBRARY } from "../game/archetypeSystem";
-import { setRichPresence } from "../services/onlineService";
+import {
+  getOnlineStatus,
+  listAchievementStates,
+  setRichPresence
+} from "../services/onlineService";
 import {
   getSelectedArchetype,
   getSettings,
@@ -104,8 +108,8 @@ export default class MainMenuScene extends BaseScene {
     });
 
     // Menu options on the left, vertical list
-    const menuYStart = 252;
-    const menuSpacing = 56;
+    const menuYStart = 240;
+    const menuSpacing = 48;
     const menuItems = [
       {
         label: "Play",
@@ -144,20 +148,34 @@ export default class MainMenuScene extends BaseScene {
       text.on("pointerdown", item.action);
     });
 
-    const archetypeLabel = this.add.text(PANEL_PADDING, menuYStart + menuItems.length * menuSpacing + 18, "Archetype", {
+    const onlineStatus = getOnlineStatus();
+    const unlockedCount = listAchievementStates().filter(item => item.unlocked).length;
+    const bestSubmitted = onlineStatus.leaderboards?.best_score?.score ?? 0;
+    this.add.text(
+      PANEL_PADDING,
+      454,
+      `Online: ${onlineStatus.adapter} | Queue: ${onlineStatus.queueLength}\nAchievements: ${unlockedCount} | Best submit: ${bestSubmitted}`,
+      {
+        font: "700 11px Arial",
+        fill: "#9fc5e8",
+        wordWrap: { width: PANEL_WIDTH - PANEL_PADDING * 2 }
+      }
+    ).setDepth(10);
+
+    const archetypeLabel = this.add.text(PANEL_PADDING, 508, "Archetype", {
       font: "700 18px Arial",
       fill: "#88a0b8"
     });
     archetypeLabel.setDepth(10);
 
-    const archetypeValue = this.add.text(PANEL_PADDING, archetypeLabel.y + 24, "", {
-      font: "700 24px Arial",
+    const archetypeValue = this.add.text(PANEL_PADDING, 532, "", {
+      font: "700 22px Arial",
       fill: "#ffffff"
     });
     archetypeValue.setDepth(10);
 
-    const archetypeDesc = this.add.text(PANEL_PADDING, archetypeValue.y + 34, "", {
-      font: "700 14px Arial",
+    const archetypeDesc = this.add.text(PANEL_PADDING, 564, "", {
+      font: "700 12px Arial",
       fill: "#7c8ea0",
       wordWrap: { width: PANEL_WIDTH - PANEL_PADDING * 2 }
     });
@@ -182,8 +200,8 @@ export default class MainMenuScene extends BaseScene {
     updateArchetypeText();
 
     const completedContracts = contracts.filter((contract) => contract.completed || contract.claimed).length;
-    const contractHeadline = `Contracts: ${completedContracts}/${contracts.length} complete`;
-    const contractProgress = contracts
+    const contractPreview = contracts
+      .slice(0, 2)
       .map((contract) => {
         const progress = contract.metric === "survivalMs"
           ? `${Math.floor(contract.progress / 1000)}s/${Math.floor(contract.target / 1000)}s`
@@ -191,31 +209,31 @@ export default class MainMenuScene extends BaseScene {
         return `${contract.title} ${progress}`;
       })
       .join("\n");
-    this.add.text(PANEL_PADDING, 622, [contractHeadline, contractProgress].join("\n"), {
+    const contractOverflow = contracts.length > 2 ? `\n+${contracts.length - 2} more contract(s)` : "";
+    this.add.text(PANEL_PADDING, 626, `Contracts: ${completedContracts}/${contracts.length} complete\n${contractPreview}${contractOverflow}`, {
       font: "700 11px Arial",
       fill: "#b9d7f5",
       wordWrap: { width: PANEL_WIDTH - PANEL_PADDING * 2 }
     }).setDepth(10);
 
     const claimSummary = contractClaims.length
-      ? `Claimed: ${contractClaims.map((entry) => `+${entry.reward.currency}c/+${entry.reward.fragments}f ${entry.title}`).join(" • ")}`
-      : `Currency: ${refreshedMeta.currency} • Fragments: ${refreshedMeta.unlockFragments}`;
-    this.add.text(PANEL_PADDING, 672, claimSummary, {
+      ? `Claimed: ${contractClaims.map((entry) => `+${entry.reward.currency}c/+${entry.reward.fragments}f ${entry.title}`).join(" | ")}`
+      : `Currency: ${refreshedMeta.currency} | Fragments: ${refreshedMeta.unlockFragments}`;
+    this.add.text(PANEL_PADDING, 678, claimSummary, {
       font: "700 11px Arial",
       fill: contractClaims.length ? "#8be9b1" : "#fff2b5",
       wordWrap: { width: PANEL_WIDTH - PANEL_PADDING * 2 }
     }).setDepth(10);
-
     // Bottom-left: version and tagline (n-ish, left bottom left)
     const tagline = this.add.text(
       PANEL_PADDING,
-      GAME_HEIGHT - 92,
-      `Mode: ${this.selectedMode} • Reach score ${EXIT_UNLOCK_SCORE} and touch the right edge to finish a run.`,
-      { font: "700 14px Arial", fill: "#6a7a8a", wordWrap: { width: PANEL_WIDTH - PANEL_PADDING * 2 } }
+      GAME_HEIGHT - 52,
+      `Mode: ${this.selectedMode} | Reach ${EXIT_UNLOCK_SCORE} to unlock the exit.`,
+      { font: "700 12px Arial", fill: "#6a7a8a", wordWrap: { width: PANEL_WIDTH - PANEL_PADDING * 2 } }
     );
     tagline.setDepth(10);
 
-    const versionText = this.add.text(PANEL_PADDING, GAME_HEIGHT - 34, `v${GAME_VERSION}`, {
+    const versionText = this.add.text(PANEL_PADDING, GAME_HEIGHT - 28, `v${GAME_VERSION}`, {
       font: "700 16px Arial",
       fill: "#5a6a7a"
     });
