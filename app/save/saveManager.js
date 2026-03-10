@@ -30,6 +30,7 @@ const DEFAULT_SAVE = {
   selectedArchetype: "all-rounder",
   settings: { ...DEFAULT_SETTINGS },
   unlockedAchievements: [],
+  metaFragments: 0,
   metaCurrency: 0,
   unlockTree: { ...DEFAULT_UNLOCK_TREE }
 };
@@ -102,6 +103,7 @@ export function migrateSave(raw) {
   if (version < 2) {
     save = {
       ...save,
+      metaFragments: Number.isFinite(raw.metaFragments) ? Math.max(0, Math.floor(raw.metaFragments)) : 0,
       metaCurrency: Number.isFinite(raw.metaCurrency) ? Math.max(0, Math.floor(raw.metaCurrency)) : 0,
       unlockTree: normalizeUnlockTree(raw.unlockTree)
     };
@@ -210,6 +212,21 @@ export function getSelectedArchetype() {
 export function setSelectedArchetype(archetypeId) {
   const save = getSave();
   save.selectedArchetype = archetypeId || "all-rounder";
+  setSave(save);
+}
+
+export function getMetaFragments() {
+  const save = getSave();
+  return save.metaFragments != null ? save.metaFragments : 0;
+}
+
+export function addMetaFragments(amount) {
+  if (!Number.isFinite(amount) || amount <= 0) {
+    return;
+  }
+  const save = getSave();
+  save.metaFragments = (save.metaFragments ?? 0) + Math.floor(amount);
+  save.metaCurrency = (save.metaCurrency ?? 0) + Math.floor(amount);
   setSave(save);
 }
 

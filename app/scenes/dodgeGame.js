@@ -18,7 +18,15 @@ import { applyArchetypeToModifiers, getArchetypeById } from "../game/archetypeSy
 import ObjectiveDirector from "../game/objectiveDirector";
 import { ensureProceduralTexture, DEFAULT_PROCEDURAL_PARAMS } from "../game/proceduralSprites";
 import { ensureProceduralUiAssets } from "../game/proceduralUiAssets";
-import { impactSquash, cameraShake, cameraZoomPulse, emitPhaseChangeBurst, emitObjectiveCompleteBurst } from "../game/juiceHelper";
+import {
+  impactSquash,
+  cameraShake,
+  cameraZoomPulse,
+  emitPhaseChangeBurst,
+  emitObjectiveCompleteBurst,
+  emitBossTelegraph,
+  playBossTelegraphSfx
+} from "../game/juiceHelper";
 import { showFloatingText } from "../game/floatingText";
 import { DODGE_HUD_STYLES, HUD_STROKE, DODGE_AUDIO } from "../config/dodgeHudStyles";
 import {
@@ -28,11 +36,14 @@ import {
   getLastCompletedLevel,
   setLastCompletedLevel,
   getSelectedArchetype,
-  setSelectedArchetype
+  setSelectedArchetype,
+  addMetaFragments
 } from "../save/saveManager";
 import { GAME_MODES, getModeConfig, isHazardDescriptor, normalizeGameMode } from "../game/modeConfig";
 import { unlockAchievement, submitLeaderboardScore, setRichPresence } from "../services/onlineService";
 import { grantMetaCurrency, getRunStartModifiers } from "../game/metaProgression";
+import { getBossAttackProfile, shouldEnterPhaseTwo } from "../game/bossEncounter";
+import { rollBossReward, buildBossRewardPickup } from "../game/bossRewards";
 
 const SCORE_TICK_MS = 1000;
 const MILESTONES = [25, 50, 100, 250];
@@ -1890,7 +1901,10 @@ export default class DodgeGame extends BaseScene {
     boss.setData("config", descriptor);
     boss.setData("state", "enter");
     boss.setData("attackElapsedMs", 0);
+    boss.setData("pendingTelegraphMs", 0);
     boss.setData("lifeMs", 0);
+    boss.setData("phase", 1);
+    boss.setData("phaseShifted", false);
     boss.setData("rotationSpeed", 36);
     boss.setVelocity(0, descriptor.entrySpeed);
     this.applyHitbox(boss, descriptor.hitbox);
@@ -2028,8 +2042,21 @@ export default class DodgeGame extends BaseScene {
 
     const lifeMs = boss.getData("lifeMs") + delta;
     const attackElapsedMs = boss.getData("attackElapsedMs") + delta;
+    const pendingTelegraphBefore = boss.getData("pendingTelegraphMs") ?? 0;
+    const pendingTelegraphMs = Math.max(0, pendingTelegraphBefore - delta);
     boss.setData("lifeMs", lifeMs);
     boss.setData("attackElapsedMs", attackElapsedMs);
+    boss.setData("pendingTelegraphMs", pendingTelegraphMs);
+
+    if (shouldEnterPhaseTwo(config, lifeMs, boss.getData("phaseShifted") === true)) {
+      boss.setData("phase", 2);
+      boss.setData("phaseShifted", true);
+      boss.setData("attackElapsedMs", config.attackCadenceMs);
+      cameraZoomPulse(this, 1.055, 220);
+      cameraShake(this, 140, 0.0032);
+      this.setStatusText(`${config.name} phase shift! Attacks are accelerating.`, 0xffc078);
+      showFloatingText(this, boss.x, boss.y - 60, "PHASE 2", "#ffc078");
+    }
 
     if (state === "fight") {
       const remainingSeconds = Math.ceil((durationMs - lifeMs) / 1000);
@@ -2042,9 +2069,15 @@ export default class DodgeGame extends BaseScene {
     boss.y = config.holdY + Math.sin((lifeMs / 1000) * 2.2) * 14;
     boss.body.updateFromGameObject();
 
-    if (state === "fight" && attackElapsedMs >= config.attackCadenceMs) {
+    const attackProfile = getBossAttackProfile(config, boss.getData("phase") ?? 1);
+    const canAttack = state === "fight" && pendingTelegraphMs <= 0;
+    if (canAttack && attackElapsedMs >= attackProfile.cadenceMs) {
       boss.setData("attackElapsedMs", 0);
-      this.spawnBossVolley(boss, config);
+      boss.setData("pendingTelegraphMs", attackProfile.telegraphMs);
+      emitBossTelegraph(this, boss.x, boss.y + 52, attackProfile.signature);
+      playBossTelegraphSfx(this, attackProfile.signature);
+    } else if (state === "fight" && pendingTelegraphBefore > 0 && pendingTelegraphMs <= 0) {
+      this.spawnBossVolley(boss, config, attackProfile);
     }
 
     if (state === "fight" && lifeMs >= config.durationMs) {
@@ -2054,7 +2087,8 @@ export default class DodgeGame extends BaseScene {
       this.emitParticleBurst(boss.x, boss.y, 16, 350, 0.4, 0x8be9b1);
       boss.setVelocity(0, -config.exitSpeed);
       this.setStatusText("Boss wave cleared. One reward pocket before the next cycle.", 0x8be9b1);
-      this.spawnPickup(config.rewardPickup);
+      const reward = rollBossReward({ rng: this.spawnDirector.random });
+      this.applyBossReward(reward, config.rewardPickup);
       this.objectiveDirector.recordBossClear();
       this.bossClears += 1;
       this.processObjectiveRewards();
@@ -2075,8 +2109,9 @@ export default class DodgeGame extends BaseScene {
     }
   }
 
-  spawnBossVolley(boss, config) {
-    const count = config.projectileCount;
+  spawnBossVolley(boss, config, profile = null) {
+    const attackProfile = profile ?? getBossAttackProfile(config, boss.getData("phase") ?? 1);
+    const count = attackProfile.projectileCount;
     const boltParams = {
       family: "bolt",
       seed: (boss.y + this.runTimeMs) * 1e3,
@@ -2087,14 +2122,19 @@ export default class DodgeGame extends BaseScene {
     for (let index = 0; index < count; index += 1) {
       const normalized = count === 1 ? 0 : index / (count - 1) - 0.5;
       const projectile = this.physics.add.image(
-        boss.x + normalized * config.projectileSpread,
+        boss.x + normalized * attackProfile.projectileSpread,
         boss.y + 66,
         boltTexture
       );
       const speedY = config.projectileSpeed;
-      const targetX = this.player.x + normalized * 90;
       const travelTime = Math.max(0.7, (GAME_HEIGHT - projectile.y) / speedY);
-      const speedX = (targetX - projectile.x) / travelTime;
+      let speedX = 0;
+      if (attackProfile.signature === "cross") {
+        speedX = normalized * 180;
+      } else {
+        const targetX = this.player.x + normalized * 90;
+        speedX = (targetX - projectile.x) / travelTime;
+      }
 
       projectile.setTint(0xff9f43);
       projectile.setDepth(4);
@@ -2110,6 +2150,24 @@ export default class DodgeGame extends BaseScene {
       this.projectiles.add(projectile);
     }
     this.emitParticleBurst(boss.x, boss.y + 66, 6, 240, 0.3, 0xff9f43);
+  }
+
+  applyBossReward(reward, basePickup) {
+    if (!reward) return;
+    if (reward.kind === "metaFragment") {
+      addMetaFragments(reward.fragments);
+      this.bonusScore += reward.fragments;
+      showFloatingText(this, GAME_WIDTH / 2, 186, `+${reward.fragments} Fragment`, "#bdb2ff");
+      this.setStatusText(`Boss reward: ${reward.label} secured.`, 0xbdb2ff);
+      emitObjectiveCompleteBurst(this, GAME_WIDTH / 2, 188);
+      return;
+    }
+
+    const rewardPickup = buildBossRewardPickup(basePickup, reward);
+    if (rewardPickup) {
+      this.spawnPickup(rewardPickup);
+      this.setStatusText(`Boss reward: ${reward.label}. Grab the relic!`, 0x8be9b1);
+    }
   }
 
   clearOffscreenObjects() {

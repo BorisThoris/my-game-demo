@@ -98,3 +98,38 @@ export function emitObjectiveCompleteBurst(scene, x, y) {
     scene.emitParticleBurst(x, y, 10, 320, 0.35, 0x8be9b1);
   }
 }
+
+export function emitBossTelegraph(scene, x, y, signature = "fan") {
+  const tintBySignature = {
+    fan: 0xff9f43,
+    aimedBurst: 0xff6b6b,
+    cross: 0x9d4edd
+  };
+  if (typeof scene.emitParticleBurst === "function") {
+    scene.emitParticleBurst(x, y, 10, 260, 0.32, tintBySignature[signature] ?? 0xff9f43);
+  }
+
+  const ring = scene.add?.circle?.(x, y, 24, 0xffffff, 0.14);
+  if (!ring) return;
+  ring.setStrokeStyle(2, tintBySignature[signature] ?? 0xffffff, 0.55);
+  ring.setDepth(6);
+  scene.tweens.add({
+    targets: ring,
+    radius: 68,
+    alpha: 0,
+    duration: 260,
+    ease: "Sine.Out",
+    onComplete: () => ring.destroy()
+  });
+}
+
+export function playBossTelegraphSfx(scene, signature = "fan") {
+  const keyBySignature = {
+    fan: "sfxPhaseChange",
+    aimedBurst: "sfxObjectiveComplete",
+    cross: "sfxChallengeComplete"
+  };
+  if (typeof scene.playEventSfx === "function") {
+    scene.playEventSfx(keyBySignature[signature] ?? "sfxPhaseChange");
+  }
+}
