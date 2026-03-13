@@ -7,6 +7,8 @@
   "scripts": {
     "test": "node --test",
     "test:e2e": "playwright test --project=chromium",
+    "agents:plan": "./scripts/agents/launch_task_agents.sh --dry-run",
+    "agents:launch": "./scripts/agents/launch_task_agents.sh",
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
