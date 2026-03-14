@@ -2,10 +2,24 @@ import { GAME_HEIGHT, GAME_WIDTH, PLAYER_START_Y } from "../config/gameConfig";
 import { SCENE_KEYS } from "../config/sceneKeys";
 import { EXIT_UNLOCK_SCORE } from "../game/runnerContent";
 import { ensureProceduralTexture, DEFAULT_PROCEDURAL_PARAMS } from "../game/proceduralSprites";
-import { setRichPresence } from "../services/onlineService";
-import { getSettings, initSaveFromCloud } from "../save/saveManager";
+import { ARCHETYPE_LIBRARY } from "../game/archetypeSystem";
+import {
+  getOnlineStatus,
+  listAchievementStates,
+  setRichPresence
+} from "../services/onlineService";
+import {
+  getSelectedArchetype,
+  getSettings,
+  initSaveFromCloud,
+  setSelectedArchetype,
+  getActiveContracts,
+  getMetaProgression,
+  claimCompletedContract
+} from "../save/saveManager";
 import { GAME_VERSION } from "../config/version";
 import BaseScene from "./baseScene";
+import { getModeList, normalizeGameMode } from "../game/modeConfig";
 
 /** Valve/GMod-style main menu: options panel on the left, visuals (player + bg) on the right. */
 const PANEL_WIDTH = 380;
@@ -20,6 +34,12 @@ const MENU_PLAYER_SCALE = 1.4;
 export default class MainMenuScene extends BaseScene {
   constructor() {
     super(SCENE_KEYS.mainMenu);
+    this.selectedMode = "Classic";
+  }
+
+  init(data) {
+    this._menuData = data || {};
+    this.selectedMode = normalizeGameMode(this._menuData.mode || this.selectedMode);
   }
 
   create() {
@@ -34,6 +54,17 @@ export default class MainMenuScene extends BaseScene {
     this._ensureMenuProceduralTextures();
     this._addProceduralEnemies();
     this._poseAndSizePlayer();
+    this.selectedArchetypeId = getSelectedArchetype();
+
+    const contracts = getActiveContracts();
+    const contractClaims = [];
+    contracts.forEach((contract) => {
+      const reward = claimCompletedContract(contract.id);
+      if (reward) {
+        contractClaims.push({ title: contract.title, reward });
+      }
+    });
+    const refreshedMeta = getMetaProgression();
 
     // Left panel (Valve/GMod style)
     const panel = this.add.graphics();
@@ -50,17 +81,51 @@ export default class MainMenuScene extends BaseScene {
     });
     title.setDepth(10);
 
+    const modes = getModeList();
+    const modeLabel = this.add.text(PANEL_PADDING, 138, "Mode", {
+      font: "700 18px Arial",
+      fill: "#8ea0b2"
+    });
+    modeLabel.setDepth(10);
+
+    modes.forEach((entry, index) => {
+      const modeText = this.add.text(PANEL_PADDING, 164 + index * 24, "", {
+        font: "700 16px Arial",
+        fill: "#6a7a8a"
+      });
+      const refresh = () => {
+        const isSelected = this.selectedMode === entry.mode;
+        modeText.setText(`${isSelected ? "▶" : "•"} ${entry.label}`);
+        modeText.setColor(isSelected ? "#ffffff" : "#8ea0b2");
+      };
+      refresh();
+      modeText.setDepth(10);
+      modeText.setInteractive({ useHandCursor: true });
+      modeText.on("pointerdown", () => {
+        this.selectedMode = entry.mode;
+        this.scene.restart({ mode: this.selectedMode });
+      });
+    });
+
     // Menu options on the left, vertical list
-    const menuYStart = 200;
-    const menuSpacing = 56;
+    const menuYStart = 240;
+    const menuSpacing = 48;
     const menuItems = [
-      { label: "Play", action: () => this.scene.start(SCENE_KEYS.game) },
+      {
+        label: "Play",
+        action: () =>
+          this.scene.start(SCENE_KEYS.game, {
+            mode: this.selectedMode,
+            archetypeId: this.selectedArchetypeId
+          })
+      },
       {
         label: "Options",
         action: () =>
           this.scene.start(SCENE_KEYS.options, { returnTo: SCENE_KEYS.mainMenu })
       },
       { label: "Credits", action: () => this.scene.start(SCENE_KEYS.credits) },
+      { label: "Progression", action: () => this.scene.start(SCENE_KEYS.meta) },
       { label: "Quit", action: () => this.quit() }
     ];
 
@@ -83,16 +148,92 @@ export default class MainMenuScene extends BaseScene {
       text.on("pointerdown", item.action);
     });
 
+    const onlineStatus = getOnlineStatus();
+    const unlockedCount = listAchievementStates().filter(item => item.unlocked).length;
+    const bestSubmitted = onlineStatus.leaderboards?.best_score?.score ?? 0;
+    this.add.text(
+      PANEL_PADDING,
+      454,
+      `Online: ${onlineStatus.adapter} | Queue: ${onlineStatus.queueLength}\nAchievements: ${unlockedCount} | Best submit: ${bestSubmitted}`,
+      {
+        font: "700 11px Arial",
+        fill: "#9fc5e8",
+        wordWrap: { width: PANEL_WIDTH - PANEL_PADDING * 2 }
+      }
+    ).setDepth(10);
+
+    const archetypeLabel = this.add.text(PANEL_PADDING, 508, "Archetype", {
+      font: "700 18px Arial",
+      fill: "#88a0b8"
+    });
+    archetypeLabel.setDepth(10);
+
+    const archetypeValue = this.add.text(PANEL_PADDING, 532, "", {
+      font: "700 22px Arial",
+      fill: "#ffffff"
+    });
+    archetypeValue.setDepth(10);
+
+    const archetypeDesc = this.add.text(PANEL_PADDING, 564, "", {
+      font: "700 12px Arial",
+      fill: "#7c8ea0",
+      wordWrap: { width: PANEL_WIDTH - PANEL_PADDING * 2 }
+    });
+    archetypeDesc.setDepth(10);
+
+    const updateArchetypeText = () => {
+      const selected = ARCHETYPE_LIBRARY.find(entry => entry.id === this.selectedArchetypeId) || ARCHETYPE_LIBRARY[0];
+      archetypeValue.setText(`${selected.name}  (click to change)`);
+      archetypeDesc.setText(selected.description);
+    };
+
+    archetypeValue.setInteractive({ useHandCursor: true });
+    archetypeValue.on("pointerover", () => archetypeValue.setFill("#9ae6ff"));
+    archetypeValue.on("pointerout", () => archetypeValue.setFill("#ffffff"));
+    archetypeValue.on("pointerdown", () => {
+      const currentIndex = ARCHETYPE_LIBRARY.findIndex(entry => entry.id === this.selectedArchetypeId);
+      const nextIndex = (Math.max(currentIndex, 0) + 1) % ARCHETYPE_LIBRARY.length;
+      this.selectedArchetypeId = ARCHETYPE_LIBRARY[nextIndex].id;
+      setSelectedArchetype(this.selectedArchetypeId);
+      updateArchetypeText();
+    });
+    updateArchetypeText();
+
+    const completedContracts = contracts.filter((contract) => contract.completed || contract.claimed).length;
+    const contractPreview = contracts
+      .slice(0, 2)
+      .map((contract) => {
+        const progress = contract.metric === "survivalMs"
+          ? `${Math.floor(contract.progress / 1000)}s/${Math.floor(contract.target / 1000)}s`
+          : `${contract.progress}/${contract.target}`;
+        return `${contract.title} ${progress}`;
+      })
+      .join("\n");
+    const contractOverflow = contracts.length > 2 ? `\n+${contracts.length - 2} more contract(s)` : "";
+    this.add.text(PANEL_PADDING, 626, `Contracts: ${completedContracts}/${contracts.length} complete\n${contractPreview}${contractOverflow}`, {
+      font: "700 11px Arial",
+      fill: "#b9d7f5",
+      wordWrap: { width: PANEL_WIDTH - PANEL_PADDING * 2 }
+    }).setDepth(10);
+
+    const claimSummary = contractClaims.length
+      ? `Claimed: ${contractClaims.map((entry) => `+${entry.reward.currency}c/+${entry.reward.fragments}f ${entry.title}`).join(" | ")}`
+      : `Currency: ${refreshedMeta.currency} | Fragments: ${refreshedMeta.unlockFragments}`;
+    this.add.text(PANEL_PADDING, 678, claimSummary, {
+      font: "700 11px Arial",
+      fill: contractClaims.length ? "#8be9b1" : "#fff2b5",
+      wordWrap: { width: PANEL_WIDTH - PANEL_PADDING * 2 }
+    }).setDepth(10);
     // Bottom-left: version and tagline (n-ish, left bottom left)
     const tagline = this.add.text(
       PANEL_PADDING,
-      GAME_HEIGHT - 72,
-      `Reach score ${EXIT_UNLOCK_SCORE} and touch the right edge to finish a run.`,
-      { font: "700 14px Arial", fill: "#6a7a8a", wordWrap: { width: PANEL_WIDTH - PANEL_PADDING * 2 } }
+      GAME_HEIGHT - 52,
+      `Mode: ${this.selectedMode} | Reach ${EXIT_UNLOCK_SCORE} to unlock the exit.`,
+      { font: "700 12px Arial", fill: "#6a7a8a", wordWrap: { width: PANEL_WIDTH - PANEL_PADDING * 2 } }
     );
     tagline.setDepth(10);
 
-    const versionText = this.add.text(PANEL_PADDING, GAME_HEIGHT - 36, `v${GAME_VERSION}`, {
+    const versionText = this.add.text(PANEL_PADDING, GAME_HEIGHT - 28, `v${GAME_VERSION}`, {
       font: "700 16px Arial",
       fill: "#5a6a7a"
     });

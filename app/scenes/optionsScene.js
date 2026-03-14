@@ -74,6 +74,69 @@ export default class OptionsScene extends BaseScene {
     });
     y += 55;
 
+    // Screen shake intensity
+    this.createText(200, y, "Screen shake", { ...BODY_STYLE, font: "700 24px Arial", align: "left" });
+    const shakeVal = this.createText(520, y, `${Math.round((getSettings().screenShakeIntensity ?? 1) * 100)}%`, {
+      ...BODY_STYLE,
+      font: "700 22px Arial",
+      fill: "#d7f9ff",
+      align: "left"
+    });
+    const shakeDown = this.createText(340, y, " − ", { ...BODY_STYLE, font: "700 24px Arial", fill: "#9ae6ff" }).setInteractive({ useHandCursor: true });
+    const shakeUp = this.createText(420, y, " + ", { ...BODY_STYLE, font: "700 24px Arial", fill: "#9ae6ff" }).setInteractive({ useHandCursor: true });
+    shakeDown.on("pointerdown", () => {
+      const v = clamp01((getSettings().screenShakeIntensity ?? 1) - 0.1);
+      setSettings({ screenShakeIntensity: v });
+      shakeVal.setText(`${Math.round(v * 100)}%`);
+    });
+    shakeUp.on("pointerdown", () => {
+      const v = clamp01((getSettings().screenShakeIntensity ?? 1) + 0.1);
+      setSettings({ screenShakeIntensity: v });
+      shakeVal.setText(`${Math.round(v * 100)}%`);
+    });
+    y += 50;
+
+    // Flash effect intensity
+    this.createText(200, y, "Flash/hit effects", { ...BODY_STYLE, font: "700 24px Arial", align: "left" });
+    const flashVal = this.createText(520, y, `${Math.round((getSettings().flashIntensity ?? 1) * 100)}%`, {
+      ...BODY_STYLE,
+      font: "700 22px Arial",
+      fill: "#d7f9ff",
+      align: "left"
+    });
+    const flashDown = this.createText(340, y, " − ", { ...BODY_STYLE, font: "700 24px Arial", fill: "#9ae6ff" }).setInteractive({ useHandCursor: true });
+    const flashUp = this.createText(420, y, " + ", { ...BODY_STYLE, font: "700 24px Arial", fill: "#9ae6ff" }).setInteractive({ useHandCursor: true });
+    flashDown.on("pointerdown", () => {
+      const v = clamp01((getSettings().flashIntensity ?? 1) - 0.1);
+      setSettings({ flashIntensity: v });
+      flashVal.setText(`${Math.round(v * 100)}%`);
+    });
+    flashUp.on("pointerdown", () => {
+      const v = clamp01((getSettings().flashIntensity ?? 1) + 0.1);
+      setSettings({ flashIntensity: v });
+      flashVal.setText(`${Math.round(v * 100)}%`);
+    });
+    y += 50;
+
+    // Color blind palette
+    this.createText(200, y, "Color blind palette", { ...BODY_STYLE, font: "700 24px Arial", align: "left" });
+    const paletteModes = ["off", "protanopia", "deuteranopia", "tritanopia"];
+    const paletteVal = this.createText(430, y, (getSettings().colorBlindPaletteMode || "off"), {
+      ...BODY_STYLE,
+      font: "700 22px Arial",
+      fill: "#9ae6ff",
+      align: "left"
+    });
+    paletteVal.setInteractive({ useHandCursor: true });
+    paletteVal.on("pointerdown", () => {
+      const current = getSettings().colorBlindPaletteMode || "off";
+      const idx = paletteModes.indexOf(current);
+      const next = paletteModes[(idx + 1) % paletteModes.length];
+      setSettings({ colorBlindPaletteMode: next });
+      paletteVal.setText(next);
+    });
+    y += 55;
+
     // Fullscreen toggle (text button)
     const fsLabel = this.createText(200, y, settings.fullscreen ? "Fullscreen: On" : "Fullscreen: Off", {
       ...BODY_STYLE,
@@ -107,7 +170,7 @@ export default class OptionsScene extends BaseScene {
     });
     resLabel.setInteractive({ useHandCursor: true });
     resLabel.on("pointerdown", () => {
-      const idx = resOptions.indexOf(settings.resolutionOrQuality);
+      const idx = resOptions.indexOf(getSettings().resolutionOrQuality);
       const next = resOptions[(idx + 1) % resOptions.length];
       setSettings({ resolutionOrQuality: next });
       resLabel.setText(next);
@@ -118,9 +181,10 @@ export default class OptionsScene extends BaseScene {
     this.createText(GAME_CENTER_X, y, "Controls", PANEL_TITLE_STYLE, 0.5, 0.5);
     y += 40;
     const keybinds = [
-      "WASD / Arrows – Move",
+      "WASD / Arrows / Mobile joystick – Move",
       "1 / 2 / 3 – Challenge options",
-      "Escape – Pause"
+      "Escape – Pause",
+      "Tap options with + / − buttons for accessibility sliders"
     ];
     keybinds.forEach((line) => {
       this.createText(200, y, line, { ...BODY_STYLE, font: "700 20px Arial", align: "left", fill: "#d7f9ff" });

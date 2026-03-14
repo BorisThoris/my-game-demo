@@ -1066,6 +1066,11 @@ const BOSS_ARCHETYPES = [
     projectileCountLow: 4,
     projectileCountHigh: 5,
     projectileSpread: 120,
+    phaseShiftCadenceFactor: 0.7,
+    phaseShiftProjectileBonus: 1,
+    phaseShiftSpreadFactor: 1.2,
+    attackSignatures: ["fan", "aimedBurst"],
+    telegraphMs: { fan: 380, aimedBurst: 520 },
     bossRadius: 70,
     pointCount: [8, 10],
     weight: 1
@@ -1083,6 +1088,11 @@ const BOSS_ARCHETYPES = [
     projectileCountLow: 4,
     projectileCountHigh: 6,
     projectileSpread: 140,
+    phaseShiftCadenceFactor: 0.72,
+    phaseShiftProjectileBonus: 1,
+    phaseShiftSpreadFactor: 1.18,
+    attackSignatures: ["fan", "cross"],
+    telegraphMs: { fan: 360, cross: 460 },
     bossRadius: 72,
     pointCount: [6, 8],
     weight: 1
@@ -1100,6 +1110,11 @@ const BOSS_ARCHETYPES = [
     projectileCountLow: 3,
     projectileCountHigh: 5,
     projectileSpread: 100,
+    phaseShiftCadenceFactor: 0.66,
+    phaseShiftProjectileBonus: 2,
+    phaseShiftSpreadFactor: 1.1,
+    attackSignatures: ["aimedBurst", "fan"],
+    telegraphMs: { aimedBurst: 540, fan: 350 },
     bossRadius: 68,
     pointCount: [7, 9],
     weight: 1
@@ -1117,6 +1132,11 @@ const BOSS_ARCHETYPES = [
     projectileCountLow: 4,
     projectileCountHigh: 5,
     projectileSpread: 115,
+    phaseShiftCadenceFactor: 0.74,
+    phaseShiftProjectileBonus: 1,
+    phaseShiftSpreadFactor: 1.15,
+    attackSignatures: ["cross", "fan"],
+    telegraphMs: { cross: 470, fan: 360 },
     bossRadius: 66,
     pointCount: [8, 12],
     weight: 1
@@ -1134,6 +1154,11 @@ const BOSS_ARCHETYPES = [
     projectileCountLow: 4,
     projectileCountHigh: 6,
     projectileSpread: 130,
+    phaseShiftCadenceFactor: 0.68,
+    phaseShiftProjectileBonus: 2,
+    phaseShiftSpreadFactor: 1.24,
+    attackSignatures: ["aimedBurst", "cross"],
+    telegraphMs: { aimedBurst: 500, cross: 450 },
     bossRadius: 74,
     pointCount: [6, 10],
     weight: 1
@@ -1204,6 +1229,12 @@ export const buildMiniBossWave = (context, rng) => {
     projectileCount: context.intensity > 0.85 ? 5 : 4,
     projectileSpeed: context.fallSpeed + 140,
     projectileSpread: 120,
+    phaseShiftAtRatio: 0.5,
+    phaseShiftCadenceFactor: 0.72,
+    phaseShiftProjectileBonus: 1,
+    phaseShiftSpreadFactor: 1.2,
+    attackSignatures: ["fan", "aimedBurst"],
+    telegraphMs: { fan: 360, aimedBurst: 520 },
     rewardPickup: createPickup(context, rng)
   };
 };
@@ -1247,6 +1278,12 @@ export const buildProceduralBoss = (context, rng) => {
     projectileCount,
     projectileSpeed: context.fallSpeed + 140,
     projectileSpread: arch.projectileSpread,
+    phaseShiftAtRatio: 0.5,
+    phaseShiftCadenceFactor: arch.phaseShiftCadenceFactor,
+    phaseShiftProjectileBonus: arch.phaseShiftProjectileBonus,
+    phaseShiftSpreadFactor: arch.phaseShiftSpreadFactor,
+    attackSignatures: [...arch.attackSignatures],
+    telegraphMs: { ...arch.telegraphMs },
     rewardPickup: createPickup(context, rng)
   };
 };

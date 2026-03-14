@@ -220,3 +220,19 @@
    - Capsule, screenshots, short trailer, description, set price (e.g. $2.99–4.99).
 
 This document is the single source of truth for **what’s missing or bad** and **what to expand** for a Steam-ready, monetizable game at a small price.
+
+---
+
+## Part 5 — Telemetry Dashboard Baselines
+
+A first telemetry pass is now defined for balance validation. Track these KPI baselines per build:
+
+- **Median run length** (`run_end.runTimeMs` median).
+- **First boss reach rate** (runs with a boss clear / runs started).
+- **Challenge success rate** (successful `challenge_performance` / all challenge attempts).
+
+Supporting implementation docs and scripts:
+- `docs/TELEMETRY.md`
+- `scripts/telemetry/aggregateTelemetry.js`
+
+These KPIs should be displayed as 7-day and 30-day trends, segmented by difficulty/mode once those are added.

@@ -7,11 +7,14 @@
   "scripts": {
     "test": "node --test",
     "test:e2e": "playwright test --project=chromium",
+    "agents:plan": "./scripts/agents/launch_task_agents.sh --dry-run",
+    "agents:launch": "./scripts/agents/launch_task_agents.sh",
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
     "electron:dev": "electron .",
-    "electron:build": "vite build && electron-builder"
+    "electron:build": "vite build && electron-builder",
+    "telemetry:aggregate": "node scripts/telemetry/aggregateTelemetry.js"
   },
   "author": "",
   "license": "ISC",
@@ -28,8 +31,15 @@
   "build": {
     "appId": "com.skyfall.game",
     "productName": "Skyfall",
-    "directories": { "output": "release" },
-    "files": ["dist/**/*", "electron/**/*"],
-    "win": { "target": "nsis" }
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "electron/**/*"
+    ],
+    "win": {
+      "target": "nsis"
+    }
   }
 }
