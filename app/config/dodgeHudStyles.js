@@ -62,5 +62,7 @@ export const DODGE_AUDIO = {
   sfxPhaseChange: { rate: 1.1, volume: 0.2 },
   sfxExitUnlock: { rate: 1.2, volume: 0.25 },
   sfxObjectiveComplete: { rate: 1.15, volume: 0.22 },
-  sfxChallengeComplete: { rate: 1.15, volume: 0.22 }
+  sfxChallengeComplete: { rate: 1.15, volume: 0.22 },
+  sfxDestroy: { rate: 1.0, volume: 0.18 },
+  sfxChainDestroy: { rate: 1.25, volume: 0.22 }
 };

@@ -5,7 +5,7 @@ import { GAME_HEIGHT, GAME_WIDTH } from "../config/gameConfig";
 import { SCENE_KEYS } from "../config/sceneKeys";
 import BaseScene from "./baseScene";
 import RunnerSpawnDirector from "../game/runnerSpawnDirector";
-import { EXIT_UNLOCK_SCORE, getCurrentLevelFromScore } from "../game/runnerContent";
+import { EXIT_UNLOCK_SCORE, getCurrentLevelFromScore, OBSTACLE_LIBRARY } from "../game/runnerContent";
 import ChallengeDirector from "../game/challengeDirector";
 import {
   applyPerk,
@@ -28,10 +28,36 @@ const MILESTONES = [25, 50, 100, 250];
 const PLAYER_SPEED = 430;
 const PLAYER_START_X = GAME_WIDTH / 2;
 const PLAYER_START_Y = GAME_HEIGHT - 130;
+const PHASE_BAR_WIDTH = 320;
+const PHASE_BAR_MIN_WIDTH = 6;
 
 /** Default tint/scale when descriptor omits them; keeps hazards and pickups readable and consistent. */
 const HAZARD_VISUAL_DEFAULTS = { tint: 0xffffff, scale: 1 };
 const PICKUP_VISUAL_DEFAULTS = { tint: 0xd7f9ff, scale: 0.18 };
+
+/** Click-to-destroy: cooldown between clicks (ms). */
+const CLICK_COOLDOWN_MS = 150;
+/** Max chain depth when building destroy queue from player click. */
+const MAX_CHAIN_DEPTH = 3;
+/** Max hazards + debris on screen; cull when exceeded. */
+const MAX_HAZARDS = 80;
+/** Max hazards to add to destroy queue in one click (chain cap). */
+const MAX_CHAIN_COUNT = 20;
+/** Radius (px) to consider neighbors for chain destroy. */
+const CHAIN_RADIUS = 100;
+/** Chain length at or above this shows "MEGA CHAIN!" and extra juice. */
+const MEGA_CHAIN_THRESHOLD = 5;
+/** Bonus score per hazard in chain when chain length > 1 (on top of per-type bonus). */
+const CHAIN_BONUS_PER_HAZARD = 1;
+/** Destroys without taking damage to get streak bonus. */
+const DESTROY_STREAK_TARGET = 5;
+/** Score bonus when reaching destroy streak. */
+const DESTROY_STREAK_BONUS_SCORE = 3;
+/** Distance (px) from debris to player to show "CLOSE!" near-miss. */
+const NEAR_MISS_DISTANCE = 42;
+/** Lingering zone: radius and duration (ms). */
+const LINGERING_ZONE_RADIUS = 55;
+const LINGERING_ZONE_DURATION_MS = 1500;
 
 export default class DodgeGame extends BaseScene {
   constructor() {
@@ -88,15 +114,22 @@ export default class DodgeGame extends BaseScene {
     this.tempScoreMultMultiplier = 1;
     this._lastHudScore = null;
     this._lastHudPhaseProgress = null;
+    this._lastBestScoreTextValue = null;
+    this._lastPhaseTextValue = null;
+    this._lastPhaseTextColor = null;
+    this._lastShieldTextValue = null;
+    this._lastShieldTextColor = null;
+    this._lastPhaseBarColor = null;
+    this._lastHeatIndicatorVisible = null;
     this._challengeUrgencyTween = null;
     this._challengeUrgencyTweenActive = false;
     this._exitTextPulseTween = null;
     this._phaseBarPulseTween = null;
     this._shieldPulseTween = null;
     this._statusTextTween = null;
+    this._scoreTextTween = null;
     this._objectivePulseTween = null;
     this._lastPhaseBarWidthTarget = null;
-    this._phaseBarWidthTween = null;
     this._justSetNewRecord = false;
     this._lastMilestoneCelebrated = 0;
     this._lastScoreTickSecond = -1;
@@ -110,6 +143,10 @@ export default class DodgeGame extends BaseScene {
     this.pausePanel = null;
     this._initialHighScore = 0;
     this._richPresenceThrottle = 0;
+    this._destroyQueue = null;
+    this._lastClickMs = null;
+    this._destroyStreakCount = 0;
+    this._damageZones = [];
   }
 
   init(data) {
@@ -140,6 +177,7 @@ export default class DodgeGame extends BaseScene {
         fill: "#9ae6ff"
       });
       retry.setOrigin(0.5, 0.5);
+      retry.setPadding(28, 14);
       retry.setInteractive({ useHandCursor: true });
       retry.on("pointerdown", () => this.scene.restart());
       return;
@@ -196,7 +234,7 @@ export default class DodgeGame extends BaseScene {
     this.createRuntimeTextures();
     ensureProceduralUiAssets(this);
     this.createHud();
-    this._initialHighScore = getHighScore();
+    this._initialHighScore = Math.floor(getHighScore());
     this.highestScoreValue = this._initialHighScore;
     this.createChallengeUi();
     this.createAudio();
@@ -214,7 +252,12 @@ export default class DodgeGame extends BaseScene {
       setRichPresence("In game");
     }
 
-    this.events.once("shutdown", () => this.stopAudio());
+    this.events.once("shutdown", () => {
+      this.stopAudio();
+      this.input.off("pointerdown", this.onPointerDown, this);
+    });
+    this._destroyQueue = new Set();
+    this.input.on("pointerdown", this.onPointerDown, this);
   }
 
   showGetReadyOverlay() {
@@ -309,6 +352,288 @@ export default class DodgeGame extends BaseScene {
     this.physics.add.overlap(this.player, this.pickups, (_, pickup) =>
       this.handlePickupCollision(pickup)
     );
+    this.physics.add.overlap(this.hazards, this.hazards, (a, b) =>
+      this.handleHazardHazardOverlap(a, b)
+    );
+  }
+
+  /**
+   * When debris overlaps another hazard, queue the non-debris hazard for destroy and process once.
+   */
+  handleHazardHazardOverlap(a, b) {
+    if (a === b || !a?.body || !b?.body || !a.active || !b.active) return;
+    if (a.getData("debris")) {
+      this.queueDestroy(b, "debris", 0);
+    } else if (b.getData("debris")) {
+      this.queueDestroy(a, "debris", 0);
+    }
+    if (this._destroyQueue?.size) {
+      this.processDestroyQueue();
+    }
+  }
+
+  /**
+   * Get the hazard at world (x, y). Prefer smallest by area (topmost visual). Used for click-to-destroy.
+   */
+  getHazardAt(x, y) {
+    if (!this.hazards?.getLength()) return null;
+    const containing = [];
+    this.hazards.getChildren().forEach(hazard => {
+      if (!hazard.body || !hazard.active) return;
+      const b = hazard.body;
+      if (x >= b.left && x <= b.right && y >= b.top && y <= b.bottom) {
+        containing.push(hazard);
+      }
+    });
+    if (containing.length === 0) return null;
+    containing.sort((a, b) => (a.displayWidth * a.displayHeight) - (b.displayWidth * b.displayHeight));
+    return containing[0];
+  }
+
+  onPointerDown(pointer) {
+    if (this.gameOverState || this.paused || this._getReadyRemainingMs > 0 || this.activeChallenge || this.pendingPerkChoices) {
+      return;
+    }
+    const x = pointer.worldX;
+    const y = pointer.worldY;
+    const hazard = this.getHazardAt(x, y);
+    if (!hazard) return;
+    if (this._lastClickMs != null && (this.runTimeMs - this._lastClickMs) < CLICK_COOLDOWN_MS) {
+      return;
+    }
+    this._lastClickMs = this.runTimeMs;
+    this.buildChainQueue(hazard);
+    this.processDestroyQueue();
+  }
+
+  /**
+   * Get hazards within CHAIN_RADIUS of (x, y), excluding excludeHazard.
+   */
+  getNeighborsInRadius(x, y, excludeHazard) {
+    const out = [];
+    const r2 = CHAIN_RADIUS * CHAIN_RADIUS;
+    this.hazards.getChildren().forEach(h => {
+      if (h === excludeHazard || !h.body || !h.active) return;
+      const dx = h.x - x;
+      const dy = h.y - y;
+      if (dx * dx + dy * dy <= r2) out.push(h);
+    });
+    return out;
+  }
+
+  /**
+   * Build destroy queue from a player click: add clicked hazard and BFS chain neighbors up to MAX_CHAIN_DEPTH and MAX_CHAIN_COUNT.
+   */
+  buildChainQueue(clickedHazard) {
+    this._destroyQueue.clear();
+    this._destroyQueue.add(clickedHazard);
+    let frontier = [clickedHazard];
+    let depth = 0;
+    while (depth < MAX_CHAIN_DEPTH && this._destroyQueue.size < MAX_CHAIN_COUNT) {
+      const nextFrontier = [];
+      frontier.forEach(h => {
+        const neighbors = this.getNeighborsInRadius(h.x, h.y, h);
+        neighbors.forEach(n => {
+          if (!this._destroyQueue.has(n) && this._destroyQueue.size < MAX_CHAIN_COUNT) {
+            this._destroyQueue.add(n);
+            nextFrontier.push(n);
+          }
+        });
+      });
+      frontier = nextFrontier;
+      if (frontier.length === 0) break;
+      depth += 1;
+    }
+  }
+
+  /**
+   * Add a hazard to the destroy queue. source: "player" | "debris" | "chain". depth used for chain cap.
+   */
+  queueDestroy(hazard, source, depth = 0) {
+    if (!hazard || !this.hazards.contains(hazard) || this._destroyQueue.has(hazard)) return;
+    if (source === "chain" && depth > MAX_CHAIN_DEPTH) return;
+    this._destroyQueue.add(hazard);
+  }
+
+  /**
+   * Spawn debris hazards from a destroyed debrisLauncher. Small orbs with debris flag and grace period.
+   */
+  spawnDebrisChildren(hazard) {
+    const hx = hazard.x;
+    const hy = hazard.y;
+    const count = hazard.getData("debrisCount") ?? 8;
+    const speed = 200;
+    const graceFrames = 2;
+    const offsetDist = 10;
+    for (let i = 0; i < count; i += 1) {
+      if (this.hazards.count >= MAX_HAZARDS) break;
+      const angle = (i * 2 * Math.PI) / count + (Math.random() * 0.3);
+      const vx = Math.cos(angle) * speed;
+      const vy = Math.sin(angle) * speed;
+      const ox = offsetDist * (Math.random() - 0.5);
+      const oy = offsetDist * (Math.random() - 0.5);
+      const descriptor = {
+        kind: "hazard",
+        type: "meteor",
+        texture: "runner-orb",
+        tint: hazard.tint ?? 0x7bed9f,
+        x: hx + ox,
+        y: hy + oy,
+        speed,
+        velocityX: vx,
+        velocityY: vy,
+        scaleX: 0.28,
+        scaleY: 0.28,
+        hitbox: { shape: "circle", radius: 12 },
+        rotationSpeed: 180,
+        motion: { type: "none" },
+        destroyArchetype: "clean",
+        debris: true,
+        graceFrames
+      };
+      this.spawnHazard(descriptor);
+    }
+  }
+
+  /**
+   * Spawn a lingering damage zone at (x, y). Damages player on overlap until it expires.
+   */
+  spawnLingeringZone(x, y, tint) {
+    const graphic = this.add.circle(x, y, LINGERING_ZONE_RADIUS, (tint ?? 0xffaa00) & 0xffffff, 0.35);
+    graphic.setStrokeStyle(2, (tint ?? 0xffaa00) & 0xffffff, 0.6);
+    graphic.setDepth(3);
+    this._damageZones.push({
+      x,
+      y,
+      radius: LINGERING_ZONE_RADIUS,
+      remainingMs: LINGERING_ZONE_DURATION_MS,
+      graphic
+    });
+    this.tweens.add({
+      targets: graphic,
+      alpha: 0.12,
+      duration: LINGERING_ZONE_DURATION_MS,
+      ease: "Power2.In"
+    });
+  }
+
+  /**
+   * Update lingering damage zones: tick down, damage player if overlapping, remove when expired.
+   */
+  updateDamageZones(delta) {
+    const player = this.player;
+    if (!player?.body) return;
+    const px = player.x;
+    const py = player.y;
+    for (let i = this._damageZones.length - 1; i >= 0; i -= 1) {
+      const z = this._damageZones[i];
+      z.remainingMs -= delta;
+      if (z.remainingMs <= 0) {
+        if (z.graphic?.scene) z.graphic.destroy();
+        this._damageZones.splice(i, 1);
+        continue;
+      }
+      const dx = px - z.x;
+      const dy = py - z.y;
+      if (dx * dx + dy * dy <= z.radius * z.radius) {
+        const fakeSource = { getData: (k) => (k === "debris" ? false : k === "graceFrames" ? 0 : undefined) };
+        this.handleHazardHit(fakeSource);
+        if (z.graphic?.scene) z.graphic.destroy();
+        this._damageZones.splice(i, 1);
+      }
+    }
+  }
+
+  /**
+   * Spawn N small hazards in a star pattern from (x, y). Bias directions away from player.
+   */
+  spawnSplitChildren(hazard) {
+    const hx = hazard.x;
+    const hy = hazard.y;
+    const type = hazard.getData("type") ?? "meteor";
+    const count = hazard.getData("splitCount") ?? 5;
+    const template = OBSTACLE_LIBRARY[type] || OBSTACLE_LIBRARY.meteor;
+    const speed = 220;
+    const smallScale = 0.5 * Math.min(hazard.scaleX ?? 1, hazard.scaleY ?? 1);
+    const angleToPlayer = Math.atan2(
+      this.player.y - hy,
+      this.player.x - hx
+    );
+    const biasOffset = angleToPlayer + Math.PI / count;
+    for (let i = 0; i < count; i += 1) {
+      if (this.hazards.count >= MAX_HAZARDS) break;
+      const angle = biasOffset + (i * 2 * Math.PI) / count;
+      const vx = Math.cos(angle) * speed;
+      const vy = Math.sin(angle) * speed;
+      const descriptor = {
+        kind: "hazard",
+        type,
+        texture: template.texture,
+        tint: hazard.tint ?? template.tint,
+        x: hx,
+        y: hy,
+        speed,
+        velocityX: vx,
+        velocityY: vy,
+        scaleX: smallScale,
+        scaleY: smallScale,
+        hitbox: { shape: "circle", radius: 16 },
+        rotationSpeed: template.rotationSpeed ?? 0,
+        motion: { type: "none" },
+        destroyArchetype: "clean"
+      };
+      this.spawnHazard(descriptor);
+    }
+  }
+
+  /**
+   * Process the destroy queue once: remove hazards, VFX, score, and run on-destroy effects (clean / splitter / debrisLauncher / lingering).
+   */
+  processDestroyQueue() {
+    if (!this._destroyQueue?.size) return;
+    const list = Array.from(this._destroyQueue);
+    this._destroyQueue.clear();
+    const chainLength = list.length;
+    if (chainLength > 1) {
+      this.playEventSfx("sfxChainDestroy");
+    } else {
+      this.playEventSfx("sfxDestroy");
+    }
+    if (chainLength >= MEGA_CHAIN_THRESHOLD) {
+      cameraShake(this, 280, 0.008);
+      showFloatingText(this, GAME_WIDTH / 2, GAME_HEIGHT / 2 - 60, "MEGA CHAIN!", "#ffaa44");
+    }
+    list.forEach((hazard, index) => {
+      if (!hazard.scene || !this.hazards.contains(hazard)) return;
+      const archetype = hazard.getData("destroyArchetype") ?? "clean";
+      const tint = hazard.tint ?? HAZARD_VISUAL_DEFAULTS.tint;
+      const hx = hazard.x;
+      const hy = hazard.y;
+      if (archetype === "splitter") {
+        this.spawnSplitChildren(hazard);
+      } else if (archetype === "debrisLauncher") {
+        this.spawnDebrisChildren(hazard);
+      } else if (archetype === "lingering") {
+        this.spawnLingeringZone(hx, hy, tint);
+      }
+      this.hazards.remove(hazard);
+      hazard.destroy();
+      this.emitParticleBurst(hx, hy, 8, 280, 0.3, tint);
+      const scoreBonus = archetype === "clean" ? 1 : archetype === "splitter" ? 2 : archetype === "debrisLauncher" ? 3 : 2;
+      this.bonusScore += scoreBonus;
+      if (chainLength > 1 && index === 0) {
+        showFloatingText(this, hx, hy - 30, `x${chainLength}`, "#fff2b5");
+      }
+    });
+    if (chainLength > 1) {
+      this.bonusScore += (chainLength - 1) * CHAIN_BONUS_PER_HAZARD;
+    }
+    this._destroyStreakCount += list.length;
+    if (this._destroyStreakCount >= DESTROY_STREAK_TARGET) {
+      showFloatingText(this, GAME_WIDTH / 2, GAME_HEIGHT / 2 - 100, `${DESTROY_STREAK_TARGET}x Destroy!`, "#8be9b1");
+      this.bonusScore += DESTROY_STREAK_BONUS_SCORE;
+      this._destroyStreakCount = 0;
+    }
   }
 
   createHud() {
@@ -332,16 +657,15 @@ export default class DodgeGame extends BaseScene {
     this.statusText.setStroke(HUD_STROKE.color, HUD_STROKE.width);
 
     // Phase bar track: rounded rect, left edge at 912, vertical center at 116 (Graphics has no setOrigin)
-    const phaseBarWidth = 320;
     const phaseBarHeight = 18;
     const phaseBarX = 912;
     const phaseBarY = 116;
     this.phaseBarTrack = this.add.graphics();
-    this.phaseBarTrack.setPosition(phaseBarX + phaseBarWidth / 2, phaseBarY);
+    this.phaseBarTrack.setPosition(phaseBarX + PHASE_BAR_WIDTH / 2, phaseBarY);
     this.phaseBarTrack.fillStyle(0x0d1823, 0.95);
-    this.phaseBarTrack.fillRoundedRect(-phaseBarWidth / 2, -phaseBarHeight / 2, phaseBarWidth, phaseBarHeight, 9);
+    this.phaseBarTrack.fillRoundedRect(-PHASE_BAR_WIDTH / 2, -phaseBarHeight / 2, PHASE_BAR_WIDTH, phaseBarHeight, 9);
     this.phaseBarTrack.lineStyle(1, 0x55d6ff, 0.5);
-    this.phaseBarTrack.strokeRoundedRect(-phaseBarWidth / 2, -phaseBarHeight / 2, phaseBarWidth, phaseBarHeight, 9);
+    this.phaseBarTrack.strokeRoundedRect(-PHASE_BAR_WIDTH / 2, -phaseBarHeight / 2, PHASE_BAR_WIDTH, phaseBarHeight, 9);
 
     this.phaseBarFill = this.add
       .rectangle(912, 116, 6, 12, 0x55d6ff, 1)
@@ -423,6 +747,16 @@ export default class DodgeGame extends BaseScene {
     this._lastMilestoneCelebrated = 0;
     this._lastScoreTickSecond = -1;
     this._getReadyRemainingMs = 0;
+    this._lastHudScore = null;
+    this._lastHudPhaseProgress = null;
+    this._lastBestScoreTextValue = null;
+    this._lastPhaseTextValue = null;
+    this._lastPhaseTextColor = null;
+    this._lastShieldTextValue = null;
+    this._lastShieldTextColor = null;
+    this._lastPhaseBarColor = null;
+    this._lastHeatIndicatorVisible = null;
+    this._lastPhaseBarWidthTarget = null;
     this.renderObjectives();
 
     this.player.clearTint();
@@ -435,8 +769,6 @@ export default class DodgeGame extends BaseScene {
       phaseColor: 0x55d6ff,
       phaseProgress: 0
     });
-    this._lastHudScore = this.getScore();
-    this._lastHudPhaseProgress = 0;
     this.setStatusText(
       "Recovery phases widen the rain. Heat phases compress the fall lanes.",
       0xd7f9ff
@@ -452,6 +784,13 @@ export default class DodgeGame extends BaseScene {
     if (this._statusTextTween) {
       this._statusTextTween.stop();
       this._statusTextTween = null;
+    }
+    if (this._scoreTextTween) {
+      this._scoreTextTween.stop();
+      this._scoreTextTween = null;
+    }
+    if (this.scoreText) {
+      this.scoreText.setScale(1);
     }
     if (this.statusText) {
       this.statusText.setScale(1);
@@ -476,6 +815,13 @@ export default class DodgeGame extends BaseScene {
   }
 
   clearGroups() {
+    this._destroyQueue?.clear();
+    this._lastClickMs = null;
+    this._destroyStreakCount = 0;
+    this._damageZones.forEach(z => {
+      if (z.graphic?.scene) z.graphic.destroy();
+    });
+    this._damageZones = [];
     [this.hazards, this.pickups, this.projectiles, this.bossGroup].forEach(group => {
       group?.clear(true, true);
     });
@@ -521,6 +867,10 @@ export default class DodgeGame extends BaseScene {
 
   getScore() {
     return Math.floor(this.runTimeMs / SCORE_TICK_MS) + this.bonusScore;
+  }
+
+  getDisplayScore() {
+    return Math.floor(this.getScore());
   }
 
   /**
@@ -604,6 +954,12 @@ export default class DodgeGame extends BaseScene {
       return;
     }
 
+    if (source?.getData?.("debris") && (source.getData("graceFrames") ?? 0) > 0) {
+      return;
+    }
+
+    this._destroyStreakCount = 0;
+
     if (this.shieldCharges > 0) {
       this.consumeShield(source);
       return;
@@ -649,7 +1005,7 @@ export default class DodgeGame extends BaseScene {
     this.cameras.main.flash(200, 255, 80, 80, false);
     this.physics.pause();
 
-    const score = this.getScore();
+    const score = this.getDisplayScore();
     if (score > this.highestScoreValue) {
       this.highestScoreValue = score;
       setHighScore(score);
@@ -690,7 +1046,7 @@ export default class DodgeGame extends BaseScene {
     this.gameOverText = this.add.text(
       GAME_WIDTH / 2,
       150,
-      `Skyfall Ended\nScore: ${this.getScore()}\nBest: ${this.highestScoreValue}`,
+      `Skyfall Ended\nScore: ${this.getDisplayScore()}\nBest: ${this.highestScoreValue}`,
       {
         fontSize: "72px",
         fill: "#ff8072",
@@ -744,7 +1100,12 @@ export default class DodgeGame extends BaseScene {
     this.replayButton = this.add.sprite(GAME_WIDTH / 2, 518, "replay");
     this.replayButton.setScale(0);
     this.replayButton.setDepth(13);
-    this.replayButton.setInteractive({ useHandCursor: true });
+    // Large hit area for touch: 120x120 centered on icon
+    this.replayButton.setInteractive(
+      new Phaser.Geom.Rectangle(-60, -60, 120, 120),
+      Phaser.Geom.Rectangle.Contains
+    );
+    this.replayButton.input.cursor = "pointer";
 
     this.tweens.add({
       targets: this.replayButton,
@@ -763,6 +1124,9 @@ export default class DodgeGame extends BaseScene {
     playAgainText.setOrigin(0.5, 0.5);
     playAgainText.setDepth(13);
     playAgainText.setScale(0);
+    playAgainText.setPadding(32, 16);
+    playAgainText.setInteractive({ useHandCursor: true });
+    playAgainText.on("pointerdown", () => this.resetRun());
     this.tweens.add({
       targets: playAgainText,
       scale: 1,
@@ -841,6 +1205,7 @@ export default class DodgeGame extends BaseScene {
     quitToMenuText.setOrigin(0.5, 0.5);
     quitToMenuText.setDepth(13);
     quitToMenuText.setScale(0);
+    quitToMenuText.setPadding(28, 14);
     quitToMenuText.setInteractive({ useHandCursor: true });
     this.tweens.add({
       targets: quitToMenuText,
@@ -889,7 +1254,7 @@ export default class DodgeGame extends BaseScene {
 
   /** Save run as last completed level = current level - 1 (do not save ongoing level), then go to main menu. */
   exitAndSaveRun() {
-    const score = this.getScore();
+    const score = this.getDisplayScore();
     const currentLevel = getCurrentLevelFromScore(score);
     const levelToSave = Math.max(0, currentLevel - 1);
     if (levelToSave > 0) {
@@ -1011,6 +1376,7 @@ export default class DodgeGame extends BaseScene {
       this.updateMovingGroup(this.pickups, delta);
       this.updateProjectiles(delta);
       this.updateBoss(delta);
+      this.updateDamageZones(delta);
       this.updatePlayerMovement();
       this.unlockExitIfNeeded(score);
       this.maybeStartChallenge(score, context.intensity);
@@ -1019,7 +1385,7 @@ export default class DodgeGame extends BaseScene {
       this._richPresenceThrottle = (this._richPresenceThrottle || 0) + delta;
       if (this._richPresenceThrottle > 3000) {
         this._richPresenceThrottle = 0;
-        setRichPresence(`Score: ${score}`);
+        setRichPresence(`Score: ${Math.floor(score)}`);
       }
 
       if (this.exitUnlocked && this.player?.body?.blocked?.right) {
@@ -1158,39 +1524,34 @@ export default class DodgeGame extends BaseScene {
   }
 
   updateHud(context) {
-    const score = this.getScore();
+    const displayScore = this.getDisplayScore();
     const phaseProgress = context.phaseProgress;
+    const bestScore = Math.floor(this.highestScoreValue);
+    const phaseText = `Phase: ${context.phaseLabel}`;
+    const shieldText = `Shields: ${this.shieldCharges}/${this.runModifiers.maxShields}`;
+    const showHeat = context.phaseKey === "heat" || Boolean(this.activeBoss);
 
     if (phaseProgress < 0.85) {
       this.stopPhaseBarPulse();
     }
 
-    if (this._lastHudScore != null && score !== this._lastHudScore) {
-      this.tweens.add({
+    if (this._lastHudScore != null && displayScore !== this._lastHudScore) {
+      if (this._scoreTextTween) {
+        this._scoreTextTween.stop();
+      }
+      this.scoreText.setScale(1.08);
+      this._scoreTextTween = this.tweens.add({
         targets: this.scoreText,
-        scale: 1.08,
-        duration: 40,
-        yoyo: true,
-        hold: 0,
+        scale: 1,
+        duration: 80,
+        ease: "Power2.Out",
         onComplete: () => {
           this.scoreText.setScale(1);
+          this._scoreTextTween = null;
         }
       });
     }
-    this._lastHudScore = score;
-
-    if (this._lastHudPhaseProgress != null && phaseProgress !== this._lastHudPhaseProgress) {
-      this.tweens.add({
-        targets: this.phaseBarFill,
-        scaleY: 1.05,
-        duration: 40,
-        yoyo: true,
-        hold: 0,
-        onComplete: () => {
-          this.phaseBarFill.setScale(1, 1);
-        }
-      });
-    }
+    this._lastHudScore = displayScore;
     this._lastHudPhaseProgress = phaseProgress;
 
     if (phaseProgress >= 0.85 && !this._phaseBarPulseTween) {
@@ -1205,13 +1566,31 @@ export default class DodgeGame extends BaseScene {
       });
     }
 
-    this.scoreText.setText(`Score: ${score}`);
-    this.highestScore.setText(`Best: ${this.highestScoreValue}`);
-    this.phaseText.setText(`Phase: ${context.phaseLabel}`);
-    this.phaseText.setColor(`#${context.phaseColor.toString(16).padStart(6, "0")}`);
-    this.shieldText.setText(`Shields: ${this.shieldCharges}/${this.runModifiers.maxShields}`);
+    if (this.scoreText.text !== `Score: ${displayScore}`) {
+      this.scoreText.setText(`Score: ${displayScore}`);
+    }
+    if (this._lastBestScoreTextValue !== bestScore) {
+      this.highestScore.setText(`Best: ${bestScore}`);
+      this._lastBestScoreTextValue = bestScore;
+    }
+    if (this._lastPhaseTextValue !== phaseText) {
+      this.phaseText.setText(phaseText);
+      this._lastPhaseTextValue = phaseText;
+    }
+    if (this._lastPhaseTextColor !== context.phaseColor) {
+      this.phaseText.setColor(`#${context.phaseColor.toString(16).padStart(6, "0")}`);
+      this._lastPhaseTextColor = context.phaseColor;
+    }
+    if (this._lastShieldTextValue !== shieldText) {
+      this.shieldText.setText(shieldText);
+      this._lastShieldTextValue = shieldText;
+    }
     if (!this.gameOverState && this.shieldCharges <= 1) {
-      this.shieldText.setColor(this.shieldCharges === 0 ? "#ff4444" : "#ffaa44");
+      const warningColor = this.shieldCharges === 0 ? "#ff4444" : "#ffaa44";
+      if (this._lastShieldTextColor !== warningColor) {
+        this.shieldText.setColor(warningColor);
+        this._lastShieldTextColor = warningColor;
+      }
       if (!this._shieldPulseTween) {
         this.shieldText.setScale(1);
         this._shieldPulseTween = this.tweens.add({
@@ -1224,37 +1603,33 @@ export default class DodgeGame extends BaseScene {
         });
       }
     } else {
-      this.shieldText.setColor("#ffffff");
+      if (this._lastShieldTextColor !== "#ffffff") {
+        this.shieldText.setColor("#ffffff");
+        this._lastShieldTextColor = "#ffffff";
+      }
       if (this._shieldPulseTween) {
         this._shieldPulseTween.stop();
         this._shieldPulseTween = null;
       }
       this.shieldText.setScale(1);
     }
-    this.phaseBarFill.fillColor = context.phaseColor;
-
-    if (this.heatIndicator) {
-      const showHeat = context.phaseKey === "heat" || Boolean(this.activeBoss);
-      this.heatIndicator.setVisible(showHeat);
+    if (this._lastPhaseBarColor !== context.phaseColor) {
+      this.phaseBarFill.fillColor = context.phaseColor;
+      this._lastPhaseBarColor = context.phaseColor;
     }
 
-    const phaseBarWidthTarget = Math.max(6, 320 * context.phaseProgress);
+    if (this.heatIndicator && this._lastHeatIndicatorVisible !== showHeat) {
+      this.heatIndicator.setVisible(showHeat);
+      this._lastHeatIndicatorVisible = showHeat;
+    }
+
+    const phaseBarWidthTarget = Math.max(
+      PHASE_BAR_MIN_WIDTH,
+      Math.round(PHASE_BAR_WIDTH * context.phaseProgress)
+    );
     if (phaseBarWidthTarget !== this._lastPhaseBarWidthTarget) {
-      if (this._phaseBarWidthTween) {
-        this._phaseBarWidthTween.stop();
-        this._phaseBarWidthTween = null;
-      }
+      this.phaseBarFill.width = phaseBarWidthTarget;
       this._lastPhaseBarWidthTarget = phaseBarWidthTarget;
-      this._phaseBarWidthTween = this.tweens.add({
-        targets: this.phaseBarFill,
-        width: phaseBarWidthTarget,
-        duration: 90,
-        ease: "Power2.Out",
-        onComplete: () => {
-          this._phaseBarWidthTween = null;
-          this._lastPhaseBarWidthTarget = phaseBarWidthTarget;
-        }
-      });
     }
   }
 
@@ -1309,7 +1684,12 @@ export default class DodgeGame extends BaseScene {
       );
       icon.setScale(1.2);
       icon.setVisible(false);
-      icon.setInteractive({ useHandCursor: true });
+      // Large touch hit area: 72x72 centered (icon ~48px at 1.2 scale)
+      icon.setInteractive(
+        new Phaser.Geom.Rectangle(-36, -36, 72, 72),
+        Phaser.Geom.Rectangle.Contains
+      );
+      icon.input.cursor = "pointer";
       icon.on("pointerdown", () => this._onChallengeOrPerkOptionSelected(index));
       return icon;
     });
@@ -1689,6 +2069,12 @@ export default class DodgeGame extends BaseScene {
     hazard.setData("ageMs", 0);
     hazard.setData("rotationSpeed", descriptor.rotationSpeed ?? 0);
     hazard.setData("motion", descriptor.motion ?? { type: "none" });
+    hazard.setData("destroyArchetype", descriptor.destroyArchetype ?? "clean");
+    hazard.setData("type", descriptor.type);
+    hazard.setData("debris", descriptor.debris ?? false);
+    hazard.setData("graceFrames", descriptor.graceFrames ?? 0);
+    hazard.setData("splitCount", descriptor.splitCount);
+    hazard.setData("debrisCount", descriptor.debrisCount);
     this.applyHitbox(hazard, descriptor.hitbox);
     this.hazards.add(hazard);
 
@@ -1852,6 +2238,19 @@ export default class DodgeGame extends BaseScene {
       if (rotationSpeed !== 0) {
         entry.angle += rotationSpeed * deltaSeconds;
       }
+
+      if (entry.getData("debris")) {
+        const gf = entry.getData("graceFrames") ?? 0;
+        const next = Math.max(0, gf - 1);
+        entry.setData("graceFrames", next);
+        if (gf === 1 && next === 0 && this.player?.body) {
+          const dx = this.player.x - entry.x;
+          const dy = this.player.y - entry.y;
+          if (dx * dx + dy * dy <= NEAR_MISS_DISTANCE * NEAR_MISS_DISTANCE) {
+            showFloatingText(this, entry.x, entry.y - 20, "CLOSE!", "#ff6b6b");
+          }
+        }
+      }
     });
   }
 
@@ -1990,6 +2389,18 @@ export default class DodgeGame extends BaseScene {
   }
 
   clearOffscreenObjects() {
+    if (this.hazards.count > MAX_HAZARDS) {
+      const children = this.hazards.getChildren().slice();
+      children.sort((a, b) => (a.getData("ageMs") ?? 0) - (b.getData("ageMs") ?? 0));
+      const toRemove = children.slice(0, this.hazards.count - MAX_HAZARDS);
+      toRemove.forEach(h => {
+        if (h.scene) {
+          this.hazards.remove(h);
+          h.destroy();
+        }
+      });
+    }
+
     const destroyIfOffscreen = entry => {
       if (
         entry &&

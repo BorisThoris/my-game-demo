@@ -103,6 +103,13 @@ export const RUNNER_PHASES = [
   }
 ];
 
+/**
+ * Obstacle shapes and their click-to-destroy behavior (memorable by shape):
+ * - Round/orbs (meteor, ring, drone): clean — just disappears.
+ * - Pulse (glow orb): lingering — leaves a damage zone for a short time.
+ * - Pointy/angular (shard, zigzag, star): splitter — breaks into smaller pieces in a star pattern.
+ * - Beams/gates/bolt (crusher, cross, slicer, sentinel, spinner, hex, streak): debris launcher — explodes into debris that can chain and hit the player.
+ */
 export const OBSTACLE_LIBRARY = {
   meteor: {
     texture: "runner-orb",
@@ -112,6 +119,7 @@ export const OBSTACLE_LIBRARY = {
     scale: [0.7, 1.15],
     speedFactor: 1,
     rotationSpeed: 180,
+    destroyArchetype: "clean",
     hitbox: {
       shape: "circle",
       radius: 34
@@ -135,6 +143,8 @@ export const OBSTACLE_LIBRARY = {
     scale: [0.65, 1.05],
     speedFactor: 1.08,
     rotationSpeed: 220,
+    destroyArchetype: "splitter",
+    splitCount: 5,
     hitbox: {
       shape: "box",
       width: 96,
@@ -159,6 +169,8 @@ export const OBSTACLE_LIBRARY = {
     scaleX: [0.72, 1.08],
     scaleY: [0.86, 1.08],
     speedFactor: 0.92,
+    destroyArchetype: "debrisLauncher",
+    debrisCount: 8,
     hitbox: {
       shape: "box",
       width: 168,
@@ -181,6 +193,8 @@ export const OBSTACLE_LIBRARY = {
     scale: [0.8, 1.08],
     speedFactor: 1.04,
     rotationSpeed: 150,
+    destroyArchetype: "splitter",
+    splitCount: 4,
     hitbox: {
       shape: "circle",
       radius: 32
@@ -209,6 +223,8 @@ export const OBSTACLE_LIBRARY = {
     scale: [0.78, 1],
     speedFactor: 0.96,
     rotationSpeed: 90,
+    destroyArchetype: "debrisLauncher",
+    debrisCount: 6,
     hitbox: {
       shape: "circle",
       radius: 42
@@ -234,6 +250,7 @@ export const OBSTACLE_LIBRARY = {
     tint: 0xffaa00,
     scale: [0.65, 1],
     speedFactor: 1.02,
+    destroyArchetype: "lingering",
     hitbox: {
       shape: "circle",
       radius: 28
@@ -253,6 +270,8 @@ export const OBSTACLE_LIBRARY = {
     scale: [0.75, 1.05],
     speedFactor: 1.12,
     rotationSpeed: 260,
+    destroyArchetype: "debrisLauncher",
+    debrisCount: 5,
     hitbox: {
       shape: "circle",
       radius: 22
@@ -272,6 +291,8 @@ export const OBSTACLE_LIBRARY = {
     scale: [0.78, 1.02],
     speedFactor: 0.98,
     rotationSpeed: 200,
+    destroyArchetype: "debrisLauncher",
+    debrisCount: 6,
     hitbox: {
       shape: "circle",
       radius: 38
@@ -298,6 +319,7 @@ export const OBSTACLE_LIBRARY = {
     scale: [0.7, 1.05],
     speedFactor: 1.02,
     rotationSpeed: 140,
+    destroyArchetype: "clean",
     hitbox: {
       shape: "circle",
       radius: 32
@@ -318,6 +340,8 @@ export const OBSTACLE_LIBRARY = {
     scale: [0.72, 1.02],
     speedFactor: 1.06,
     rotationSpeed: 120,
+    destroyArchetype: "splitter",
+    splitCount: 6,
     hitbox: {
       shape: "circle",
       radius: 36
@@ -339,6 +363,8 @@ export const OBSTACLE_LIBRARY = {
     scale: [0.68, 1],
     speedFactor: 0.95,
     rotationSpeed: 80,
+    destroyArchetype: "debrisLauncher",
+    debrisCount: 6,
     hitbox: {
       shape: "box",
       width: 56,
@@ -360,6 +386,7 @@ export const OBSTACLE_LIBRARY = {
     scale: [0.68, 1],
     speedFactor: 1.04,
     rotationSpeed: 100,
+    destroyArchetype: "clean",
     hitbox: {
       shape: "circle",
       radius: 30
@@ -385,6 +412,8 @@ export const OBSTACLE_LIBRARY = {
     scale: [0.7, 0.98],
     speedFactor: 1.08,
     rotationSpeed: 200,
+    destroyArchetype: "debrisLauncher",
+    debrisCount: 6,
     hitbox: {
       shape: "box",
       width: 52,
@@ -406,6 +435,8 @@ export const OBSTACLE_LIBRARY = {
     scale: [0.72, 1.02],
     speedFactor: 1,
     rotationSpeed: 60,
+    destroyArchetype: "debrisLauncher",
+    debrisCount: 6,
     hitbox: {
       shape: "circle",
       radius: 34
@@ -591,7 +622,10 @@ const createHazard = (type, context, rng, overrides = {}) => {
     rotationSpeed: overrides.rotationSpeed ?? template.rotationSpeed ?? 0,
     motion,
     delayMs: overrides.delayMs ?? 0,
-    alpha: overrides.alpha ?? 1
+    alpha: overrides.alpha ?? 1,
+    destroyArchetype: overrides.destroyArchetype ?? template.destroyArchetype ?? "clean",
+    splitCount: overrides.splitCount ?? template.splitCount,
+    debrisCount: overrides.debrisCount ?? template.debrisCount
   };
 };
 
@@ -648,8 +682,12 @@ export const PATTERN_LIBRARY = [
     weight: 5,
     build(context, rng) {
       const [lane] = pickLanes(1, rng);
+      const clean = ["meteor", "ring", "pulse", "drone"];
+      const splitter = ["shard", "star", "zigzag"];
+      const debris = ["crusher", "cross", "sentinel", "streak", "hex"];
       const roll = rng();
-      const type = roll < 0.4 ? "meteor" : roll < 0.75 ? "shard" : roll < 0.9 ? "ring" : "star";
+      const pool = roll < 1 / 3 ? clean : roll < 2 / 3 ? splitter : debris;
+      const type = pool[Math.floor(rng() * pool.length)];
       return [
         createHazard(type, context, rng, { x: lane })
       ];
@@ -662,7 +700,7 @@ export const PATTERN_LIBRARY = [
     weight: 4,
     build(context, rng) {
       const [lane] = pickLanes(1, rng);
-      const types = ["ring", "star", "hex"];
+      const types = ["ring", "star", "hex", "cross", "zigzag"];
       const type = types[Math.floor(rng() * types.length)];
       return [createHazard(type, context, rng, { x: lane })];
     }
@@ -674,9 +712,11 @@ export const PATTERN_LIBRARY = [
     weight: 3,
     build(context, rng) {
       const [leftLane, rightLane] = pickLanes(2, rng);
+      const leftTypes = ["ring", "star", "cross", "zigzag"];
+      const rightTypes = ["meteor", "crusher", "shard", "hex"];
       return [
-        createHazard(rng() > 0.5 ? "ring" : "star", context, rng, { x: leftLane }),
-        createHazard("meteor", context, rng, { x: rightLane, delayMs: 150 })
+        createHazard(leftTypes[Math.floor(rng() * leftTypes.length)], context, rng, { x: leftLane }),
+        createHazard(rightTypes[Math.floor(rng() * rightTypes.length)], context, rng, { x: rightLane, delayMs: 150 })
       ];
     }
   },
@@ -687,8 +727,10 @@ export const PATTERN_LIBRARY = [
     weight: 4,
     build(context, rng) {
       const [hazardLane, pickupLane] = pickLanes(2, rng);
+      const hazardTypes = ["meteor", "shard", "crusher", "star", "cross"];
+      const hazardType = hazardTypes[Math.floor(rng() * hazardTypes.length)];
       return [
-        createHazard("meteor", context, rng, { x: hazardLane }),
+        createHazard(hazardType, context, rng, { x: hazardLane }),
         createPickup(context, rng, {
           x: pickupLane,
           delayMs: 200
@@ -803,8 +845,9 @@ export const PATTERN_LIBRARY = [
     minIntensity: 0.76,
     weight: 5,
     build(context, rng) {
+      const types = ["shard", "meteor", "crusher", "cross", "star", "streak"];
       return pickLanes(4, rng).map((lane, index) =>
-        createHazard(index % 2 === 0 ? "shard" : "meteor", context, rng, {
+        createHazard(types[index % types.length], context, rng, {
           x: lane,
           delayMs: index * 80,
           scaleX: 0.82,
@@ -995,7 +1038,7 @@ export const PATTERN_LIBRARY = [
     minIntensity: 0.5,
     weight: 4,
     build(context, rng) {
-      const types = ["meteor", "shard", "ring", "star", "crusher", "zigzag"];
+      const types = ["meteor", "shard", "ring", "star", "crusher", "zigzag", "cross", "sentinel"];
       const lanes = pickLanes(3, rng);
       const shuffled = shuffle(types, rng).slice(0, 3);
       return lanes.map((lane, index) =>
