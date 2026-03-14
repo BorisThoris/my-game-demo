@@ -17,6 +17,10 @@ const config = {
   width: GAME_WIDTH,
   height: GAME_HEIGHT,
   backgroundColor: "#08131d",
+  fps: {
+    limit: 60,
+    min: 30
+  },
   physics: {
     default: "arcade",
     arcade: {

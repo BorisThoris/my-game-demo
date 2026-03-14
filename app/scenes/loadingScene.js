@@ -40,6 +40,7 @@ export default class LoadingScene extends Phaser.Scene {
         fill: "#9ae6ff"
       });
       retry.setOrigin(0.5, 0.5);
+      retry.setPadding(28, 14);
       retry.setInteractive({ useHandCursor: true });
       retry.on("pointerdown", () => this.scene.restart());
       return;

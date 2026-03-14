@@ -49,6 +49,21 @@ export default class IntroductionScene extends BaseScene {
     );
     this.arrow = this.add.image(1100, 380, "arrow").setScale(0.25);
 
+    this.continueBtn = this.add.text(1100, 380, "Continue", {
+      fontSize: "24px",
+      fill: "#9ae6ff",
+      fontStyle: "bold"
+    });
+    this.continueBtn.setOrigin(0.5, 0.5);
+    this.continueBtn.setVisible(false);
+    this.continueBtn.setPadding(28, 14);
+    this.continueBtn.setInteractive({ useHandCursor: true });
+    this.continueBtn.on("pointerdown", () => {
+      if (this.isStarted) {
+        this.scene.start(SCENE_KEYS.choice);
+      }
+    });
+
     [
       this.helloText,
       this.andText,
@@ -81,6 +96,15 @@ export default class IntroductionScene extends BaseScene {
           alpha: 1,
           onComplete: () => {
             this.isStarted = true;
+            this.continueBtn.setVisible(true);
+            this.continueBtn.alpha = 0;
+            this.tweens.add({ targets: this.continueBtn, duration: 400, alpha: 1 });
+            this.arrow.setInteractive(
+              new Phaser.Geom.Rectangle(-40, -40, 80, 80),
+              Phaser.Geom.Rectangle.Contains
+            );
+            this.arrow.input.cursor = "pointer";
+            this.arrow.on("pointerdown", () => this.scene.start(SCENE_KEYS.choice));
             this.tweens.add({
               targets: this.arrow,
               duration: 1650,

@@ -17,9 +17,17 @@ export default class ChoiceScene extends NavigationScene {
     this.arrowDown = this.createArrow(640, 580, -270);
 
     this.createText(380, 60, "Welcome To The Midpoint", PANEL_TITLE_STYLE);
-    this.createText(0, 250, "Go Back To Info", PANEL_TITLE_STYLE);
-    this.createText(980, 250, "View Websites", PANEL_TITLE_STYLE);
-    this.createText(500, 450, "Play My Game", PANEL_TITLE_STYLE);
+    const goBackText = this.createText(0, 250, "Go Back To Info", PANEL_TITLE_STYLE);
+    const viewWebsitesText = this.createText(980, 250, "View Websites", PANEL_TITLE_STYLE);
+    const playGameText = this.createText(500, 450, "Play My Game", PANEL_TITLE_STYLE);
+
+    [goBackText, viewWebsitesText, playGameText].forEach(t => {
+      t.setPadding(24, 12);
+      t.setInteractive({ useHandCursor: true });
+    });
+    goBackText.on("pointerdown", () => this.scene.start(SCENE_KEYS.intro));
+    viewWebsitesText.on("pointerdown", () => this.scene.start(SCENE_KEYS.websites));
+    playGameText.on("pointerdown", () => this.scene.start(SCENE_KEYS.game));
 
     this.fadeInScene();
   }
