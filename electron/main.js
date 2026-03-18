@@ -4,6 +4,8 @@ const path = require("path");
 const isDev = process.env.NODE_ENV !== "production" || process.env.ELECTRON_DEV;
 
 function createWindow() {
+  // Optional: set window icon (e.g. build/icon.png). For electron-builder installer icon,
+  // add "icon": "build/icon.ico" under "win" in package.json "build" and place icon there.
   const win = new BrowserWindow({
     width: 1280,
     height: 800,

@@ -2,8 +2,12 @@
  * Programmatic UI assets for the dodge game.
  * Generates replay, powerUp, stagePowerup, stageIntensityHeat, pickupPowerups (4-frame),
  * and perkIcons (8-frame) using the Phaser Graphics shape system (circles, rects, polygons, lines).
- * No SVG and no image files.
+ * No SVG and no image files. Colors from theme.colors.semantic.procedural and theme.colors.semantic.game.
  */
+import { theme } from "../config/gameConfig.js";
+
+const proc = theme.colors.semantic.procedural;
+const game = theme.colors.semantic.game;
 
 const PICKUP_FRAME_W = 64;
 const PICKUP_FRAME_H = 64;
@@ -14,14 +18,14 @@ function drawReplay(graphics, w, h) {
   const cx = w / 2;
   const cy = h / 2;
   const radius = Math.min(52, w / 2 - 4, h / 2 - 4);
-  graphics.fillStyle(0xffffff, 0.95);
+  graphics.fillStyle(proc.uiFill, 0.95);
   graphics.fillCircle(cx, cy, radius);
-  graphics.lineStyle(3, 0xd7f9ff, 0.8);
+  graphics.lineStyle(3, proc.uiStroke, 0.8);
   graphics.strokeCircle(cx, cy, radius);
   const triSize = 22;
   const triX = cx + 4;
   const tipX = triX + triSize;
-  graphics.fillStyle(0x0d1823, 1);
+  graphics.fillStyle(proc.uiPanel, 1);
   graphics.fillTriangle(
     triX - triSize * 0.6, cy - triSize,
     triX - triSize * 0.6, cy + triSize,
@@ -41,7 +45,7 @@ function drawPowerUp(graphics, w, h) {
     const r = i % 2 === 0 ? radius : radius * innerRatio;
     pts.push({ x: cx + Math.cos(angle) * r, y: cy + Math.sin(angle) * r });
   }
-  graphics.fillStyle(0xffffff, 1);
+  graphics.fillStyle(proc.uiFill, 1);
   graphics.fillPoints(pts, true);
 }
 
@@ -51,10 +55,10 @@ function drawStagePowerup(graphics, w, h) {
   for (let r = 3; r >= 0; r -= 1) {
     const radius = 12 + r * 12;
     const alpha = 0.15 + (3 - r) * 0.2;
-    graphics.fillStyle(0x55d6ff, alpha);
+    graphics.fillStyle(game.phaseCyan, alpha);
     graphics.fillCircle(cx, cy, radius);
   }
-  graphics.fillStyle(0xffffff, 0.5);
+  graphics.fillStyle(proc.uiFill, 0.5);
   graphics.fillCircle(cx, cy, 10);
 }
 
@@ -69,9 +73,9 @@ function drawStageIntensityHeat(graphics, w, h) {
     { x: cx + 14, y: baseY - 18 },
     { x: cx + 28, y: baseY }
   ];
-  graphics.fillStyle(0xff6b6b, 0.95);
+  graphics.fillStyle(proc.heatFill, 0.95);
   graphics.fillPoints(pts, true);
-  graphics.fillStyle(0xffa94d, 0.6);
+  graphics.fillStyle(proc.heatAccent, 0.6);
   graphics.fillTriangle(cx - 12, baseY - 12, cx, peakY + 8, cx + 12, baseY - 12);
 }
 
@@ -79,11 +83,11 @@ function drawPickupShield(graphics, w, h) {
   const cx = w / 2;
   const cy = h / 2;
   const r = 26;
-  graphics.fillStyle(0xffffff, 0.95);
+  graphics.fillStyle(proc.uiFill, 0.95);
   graphics.fillCircle(cx, cy, r);
-  graphics.fillStyle(0x55d6ff, 0.4);
+  graphics.fillStyle(game.pickupShield, 0.4);
   graphics.fillCircle(cx, cy, r * 0.6);
-  graphics.lineStyle(3, 0xffffff, 0.7);
+  graphics.lineStyle(3, proc.uiFill, 0.7);
   graphics.strokeCircle(cx, cy, r);
 }
 
@@ -97,9 +101,9 @@ function drawPickupSpeed(graphics, w, h) {
     { x: cx, y: cy + s },
     { x: cx - s, y: cy }
   ];
-  graphics.fillStyle(0xffffff, 1);
+  graphics.fillStyle(proc.uiFill, 1);
   graphics.fillPoints(pts, true);
-  graphics.lineStyle(2, 0xffffff, 0.6);
+  graphics.lineStyle(2, proc.uiFill, 0.6);
   for (let i = 0; i < pts.length; i += 1) {
     const a = pts[i];
     const b = pts[(i + 1) % pts.length];
@@ -119,15 +123,21 @@ function drawPickupInvuln(graphics, w, h) {
     const r = i % 2 === 0 ? radius : radius * innerRatio;
     pts.push({ x: cx + Math.cos(angle) * r, y: cy + Math.sin(angle) * r });
   }
-  graphics.fillStyle(0xffffff, 1);
+  graphics.fillStyle(proc.uiFill, 1);
   graphics.fillPoints(pts, true);
+  graphics.lineStyle(2, proc.uiFill, 0.6);
+  for (let i = 0; i < pts.length; i += 1) {
+    const a = pts[i];
+    const b = pts[(i + 1) % pts.length];
+    graphics.lineBetween(a.x, a.y, b.x, b.y);
+  }
 }
 
 function drawPickupScoreMult(graphics, w, h) {
   const cx = w / 2;
   const cy = h / 2;
   const s = 18;
-  graphics.fillStyle(0xffffff, 1);
+  graphics.fillStyle(proc.uiFill, 1);
   graphics.fillRect(cx - s, cy - 3, s * 2, 6);
   graphics.fillRect(cx - 3, cy - s, 6, s * 2);
 }
@@ -135,18 +145,18 @@ function drawPickupScoreMult(graphics, w, h) {
 function drawPerkBoot(graphics, w, h) {
   const cx = w / 2;
   const cy = h / 2 + 2;
-  graphics.fillStyle(0xffffff, 1);
+  graphics.fillStyle(proc.uiFill, 1);
   graphics.fillTriangle(cx - 14, cy + 8, cx, cy - 14, cx + 14, cy + 8);
-  graphics.fillStyle(0x99a7c2, 0.8);
+  graphics.fillStyle(proc.uiMuted, 0.8);
   graphics.fillRoundedRect(cx - 10, cy + 4, 20, 8, 2);
 }
 
 function drawPerkCircle(graphics, w, h) {
   const cx = w / 2;
   const cy = h / 2;
-  graphics.fillStyle(0xffffff, 1);
+  graphics.fillStyle(proc.uiFill, 1);
   graphics.fillCircle(cx, cy, 18);
-  graphics.fillStyle(0x55d6ff, 0.5);
+  graphics.fillStyle(game.phaseCyan, 0.5);
   graphics.fillCircle(cx, cy, 10);
 }
 
@@ -162,13 +172,13 @@ function drawPerkGear(graphics, w, h) {
     const r = i % 2 === 0 ? radius : innerR;
     pts.push({ x: cx + Math.cos(angle) * r, y: cy + Math.sin(angle) * r });
   }
-  graphics.fillStyle(0xffffff, 1);
+  graphics.fillStyle(proc.uiFill, 1);
   graphics.fillPoints(pts, true);
 }
 
 function drawPerkHourglass(graphics, w, h) {
   const cx = w / 2;
-  graphics.fillStyle(0xffffff, 1);
+  graphics.fillStyle(proc.uiFill, 1);
   graphics.fillTriangle(cx - 12, 4, cx + 12, 4, cx, 22);
   graphics.fillTriangle(cx - 12, 44, cx + 12, 44, cx, 26);
 }
@@ -176,11 +186,11 @@ function drawPerkHourglass(graphics, w, h) {
 function drawPerkShield(graphics, w, h) {
   const cx = w / 2;
   const cy = h / 2;
-  graphics.fillStyle(0xffffff, 1);
+  graphics.fillStyle(proc.uiFill, 1);
   graphics.fillCircle(cx, cy, 18);
-  graphics.fillStyle(0x55d6ff, 0.4);
+  graphics.fillStyle(game.pickupShield, 0.4);
   graphics.fillCircle(cx, cy, 10);
-  graphics.lineStyle(2, 0xffffff, 0.8);
+  graphics.lineStyle(2, proc.uiFill, 0.8);
   graphics.strokeCircle(cx, cy, 18);
 }
 
@@ -192,18 +202,18 @@ function drawPerkGem(graphics, w, h) {
     { x: cx, y: 40 },
     { x: cx - 16, y: 22 }
   ];
-  graphics.fillStyle(0xffffff, 1);
+  graphics.fillStyle(proc.uiFill, 1);
   graphics.fillPoints(pts, true);
-  graphics.fillStyle(0x8be9b1, 0.5);
+  graphics.fillStyle(proc.successFill, 0.5);
   graphics.fillTriangle(cx - 8, 18, cx, 28, cx + 8, 18);
 }
 
 function drawPerkFortress(graphics, w, h) {
   const cx = w / 2;
   const cy = h / 2;
-  graphics.fillStyle(0xffffff, 0.95);
+  graphics.fillStyle(proc.uiFill, 0.95);
   graphics.fillRoundedRect(cx - 14, cy - 12, 28, 24, 4);
-  graphics.fillStyle(0x08131d, 0.9);
+  graphics.fillStyle(proc.overlayDark, 0.9);
   graphics.fillRect(cx - 8, cy - 6, 16, 12);
 }
 

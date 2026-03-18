@@ -1,10 +1,12 @@
+import { theme } from "../config/gameConfig";
+
 /**
  * Shows a short-lived floating text at (x, y): moves upward and fades out, then destroys.
  * @param {Phaser.Scene} scene - The scene (this from dodgeGame).
  * @param {number} x - World x.
  * @param {number} y - World y.
  * @param {string} text - Text to show (e.g. "+1 Shield", "Speed!").
- * @param {string} colorHex - Fill color (e.g. "#55d6ff").
+ * @param {string} colorHex - Fill color (e.g. theme.colors.semantic.text.phase).
  */
 export function showFloatingText(scene, x, y, text, colorHex) {
   const txt = scene.add.text(x, y, text, {
@@ -14,7 +16,7 @@ export function showFloatingText(scene, x, y, text, colorHex) {
     align: "center"
   });
   txt.setOrigin(0.5, 0.5);
-  txt.setDepth(20);
+  txt.setDepth(theme.zIndex.getReady);
 
   const duration = 700;
   const moveY = -70;

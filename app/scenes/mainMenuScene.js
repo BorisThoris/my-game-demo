@@ -1,4 +1,4 @@
-import { GAME_HEIGHT, GAME_WIDTH, PLAYER_START_Y } from "../config/gameConfig";
+import { GAME_CENTER_X, GAME_CENTER_Y, GAME_HEIGHT, GAME_WIDTH, PLAYER_START_Y, theme } from "../config/gameConfig";
 import { SCENE_KEYS } from "../config/sceneKeys";
 import { EXIT_UNLOCK_SCORE } from "../game/runnerContent";
 import { ensureProceduralTexture, DEFAULT_PROCEDURAL_PARAMS } from "../game/proceduralSprites";
@@ -15,17 +15,18 @@ import {
   setSelectedArchetype,
   getActiveContracts,
   getMetaProgression,
-  claimCompletedContract
+  claimCompletedContract,
+  shouldShowTutorial,
+  setTutorialOptOut
 } from "../save/saveManager";
 import { GAME_VERSION } from "../config/version";
 import BaseScene from "./baseScene";
 import { getModeList, normalizeGameMode } from "../game/modeConfig";
+import { BODY_STYLE, PANEL_TITLE_STYLE } from "../config/sceneStyles";
 
 /** Valve/GMod-style main menu: options panel on the left, visuals (player + bg) on the right. */
 const PANEL_WIDTH = 380;
 const PANEL_PADDING = 32;
-const ACCENT_COLOR = 0xf0a020;
-const PANEL_FILL = 0x0a0f14;
 const PANEL_ALPHA = 0.94;
 const MENU_PLAYER_X = GAME_WIDTH - 200;
 const MENU_PLAYER_Y = PLAYER_START_Y - 50;
@@ -66,40 +67,41 @@ export default class MainMenuScene extends BaseScene {
     });
     const refreshedMeta = getMetaProgression();
 
+    const { colors, zIndex } = theme;
     // Left panel (Valve/GMod style)
     const panel = this.add.graphics();
-    panel.fillStyle(PANEL_FILL, PANEL_ALPHA);
+    panel.fillStyle(colors.semantic.game.menuPanel, PANEL_ALPHA);
     panel.fillRect(0, 0, PANEL_WIDTH, GAME_HEIGHT);
-    panel.lineStyle(3, ACCENT_COLOR, 1);
+    panel.lineStyle(theme.components.hud.stroke.width, colors.semantic.game.menuAccent, 1);
     panel.lineBetween(PANEL_WIDTH, 0, PANEL_WIDTH, GAME_HEIGHT);
-    panel.setDepth(5);
+    panel.setDepth(zIndex.hud - 3);
 
     // Title top-left of panel
     const title = this.add.text(PANEL_PADDING, 72, "SKYFALL", {
       font: "700 42px Arial",
-      fill: "#ffffff"
+      fill: colors.base.white
     });
-    title.setDepth(10);
+    title.setDepth(zIndex.overlay);
 
     const modes = getModeList();
     const modeLabel = this.add.text(PANEL_PADDING, 138, "Mode", {
       font: "700 18px Arial",
-      fill: "#8ea0b2"
+      fill: colors.semantic.text.muted
     });
-    modeLabel.setDepth(10);
+    modeLabel.setDepth(zIndex.overlay);
 
     modes.forEach((entry, index) => {
       const modeText = this.add.text(PANEL_PADDING, 164 + index * 24, "", {
         font: "700 16px Arial",
-        fill: "#6a7a8a"
+        fill: colors.semantic.text.muted
       });
       const refresh = () => {
         const isSelected = this.selectedMode === entry.mode;
         modeText.setText(`${isSelected ? "▶" : "•"} ${entry.label}`);
-        modeText.setColor(isSelected ? "#ffffff" : "#8ea0b2");
+        modeText.setColor(isSelected ? colors.base.white : colors.semantic.text.muted);
       };
       refresh();
-      modeText.setDepth(10);
+      modeText.setDepth(zIndex.overlay);
       modeText.setInteractive({ useHandCursor: true });
       modeText.on("pointerdown", () => {
         this.selectedMode = entry.mode;
@@ -124,25 +126,31 @@ export default class MainMenuScene extends BaseScene {
         action: () =>
           this.scene.start(SCENE_KEYS.options, { returnTo: SCENE_KEYS.mainMenu })
       },
+      {
+        label: "Achievements",
+        action: () =>
+          this.scene.start(SCENE_KEYS.achievements, { returnTo: SCENE_KEYS.mainMenu })
+      },
       { label: "Credits", action: () => this.scene.start(SCENE_KEYS.credits) },
       { label: "Progression", action: () => this.scene.start(SCENE_KEYS.meta) },
       { label: "Quit", action: () => this.quit() }
     ];
 
+    const menuDefaultFill = colors.semantic.text.status;
     menuItems.forEach((item, i) => {
       const y = menuYStart + i * menuSpacing;
       const text = this.add.text(PANEL_PADDING, y, item.label, {
         font: "700 28px Arial",
-        fill: "#c8d0d8"
+        fill: menuDefaultFill
       });
-      text.setDepth(10);
+      text.setDepth(zIndex.overlay);
       text.setInteractive({ useHandCursor: true });
       text.on("pointerover", () => {
-        text.setFill("#ffffff");
+        text.setFill(colors.base.white);
         text.setScale(1.02);
       });
       text.on("pointerout", () => {
-        text.setFill("#c8d0d8");
+        text.setFill(menuDefaultFill);
         text.setScale(1);
       });
       text.on("pointerdown", item.action);
@@ -157,29 +165,29 @@ export default class MainMenuScene extends BaseScene {
       `Online: ${onlineStatus.adapter} | Queue: ${onlineStatus.queueLength}\nAchievements: ${unlockedCount} | Best submit: ${bestSubmitted}`,
       {
         font: "700 11px Arial",
-        fill: "#9fc5e8",
+        fill: colors.semantic.text.objective,
         wordWrap: { width: PANEL_WIDTH - PANEL_PADDING * 2 }
       }
-    ).setDepth(10);
+    ).setDepth(zIndex.overlay);
 
     const archetypeLabel = this.add.text(PANEL_PADDING, 508, "Archetype", {
       font: "700 18px Arial",
-      fill: "#88a0b8"
+      fill: colors.semantic.text.muted
     });
-    archetypeLabel.setDepth(10);
+    archetypeLabel.setDepth(zIndex.overlay);
 
     const archetypeValue = this.add.text(PANEL_PADDING, 532, "", {
       font: "700 22px Arial",
-      fill: "#ffffff"
+      fill: colors.base.white
     });
-    archetypeValue.setDepth(10);
+    archetypeValue.setDepth(zIndex.overlay);
 
     const archetypeDesc = this.add.text(PANEL_PADDING, 564, "", {
       font: "700 12px Arial",
-      fill: "#7c8ea0",
+      fill: colors.semantic.text.muted,
       wordWrap: { width: PANEL_WIDTH - PANEL_PADDING * 2 }
     });
-    archetypeDesc.setDepth(10);
+    archetypeDesc.setDepth(zIndex.overlay);
 
     const updateArchetypeText = () => {
       const selected = ARCHETYPE_LIBRARY.find(entry => entry.id === this.selectedArchetypeId) || ARCHETYPE_LIBRARY[0];
@@ -188,8 +196,8 @@ export default class MainMenuScene extends BaseScene {
     };
 
     archetypeValue.setInteractive({ useHandCursor: true });
-    archetypeValue.on("pointerover", () => archetypeValue.setFill("#9ae6ff"));
-    archetypeValue.on("pointerout", () => archetypeValue.setFill("#ffffff"));
+    archetypeValue.on("pointerover", () => archetypeValue.setFill(colors.semantic.text.accent));
+    archetypeValue.on("pointerout", () => archetypeValue.setFill(colors.base.white));
     archetypeValue.on("pointerdown", () => {
       const currentIndex = ARCHETYPE_LIBRARY.findIndex(entry => entry.id === this.selectedArchetypeId);
       const nextIndex = (Math.max(currentIndex, 0) + 1) % ARCHETYPE_LIBRARY.length;
@@ -212,32 +220,105 @@ export default class MainMenuScene extends BaseScene {
     const contractOverflow = contracts.length > 2 ? `\n+${contracts.length - 2} more contract(s)` : "";
     this.add.text(PANEL_PADDING, 626, `Contracts: ${completedContracts}/${contracts.length} complete\n${contractPreview}${contractOverflow}`, {
       font: "700 11px Arial",
-      fill: "#b9d7f5",
+      fill: colors.semantic.text.objective,
       wordWrap: { width: PANEL_WIDTH - PANEL_PADDING * 2 }
-    }).setDepth(10);
+    }).setDepth(zIndex.overlay);
 
     const claimSummary = contractClaims.length
       ? `Claimed: ${contractClaims.map((entry) => `+${entry.reward.currency}c/+${entry.reward.fragments}f ${entry.title}`).join(" | ")}`
       : `Currency: ${refreshedMeta.currency} | Fragments: ${refreshedMeta.unlockFragments}`;
     this.add.text(PANEL_PADDING, 678, claimSummary, {
       font: "700 11px Arial",
-      fill: contractClaims.length ? "#8be9b1" : "#fff2b5",
+      fill: contractClaims.length ? colors.semantic.text.success : colors.semantic.text.score,
       wordWrap: { width: PANEL_WIDTH - PANEL_PADDING * 2 }
-    }).setDepth(10);
+    }).setDepth(zIndex.overlay);
     // Bottom-left: version and tagline (n-ish, left bottom left)
     const tagline = this.add.text(
       PANEL_PADDING,
       GAME_HEIGHT - 52,
       `Mode: ${this.selectedMode} | Reach ${EXIT_UNLOCK_SCORE} to unlock the exit.`,
-      { font: "700 12px Arial", fill: "#6a7a8a", wordWrap: { width: PANEL_WIDTH - PANEL_PADDING * 2 } }
+      { font: "700 12px Arial", fill: colors.semantic.text.muted, wordWrap: { width: PANEL_WIDTH - PANEL_PADDING * 2 } }
     );
-    tagline.setDepth(10);
+    tagline.setDepth(zIndex.overlay);
 
     const versionText = this.add.text(PANEL_PADDING, GAME_HEIGHT - 28, `v${GAME_VERSION}`, {
       font: "700 16px Arial",
-      fill: "#5a6a7a"
+      fill: colors.semantic.text.muted
     });
-    versionText.setDepth(10);
+    versionText.setDepth(zIndex.overlay);
+
+    if (shouldShowTutorial()) {
+      this._showTutorialPrompt();
+    }
+  }
+
+  _showTutorialPrompt() {
+    const { colors, zIndex } = theme;
+    const modalDepth = zIndex.modal;
+    const panelW = 420;
+    const panelH = 180;
+    const cx = GAME_CENTER_X;
+    const cy = GAME_HEIGHT * 0.35;
+
+    const backdrop = this.add.graphics();
+    backdrop.fillStyle(parseInt(colors.semantic.background.overlay.replace("#", ""), 16), 0.75);
+    backdrop.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
+    backdrop.setDepth(modalDepth);
+    backdrop.setInteractive({ useHandCursor: false });
+
+    const panel = this.add.graphics();
+    panel.fillStyle(colors.semantic.game.menuPanel, PANEL_ALPHA);
+    panel.fillRect(cx - panelW / 2, cy - panelH / 2, panelW, panelH);
+    panel.lineStyle(theme.components.hud.stroke.width, colors.semantic.game.menuAccent, 1);
+    panel.strokeRect(cx - panelW / 2, cy - panelH / 2, panelW, panelH);
+    panel.setDepth(modalDepth + 1);
+
+    const title = this.add.text(cx, cy - 52, "Quick tutorial?", {
+      font: PANEL_TITLE_STYLE.font,
+      fill: PANEL_TITLE_STYLE.fill,
+      align: "center"
+    });
+    title.setOrigin(0.5, 0.5);
+    title.setDepth(modalDepth + 2);
+
+    const bodyStyle = { font: BODY_STYLE.font, fill: colors.semantic.text.muted, align: "center" };
+    const yesText = this.add.text(cx - 70, cy + 20, "Yes", {
+      ...bodyStyle,
+      font: "700 28px Arial",
+      fill: colors.semantic.text.success
+    });
+    yesText.setOrigin(0.5, 0.5);
+    yesText.setDepth(modalDepth + 2);
+    yesText.setInteractive({ useHandCursor: true });
+    yesText.on("pointerover", () => { yesText.setScale(1.08); });
+    yesText.on("pointerout", () => { yesText.setScale(1); });
+    yesText.on("pointerdown", () => {
+      this._destroyTutorialPrompt();
+      this.scene.start(SCENE_KEYS.tutorial, { returnTo: SCENE_KEYS.mainMenu });
+    });
+
+    const skipText = this.add.text(cx + 70, cy + 20, "Skip", {
+      ...bodyStyle,
+      font: "700 28px Arial",
+      fill: colors.semantic.text.warm
+    });
+    skipText.setOrigin(0.5, 0.5);
+    skipText.setDepth(modalDepth + 2);
+    skipText.setInteractive({ useHandCursor: true });
+    skipText.on("pointerover", () => { skipText.setScale(1.08); });
+    skipText.on("pointerout", () => { skipText.setScale(1); });
+    skipText.on("pointerdown", () => {
+      setTutorialOptOut(true);
+      this._destroyTutorialPrompt();
+    });
+
+    this._tutorialPromptObjects = [backdrop, panel, title, yesText, skipText];
+  }
+
+  _destroyTutorialPrompt() {
+    if (!this._tutorialPromptObjects) return;
+    this._tutorialPromptObjects.forEach((obj) => obj.destroy());
+    this._tutorialPromptObjects = null;
   }
 
   _ensureMenuProceduralTextures() {
@@ -249,12 +330,13 @@ export default class MainMenuScene extends BaseScene {
   }
 
   _addProceduralEnemies() {
+    const { colors: c } = theme;
     const enemies = [
-      { key: ensureProceduralTexture(this, { ...DEFAULT_PROCEDURAL_PARAMS.orb, seed: 1 }), x: 720, y: 220, scale: 0.5, tint: 0xff8866, depth: 2 },
-      { key: ensureProceduralTexture(this, { ...DEFAULT_PROCEDURAL_PARAMS.star, seed: 2 }), x: 980, y: 320, scale: 0.45, tint: 0xffaa44, depth: 2 },
-      { key: ensureProceduralTexture(this, { ...DEFAULT_PROCEDURAL_PARAMS.hazardGlow, seed: 1 }), x: 1120, y: 180, scale: 0.4, tint: 0xff6644, depth: 2 },
-      { key: ensureProceduralTexture(this, { ...DEFAULT_PROCEDURAL_PARAMS.ring, seed: 1 }), x: 820, y: 480, scale: 0.5, tint: 0xffcc66, depth: 2 },
-      { key: ensureProceduralTexture(this, { ...DEFAULT_PROCEDURAL_PARAMS.polygon, seed: 2 }), x: 1050, y: 520, scale: 0.4, tint: 0xaa88ff, depth: 2 }
+      { key: ensureProceduralTexture(this, { ...DEFAULT_PROCEDURAL_PARAMS.orb, seed: 1 }), x: 720, y: 220, scale: 0.5, tint: c.semantic.game.decorOrb, depth: theme.zIndex.gameplay - 2 },
+      { key: ensureProceduralTexture(this, { ...DEFAULT_PROCEDURAL_PARAMS.star, seed: 2 }), x: 980, y: 320, scale: 0.45, tint: c.semantic.game.phaseAmber, depth: theme.zIndex.gameplay - 2 },
+      { key: ensureProceduralTexture(this, { ...DEFAULT_PROCEDURAL_PARAMS.hazardGlow, seed: 1 }), x: 1120, y: 180, scale: 0.4, tint: c.semantic.game.phaseRed, depth: theme.zIndex.gameplay - 2 },
+      { key: ensureProceduralTexture(this, { ...DEFAULT_PROCEDURAL_PARAMS.ring, seed: 1 }), x: 820, y: 480, scale: 0.5, tint: c.semantic.game.phaseAmber, depth: theme.zIndex.gameplay - 2 },
+      { key: ensureProceduralTexture(this, { ...DEFAULT_PROCEDURAL_PARAMS.polygon, seed: 2 }), x: 1050, y: 520, scale: 0.4, tint: c.semantic.game.decorPolygon, depth: theme.zIndex.gameplay - 2 }
     ];
     enemies.forEach((e) => {
       if (!e.key) return;
@@ -277,7 +359,7 @@ export default class MainMenuScene extends BaseScene {
   _poseAndSizePlayer() {
     if (!this.player) return;
     this.player.setPosition(MENU_PLAYER_X, MENU_PLAYER_Y);
-    this.player.setDepth(6);
+    this.player.setDepth(theme.zIndex.gameplay + 2);
     this.player._displayScaleMultiplier = MENU_PLAYER_SCALE;
     this.player.anims.play("jump", true);
     this.tweens.add({

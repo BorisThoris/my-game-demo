@@ -1,7 +1,7 @@
 import musicBack from "../assets/backMusic(2).mp3";
 import gameOver from "../assets/gameOver.mp3";
 import ooGnome from "../assets/oo.mp3";
-import { GAME_HEIGHT, GAME_WIDTH } from "../config/gameConfig";
+import { GAME_HEIGHT, GAME_WIDTH, theme } from "../config/gameConfig";
 import { SCENE_KEYS } from "../config/sceneKeys";
 import BaseScene from "./baseScene";
 import RunnerSpawnDirector from "../game/runnerSpawnDirector";
@@ -79,8 +79,8 @@ const PHASE_BAR_WIDTH = 320;
 const PHASE_BAR_MIN_WIDTH = 6;
 
 /** Default tint/scale when descriptor omits them; keeps hazards and pickups readable and consistent. */
-const HAZARD_VISUAL_DEFAULTS = { tint: 0xffffff, scale: 1 };
-const PICKUP_VISUAL_DEFAULTS = { tint: 0xd7f9ff, scale: 0.18 };
+const HAZARD_VISUAL_DEFAULTS = { tint: theme.colors.semantic.game.hazardDefault, scale: 1 };
+const PICKUP_VISUAL_DEFAULTS = { tint: theme.colors.semantic.game.pickupShield, scale: 0.18 };
 
 /** Click-to-destroy: cooldown between clicks (ms). */
 const CLICK_COOLDOWN_MS = 150;
@@ -124,6 +124,7 @@ export default class DodgeGame extends BaseScene {
     this.activeBoss = null;
     this.movementKeys = null;
     this.gameOverText = null;
+    this.gameOverSummaryText = null;
     this.replayButton = null;
     this.music = null;
     this.gameOverMusic = null;
@@ -248,13 +249,13 @@ export default class DodgeGame extends BaseScene {
     if (this._loadError) {
       const msg = this.add.text(GAME_WIDTH / 2, GAME_HEIGHT / 2 - 40, "Something went wrong loading the game.", {
         font: "700 28px Arial",
-        fill: "#ff8072",
+        fill: theme.colors.semantic.stroke.gameOver,
         align: "center"
       });
       msg.setOrigin(0.5, 0.5);
       const retry = this.add.text(GAME_WIDTH / 2, GAME_HEIGHT / 2 + 20, "Retry", {
         font: "700 24px Arial",
-        fill: "#9ae6ff"
+        fill: theme.colors.semantic.text.accent
       });
       retry.setOrigin(0.5, 0.5);
       retry.setPadding(28, 14);
@@ -280,27 +281,28 @@ export default class DodgeGame extends BaseScene {
     this.platforms.clear(true, true);
     this.player.body.setAllowGravity(false);
     this.player.setPosition(PLAYER_START_X, PLAYER_START_Y);
-    this.player.setDepth(4);
+    this.player.setDepth(theme.zIndex.gameplay);
 
     // Atmosphere overlay: vertical gradient (transparent top → dark bottom) for depth
+    const overlayTint = parseInt(theme.colors.semantic.background.overlay.replace("#", ""), 16);
     this.atmosphereOverlay = this.add.graphics();
     this.atmosphereOverlay.fillGradientStyle(
-      0x000000,
-      0x000000,
-      0x08131d,
-      0x08131d,
+      theme.colors.base.blackHex,
+      theme.colors.base.blackHex,
+      overlayTint,
+      overlayTint,
       0,
       0,
       0.5,
       0.5
     );
     this.atmosphereOverlay.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
-    this.atmosphereOverlay.setDepth(1);
+    this.atmosphereOverlay.setDepth(theme.zIndex.background + 1);
     this.atmosphereOverlay.setScrollFactor(0);
 
     if (this.player.postFX) {
       try {
-        this.player.postFX.addGlow(0x55d6ff, 2, 0, false, 0.1, 12);
+        this.player.postFX.addGlow(theme.colors.semantic.game.playerGlow, 2, 0, false, 0.1, 12);
       } catch (_) {
         this.tweens.add({
           targets: this.player,
@@ -367,10 +369,10 @@ export default class DodgeGame extends BaseScene {
       GAME_WIDTH / 2,
       GAME_HEIGHT / 2,
       "Get Ready!",
-      { fontSize: "52px", fill: "#d7f9ff", fontStyle: "bold" }
+      { fontSize: "52px", fill: theme.colors.semantic.text.status, fontStyle: "bold" }
     );
     getReadyText.setOrigin(0.5, 0.5);
-    getReadyText.setDepth(20);
+    getReadyText.setDepth(theme.zIndex.getReady);
     getReadyText.setAlpha(0);
     this._getReadyOverlay = getReadyText;
 
@@ -441,14 +443,14 @@ export default class DodgeGame extends BaseScene {
   mapHazardTint(baseTint) {
     const mode = this.accessibilitySettings?.colorBlindPaletteMode || "off";
     if (mode === "off") return baseTint;
-    const rgb = Phaser.Display.Color.IntegerToRGB(baseTint ?? 0xffffff);
+    const rgb = Phaser.Display.Color.IntegerToRGB(baseTint ?? theme.colors.semantic.game.hazardDefault);
     const isWarm = rgb.r >= rgb.g && rgb.r >= rgb.b;
     const isCool = rgb.b >= rgb.r && rgb.b >= rgb.g;
     const palette = {
-      protanopia: { warm: 0xe69f00, cool: 0x56b4e9, mid: 0x009e73 },
-      deuteranopia: { warm: 0xd55e00, cool: 0x0072b2, mid: 0xcc79a7 },
-      tritanopia: { warm: 0xff8c42, cool: 0x2e86de, mid: 0x7d5fff }
-    }[mode] || { warm: 0xf4a261, cool: 0x2a9d8f, mid: 0xe9c46a };
+      protanopia: theme.colors.semantic.accessibility.protanopia,
+      deuteranopia: theme.colors.semantic.accessibility.deuteranopia,
+      tritanopia: theme.colors.semantic.accessibility.tritanopia
+    }[mode] || theme.colors.semantic.accessibility.default;
     if (isWarm) return palette.warm;
     if (isCool) return palette.cool;
     return palette.mid;
@@ -610,7 +612,7 @@ export default class DodgeGame extends BaseScene {
         kind: "hazard",
         type: "meteor",
         texture: "runner-orb",
-        tint: hazard.tint ?? 0x7bed9f,
+        tint: hazard.tint ?? theme.colors.semantic.game.phaseGreen,
         x: hx + ox,
         y: hy + oy,
         speed,
@@ -633,9 +635,11 @@ export default class DodgeGame extends BaseScene {
    * Spawn a lingering damage zone at (x, y). Damages player on overlap until it expires.
    */
   spawnLingeringZone(x, y, tint) {
-    const graphic = this.add.circle(x, y, LINGERING_ZONE_RADIUS, (tint ?? 0xffaa00) & 0xffffff, 0.35);
-    graphic.setStrokeStyle(2, (tint ?? 0xffaa00) & 0xffffff, 0.6);
-    graphic.setDepth(3);
+    const defaultLingeringTint = theme.colors.semantic.game.phaseAmber;
+    const mask = theme.colors.base.whiteHex;
+    const graphic = this.add.circle(x, y, LINGERING_ZONE_RADIUS, (tint ?? defaultLingeringTint) & mask, 0.35);
+    graphic.setStrokeStyle(theme.components.hud.stroke.width, (tint ?? defaultLingeringTint) & mask, 0.6);
+    graphic.setDepth(theme.zIndex.pickups);
     this._damageZones.push({
       x,
       y,
@@ -735,7 +739,7 @@ export default class DodgeGame extends BaseScene {
     }
     if (chainLength >= MEGA_CHAIN_THRESHOLD) {
       cameraShake(this, 280, 0.008);
-      showFloatingText(this, GAME_WIDTH / 2, GAME_HEIGHT / 2 - 60, "MEGA CHAIN!", "#ffaa44");
+      showFloatingText(this, GAME_WIDTH / 2, GAME_HEIGHT / 2 - 60, "MEGA CHAIN!", theme.colors.semantic.text.bossTimer);
     }
     list.forEach((hazard, index) => {
       if (!hazard.scene || !this.hazards.contains(hazard)) return;
@@ -756,7 +760,7 @@ export default class DodgeGame extends BaseScene {
       const scoreBonus = archetype === "clean" ? 1 : archetype === "splitter" ? 2 : archetype === "debrisLauncher" ? 3 : 2;
       this.bonusScore += scoreBonus;
       if (chainLength > 1 && index === 0) {
-        showFloatingText(this, hx, hy - 30, `x${chainLength}`, "#fff2b5");
+        showFloatingText(this, hx, hy - 30, `x${chainLength}`, theme.colors.semantic.text.score);
       }
     });
     if (chainLength > 1) {
@@ -764,7 +768,7 @@ export default class DodgeGame extends BaseScene {
     }
     this._destroyStreakCount += list.length;
     if (this._destroyStreakCount >= DESTROY_STREAK_TARGET) {
-      showFloatingText(this, GAME_WIDTH / 2, GAME_HEIGHT / 2 - 100, `${DESTROY_STREAK_TARGET}x Destroy!`, "#8be9b1");
+      showFloatingText(this, GAME_WIDTH / 2, GAME_HEIGHT / 2 - 100, `${DESTROY_STREAK_TARGET}x Destroy!`, theme.colors.semantic.text.success);
       this.bonusScore += DESTROY_STREAK_BONUS_SCORE;
       this._destroyStreakCount = 0;
     }
@@ -797,13 +801,13 @@ export default class DodgeGame extends BaseScene {
     const phaseBarY = 116;
     this.phaseBarTrack = this.add.graphics();
     this.phaseBarTrack.setPosition(phaseBarX + PHASE_BAR_WIDTH / 2, phaseBarY);
-    this.phaseBarTrack.fillStyle(0x0d1823, 0.95);
+    this.phaseBarTrack.fillStyle(parseInt(theme.colors.semantic.background.panel.replace("#", ""), 16), 0.95);
     this.phaseBarTrack.fillRoundedRect(-PHASE_BAR_WIDTH / 2, -phaseBarHeight / 2, PHASE_BAR_WIDTH, phaseBarHeight, 9);
-    this.phaseBarTrack.lineStyle(1, 0x55d6ff, 0.5);
+    this.phaseBarTrack.lineStyle(1, theme.colors.semantic.game.phaseCyan, 0.5);
     this.phaseBarTrack.strokeRoundedRect(-PHASE_BAR_WIDTH / 2, -phaseBarHeight / 2, PHASE_BAR_WIDTH, phaseBarHeight, 9);
 
     this.phaseBarFill = this.add
-      .rectangle(912, 116, 6, 12, 0x55d6ff, 1)
+      .rectangle(912, 116, theme.components.hud.phaseBar.minWidth, 12, theme.colors.semantic.game.phaseCyan, 1)
       .setOrigin(0, 0.5);
 
     this.exitText = this.add.text(
@@ -823,15 +827,15 @@ export default class DodgeGame extends BaseScene {
     this.heatIndicator = this.add.image(1040, 140, "stageIntensityHeat");
     this.heatIndicator.setScale(0.2);
     this.heatIndicator.setVisible(false);
-    this.heatIndicator.setDepth(2);
+    this.heatIndicator.setDepth(theme.zIndex.pickups - 1);
 
     // Pause button: click/touch or Escape to open pause menu
-    this.pauseButton = this.add.text(GAME_WIDTH - 24, 36, "Pause", {
+    this.pauseButton = this.add.text(GAME_WIDTH - theme.spacing[6], 36, "Pause", {
       font: "700 24px Arial",
-      fill: "#9ae6ff"
+      fill: theme.colors.semantic.text.accent
     });
     this.pauseButton.setOrigin(1, 0.5);
-    this.pauseButton.setDepth(8);
+    this.pauseButton.setDepth(theme.zIndex.hud);
     this.pauseButton.setPadding(12, 8);
     this.pauseButton.setInteractive({ useHandCursor: true });
     this.pauseButton.on("pointerdown", () => {
@@ -932,12 +936,12 @@ export default class DodgeGame extends BaseScene {
     this.player.anims.play("flex", true);
     this.updateHud({
       phaseLabel: "Recovery",
-      phaseColor: 0x55d6ff,
+      phaseColor: theme.colors.semantic.game.phaseCyan,
       phaseProgress: 0
     });
     this.setStatusText(
       `${this.modeConfig.label}: Recovery phases widen the rain. Heat phases compress the fall lanes.`,
-      0xd7f9ff
+      theme.colors.semantic.game.pickupShield
     );
     if (this._exitTextPulseTween) {
       this._exitTextPulseTween.stop();
@@ -1017,6 +1021,10 @@ export default class DodgeGame extends BaseScene {
       this.gameOverText.destroy();
       this.gameOverText = null;
     }
+    if (this.gameOverSummaryText) {
+      this.gameOverSummaryText.destroy();
+      this.gameOverSummaryText = null;
+    }
     if (this.gameOverPanel) {
       this.gameOverPanel.destroy();
       this.gameOverPanel = null;
@@ -1041,7 +1049,7 @@ export default class DodgeGame extends BaseScene {
 
   /**
    * One-shot particle burst using procedural bolt/orb texture.
-   * @param {number} [tint] - Optional hex tint for particles (e.g. 0x55d6ff). Omit for default (no tint).
+   * @param {number} [tint] - Optional hex tint for particles (e.g. theme.colors.semantic.game.phaseCyan). Omit for default (no tint).
    */
   emitParticleBurst(x, y, quantity = 10, lifespan = 350, scaleStart = 0.35, tint) {
     const textureKey = this.textures.exists("proc-bolt-0") ? "proc-bolt-0" : "proc-orb-0";
@@ -1075,10 +1083,10 @@ export default class DodgeGame extends BaseScene {
     const px = pickup.x;
     const py = pickup.y;
     const PICKUP_TINTS = {
-      shield: 0x55d6ff,
-      speed: 0x4ecdc4,
-      invuln: 0xffe66d,
-      scoreMult: 0x95e1d3
+      shield: theme.colors.semantic.game.pickupShield,
+      speed: theme.colors.semantic.game.pickupSpeed,
+      invuln: theme.colors.semantic.game.pickupInvuln,
+      scoreMult: theme.colors.semantic.game.pickupScoreMult
     };
     this.emitParticleBurst(px, py, 12, 350, 0.35, PICKUP_TINTS[pickupType] ?? PICKUP_TINTS.shield);
     pickup.destroy();
@@ -1088,25 +1096,25 @@ export default class DodgeGame extends BaseScene {
     if (pickupType === "shield") {
       if (this.shieldCharges < this.runModifiers.maxShields) {
         this.shieldCharges += 1;
-        showFloatingText(this, px, py, "+1 Shield", "#55d6ff");
+        showFloatingText(this, px, py, "+1 Shield", theme.colors.semantic.text.phase);
       } else {
         this.bonusScore += 3;
-        this.setStatusText("Shield bank full. Pickup converted into bonus score.", 0xfff2b5);
-        showFloatingText(this, px, py, "+3 score", "#fff2b5");
+        this.setStatusText("Shield bank full. Pickup converted into bonus score.", theme.colors.semantic.text.score);
+        showFloatingText(this, px, py, "+3 score", theme.colors.semantic.text.score);
       }
     } else if (pickupType === "speed") {
       this.tempSpeedBoostMs = 5000;
-      this.setStatusText("Speed boost active! +25% move speed for 5s.", 0x4ecdc4);
-      showFloatingText(this, px, py, "Speed!", "#4ecdc4");
+      this.setStatusText("Speed boost active! +25% move speed for 5s.", theme.colors.semantic.game.pickupSpeed);
+      showFloatingText(this, px, py, "Speed!", theme.colors.semantic.text.accent);
     } else if (pickupType === "invuln") {
       this.tempInvulnMs = 3000;
-      this.setStatusText("Invulnerability! No damage for 3s.", 0xffe66d);
-      showFloatingText(this, px, py, "Invuln!", "#ffe66d");
+      this.setStatusText("Invulnerability! No damage for 3s.", theme.colors.semantic.game.pickupInvuln);
+      showFloatingText(this, px, py, "Invuln!", theme.colors.semantic.text.accent);
     } else if (pickupType === "scoreMult") {
       this.tempScoreMultMs = 10000;
       this.tempScoreMultMultiplier = 1.5;
-      this.setStatusText("Score multiplier! 1.5x score for 10s.", 0x95e1d3);
-      showFloatingText(this, px, py, "1.5x Score!", "#95e1d3");
+      this.setStatusText("Score multiplier! 1.5x score for 10s.", theme.colors.semantic.game.pickupScoreMult);
+      showFloatingText(this, px, py, "1.5x Score!", theme.colors.semantic.text.success);
     }
 
     this.bonusScore += this.runModifiers.extraScorePerPickup ?? 0;
@@ -1159,9 +1167,9 @@ export default class DodgeGame extends BaseScene {
     }
 
     this.shakeCamera(150, 0.005);
-    this.setStatusText("Shield popped. Short invulnerability window active.", 0xffd166);
+    this.setStatusText("Shield popped. Short invulnerability window active.", theme.colors.semantic.game.phaseAmber);
 
-    this.emitParticleBurst(this.player.x, this.player.y, 6, 280, 0.25, 0xffd166);
+    this.emitParticleBurst(this.player.x, this.player.y, 6, 280, 0.25, theme.colors.semantic.game.phaseAmber);
     impactSquash(this, this.player, { flash: true });
     if (this.juice) this.juice.shake(this.player);
 
@@ -1232,9 +1240,9 @@ export default class DodgeGame extends BaseScene {
   showGameOver() {
     this.pauseButton?.setVisible(false);
     this.gameOverPanel = this.add
-      .rectangle(GAME_WIDTH / 2, 235, 780, 440, 0x0d1823, 0.94)
-      .setStrokeStyle(2, 0xff8072, 0.8)
-      .setDepth(10);
+      .rectangle(GAME_WIDTH / 2, 235, 780, 440, parseInt(theme.colors.semantic.background.panel.replace("#", ""), 16), 0.94)
+      .setStrokeStyle(theme.components.hud.stroke.width, parseInt(theme.colors.semantic.stroke.gameOver.replace("#", ""), 16), 0.8)
+      .setDepth(theme.zIndex.gameOverPanel);
 
     const runSummary = this._lastRunSummary || this.buildRunSummary();
     const score = runSummary.score;
@@ -1274,13 +1282,13 @@ export default class DodgeGame extends BaseScene {
 
     this.gameOverText = this.add.text(GAME_WIDTH / 2, 58, recapLines.join("\n"), {
       fontSize: "22px",
-      fill: "#f3f8ff",
+      fill: theme.colors.semantic.text.status,
       align: "center",
       lineSpacing: 6,
       wordWrap: { width: 700 }
     });
     this.gameOverText.setOrigin(0.5, 0);
-    this.gameOverText.setDepth(11);
+    this.gameOverText.setDepth(theme.zIndex.gameOverContent);
     this.gameOverText.setAlpha(0);
     this.tweens.add({
       targets: this.gameOverText,
@@ -1289,9 +1297,31 @@ export default class DodgeGame extends BaseScene {
       delay: 60,
       ease: "Power2.Out"
     });
+
+    const summaryParts = [
+      `Time survived: ${survivedSec}s`,
+      `Objectives: ${completedCount}/${objectives.length}`,
+      `Perks taken: ${this.ownedPerks.length}`
+    ];
+    this.gameOverSummaryText = this.add.text(GAME_WIDTH / 2, 400, summaryParts.join("   •   "), {
+      fontSize: "22px",
+      fill: theme.colors.semantic.text.status,
+      align: "center"
+    });
+    this.gameOverSummaryText.setOrigin(0.5, 0.5);
+    this.gameOverSummaryText.setDepth(theme.zIndex.gameOverContent);
+    this.gameOverSummaryText.setAlpha(0);
+    this.tweens.add({
+      targets: this.gameOverSummaryText,
+      alpha: 1,
+      duration: 240,
+      delay: 120,
+      ease: "Power2.Out"
+    });
+
     if (this._justSetNewRecord) {
       this.flashCamera(100, 200, 200, 100);
-      showFloatingText(this, GAME_WIDTH / 2, 220, "New record!", "#fff2b5");
+      showFloatingText(this, GAME_WIDTH / 2, 220, "New record!", theme.colors.semantic.text.score);
       this._justSetNewRecord = false;
     }
     this.showReplayButton();
@@ -1299,9 +1329,9 @@ export default class DodgeGame extends BaseScene {
 
   showReplayButton() {
     this.replayButtonPanel = this.add
-      .rectangle(GAME_WIDTH / 2, 540, 160, 100, 0x0d1823, 0.92)
-      .setStrokeStyle(2, 0xff8072, 0.75)
-      .setDepth(12);
+      .rectangle(GAME_WIDTH / 2, 540, 160, 100, parseInt(theme.colors.semantic.background.panel.replace("#", ""), 16), 0.92)
+      .setStrokeStyle(theme.components.hud.stroke.width, parseInt(theme.colors.semantic.stroke.gameOver.replace("#", ""), 16), 0.75)
+      .setDepth(theme.zIndex.banner);
     this.replayButtonPanel.setScale(0.88);
     this.tweens.add({
       targets: this.replayButtonPanel,
@@ -1312,7 +1342,7 @@ export default class DodgeGame extends BaseScene {
 
     this.replayButton = this.add.sprite(GAME_WIDTH / 2, 518, "replay");
     this.replayButton.setScale(0);
-    this.replayButton.setDepth(13);
+    this.replayButton.setDepth(theme.zIndex.replayButton);
     // Large hit area for touch: 120x120 centered on icon
     this.replayButton.setInteractive(
       new Phaser.Geom.Rectangle(-60, -60, 120, 120),
@@ -1330,12 +1360,12 @@ export default class DodgeGame extends BaseScene {
 
     const playAgainText = this.add.text(GAME_WIDTH / 2, 562, "Play again", {
       fontSize: "28px",
-      fill: "#ffb380",
+      fill: theme.colors.semantic.text.warm,
       fontStyle: "bold",
       align: "center"
     });
     playAgainText.setOrigin(0.5, 0.5);
-    playAgainText.setDepth(13);
+    playAgainText.setDepth(theme.zIndex.replayButton);
     playAgainText.setScale(0);
     playAgainText.setPadding(32, 16);
     playAgainText.setInteractive({ useHandCursor: true });
@@ -1411,12 +1441,12 @@ export default class DodgeGame extends BaseScene {
 
     const quitToMenuText = this.add.text(GAME_WIDTH / 2, 600, "Quit to menu", {
       fontSize: "24px",
-      fill: "#ffb380",
+      fill: theme.colors.semantic.text.warm,
       fontStyle: "bold",
       align: "center"
     });
     quitToMenuText.setOrigin(0.5, 0.5);
-    quitToMenuText.setDepth(13);
+    quitToMenuText.setDepth(theme.zIndex.replayButton);
     quitToMenuText.setScale(0);
     quitToMenuText.setPadding(28, 14);
     quitToMenuText.setInteractive({ useHandCursor: true });
@@ -1435,12 +1465,13 @@ export default class DodgeGame extends BaseScene {
   showPausePanel() {
     if (this.pausePanel) return;
     this.pauseButton?.setVisible(false);
-    this.pausePanel = this.add.rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, 500, 400, 0x0d1823, 0.95).setStrokeStyle(2, 0x55d6ff, 0.8).setDepth(15);
-    const pausedText = this.add.text(GAME_WIDTH / 2, GAME_HEIGHT / 2 - 120, "Paused", { fontSize: "48px", fill: "#55d6ff", fontStyle: "bold" }).setOrigin(0.5, 0.5).setDepth(16);
-    const resumeBtn = this.add.text(GAME_WIDTH / 2, GAME_HEIGHT / 2 - 55, "Resume", { fontSize: "28px", fill: "#9ae6ff" }).setOrigin(0.5, 0.5).setDepth(16).setPadding(20, 12);
-    const optionsBtn = this.add.text(GAME_WIDTH / 2, GAME_HEIGHT / 2 + 5, "Options", { fontSize: "28px", fill: "#9ae6ff" }).setOrigin(0.5, 0.5).setDepth(16).setPadding(20, 12);
-    const exitAndSaveBtn = this.add.text(GAME_WIDTH / 2, GAME_HEIGHT / 2 + 65, "Exit and save", { fontSize: "28px", fill: "#ffb380" }).setOrigin(0.5, 0.5).setDepth(16).setPadding(20, 12);
-    const quitNoSaveBtn = this.add.text(GAME_WIDTH / 2, GAME_HEIGHT / 2 + 125, "Quit without saving", { fontSize: "24px", fill: "#8a9aa8" }).setOrigin(0.5, 0.5).setDepth(16).setPadding(20, 12);
+    const panelTint = parseInt(theme.colors.semantic.background.panel.replace("#", ""), 16);
+    this.pausePanel = this.add.rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, 500, 400, panelTint, 0.95).setStrokeStyle(theme.components.hud.stroke.width, theme.colors.semantic.game.phaseCyan, 0.8).setDepth(theme.zIndex.pausePanel);
+    const pausedText = this.add.text(GAME_WIDTH / 2, GAME_HEIGHT / 2 - 120, "Paused", { fontSize: "48px", fill: theme.colors.semantic.text.phase, fontStyle: "bold" }).setOrigin(0.5, 0.5).setDepth(theme.zIndex.pausePanel + 1);
+    const resumeBtn = this.add.text(GAME_WIDTH / 2, GAME_HEIGHT / 2 - 55, "Resume", { fontSize: "28px", fill: theme.colors.semantic.text.accent }).setOrigin(0.5, 0.5).setDepth(theme.zIndex.pausePanel + 1).setPadding(20, 12);
+    const optionsBtn = this.add.text(GAME_WIDTH / 2, GAME_HEIGHT / 2 + 5, "Options", { fontSize: "28px", fill: theme.colors.semantic.text.accent }).setOrigin(0.5, 0.5).setDepth(theme.zIndex.pausePanel + 1).setPadding(20, 12);
+    const exitAndSaveBtn = this.add.text(GAME_WIDTH / 2, GAME_HEIGHT / 2 + 65, "Exit and save", { fontSize: "28px", fill: theme.colors.semantic.text.warm }).setOrigin(0.5, 0.5).setDepth(theme.zIndex.pausePanel + 1).setPadding(20, 12);
+    const quitNoSaveBtn = this.add.text(GAME_WIDTH / 2, GAME_HEIGHT / 2 + 125, "Quit without saving", { fontSize: "24px", fill: theme.colors.semantic.text.muted }).setOrigin(0.5, 0.5).setDepth(theme.zIndex.pausePanel + 1).setPadding(20, 12);
 
     [resumeBtn, optionsBtn, exitAndSaveBtn, quitNoSaveBtn].forEach(btn => btn.setInteractive({ useHandCursor: true }));
 
@@ -1595,7 +1626,7 @@ export default class DodgeGame extends BaseScene {
           GAME_WIDTH / 2,
           GAME_HEIGHT / 2 - 80,
           toCelebrate + "!",
-          "#fff2b5"
+          theme.colors.semantic.text.score
         );
         SCORE_ACHIEVEMENT_MILESTONES.forEach(milestone => {
           if (toCelebrate >= milestone.score) {
@@ -1608,7 +1639,7 @@ export default class DodgeGame extends BaseScene {
         if (this.noHitWindowMs >= window.ms && this._lastNoHitAchievementMs < window.ms) {
           this._lastNoHitAchievementMs = window.ms;
           unlockAchievement(window.achievementId);
-          showFloatingText(this, GAME_WIDTH / 2, 116, "No-hit " + Math.floor(window.ms / 1000) + "s!", "#95e1d3");
+              showFloatingText(this, GAME_WIDTH / 2, 116, "No-hit " + Math.floor(window.ms / 1000) + "s!", theme.colors.semantic.text.success);
         }
       });
       this.handlePhaseChange(context);
@@ -1741,7 +1772,7 @@ export default class DodgeGame extends BaseScene {
     this.setStatusText(phaseMessages[context.phaseKey], context.phaseColor);
 
     this.playEventSfx("sfxPhaseChange");
-    const phaseColor = context.phaseColor ?? 0x55d6ff;
+    const phaseColor = context.phaseColor ?? theme.colors.semantic.game.phaseCyan;
     const r = (phaseColor >> 16) & 0xff;
     const g = (phaseColor >> 8) & 0xff;
     const b = phaseColor & 0xff;
@@ -1756,7 +1787,7 @@ export default class DodgeGame extends BaseScene {
     if (this.textures.exists("stagePowerup")) {
       this._phasePowerupSprite = this.add.image(GAME_WIDTH / 2, GAME_HEIGHT / 2 - 20, "stagePowerup");
       this._phasePowerupSprite.setScale(0);
-      this._phasePowerupSprite.setDepth(14);
+      this._phasePowerupSprite.setDepth(theme.zIndex.pausePanel - 1);
       this.tweens.add({
         targets: this._phasePowerupSprite,
         scale: 0.35,
@@ -1773,7 +1804,7 @@ export default class DodgeGame extends BaseScene {
     }
   }
 
-  setStatusText(message, color = 0xd7f9ff) {
+  setStatusText(message, color = theme.colors.semantic.game.pickupShield) {
     this.statusText.setText(message);
     this.statusText.setColor(`#${color.toString(16).padStart(6, "0")}`);
     if (this._statusTextTween) this._statusTextTween.stop();
@@ -1838,7 +1869,7 @@ export default class DodgeGame extends BaseScene {
     this.phaseText.setColor(`#${context.phaseColor.toString(16).padStart(6, "0")}`);
     this.shieldText.setText(`Shields: ${this.shieldCharges}/${this.runModifiers.maxShields}`);
     if (!this.gameOverState && this.shieldCharges <= 1) {
-      const warningColor = this.shieldCharges === 0 ? "#ff4444" : "#ffaa44";
+      const warningColor = this.shieldCharges === 0 ? theme.colors.semantic.text.danger : theme.colors.semantic.text.bossTimer;
       if (this._lastShieldTextColor !== warningColor) {
         this.shieldText.setColor(warningColor);
         this._lastShieldTextColor = warningColor;
@@ -1855,9 +1886,9 @@ export default class DodgeGame extends BaseScene {
         });
       }
     } else {
-      if (this._lastShieldTextColor !== "#ffffff") {
-        this.shieldText.setColor("#ffffff");
-        this._lastShieldTextColor = "#ffffff";
+      if (this._lastShieldTextColor !== theme.colors.base.white) {
+        this.shieldText.setColor(theme.colors.base.white);
+        this._lastShieldTextColor = theme.colors.base.white;
       }
       if (this._shieldPulseTween) {
         this._shieldPulseTween.stop();
@@ -1888,27 +1919,27 @@ export default class DodgeGame extends BaseScene {
   createChallengeUi() {
     if (!this.textures.exists("challengePanelBg")) {
       const g = this.make.graphics({ x: 0, y: 0, add: false });
-      g.fillStyle(0x08131d, 0.95);
+      g.fillStyle(parseInt(theme.colors.semantic.background.overlay.replace("#", ""), 16), 0.95);
       g.fillRoundedRect(0, 0, 740, 330, 16);
-      g.lineStyle(3, 0x55d6ff, 0.9);
+      g.lineStyle(theme.components.hud.stroke.width, theme.colors.semantic.game.phaseCyan, 0.9);
       g.strokeRoundedRect(0, 0, 740, 330, 16);
       g.generateTexture("challengePanelBg", 740, 330);
       g.destroy();
     }
     const panelGlow = this.add
-      .rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, 740 * 1.02, 330 * 1.02, 0x55d6ff, 0.15);
+      .rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, 740 * 1.02, 330 * 1.02, theme.colors.semantic.game.phaseCyan, 0.15);
     const panelBg = this.add.image(GAME_WIDTH / 2, GAME_HEIGHT / 2, "challengePanelBg");
     this.challengeInputKeys = this.input.keyboard.addKeys("ONE,TWO,THREE");
     this.challengeText = this.add.text(GAME_WIDTH / 2, GAME_HEIGHT / 2 - 104, "", {
       font: "700 34px Arial",
-      fill: "#d7f9ff",
+      fill: theme.colors.semantic.text.status,
       align: "center"
     });
     this.challengeText.setOrigin(0.5, 0.5);
 
     this.challengeTimerText = this.add.text(GAME_WIDTH / 2, GAME_HEIGHT / 2 - 34, "", {
       font: "700 24px Arial",
-      fill: "#ffd166",
+      fill: theme.colors.semantic.text.bossTimer,
       align: "center"
     });
     this.challengeTimerText.setOrigin(0.5, 0.5);
@@ -1918,7 +1949,7 @@ export default class DodgeGame extends BaseScene {
         GAME_WIDTH / 2,
         GAME_HEIGHT / 2 + 30 + index * 54,
         "",
-        { font: "700 28px Arial", fill: "#ffffff", align: "center" }
+        { font: "700 28px Arial", fill: theme.colors.base.white, align: "center" }
       );
       optionText.setOrigin(0.5, 0.5);
       optionText.setPadding(24, 12);
@@ -1954,7 +1985,7 @@ export default class DodgeGame extends BaseScene {
       ...this.challengeOptionTexts,
       ...this.perkOptionIcons
     ]);
-    this.challengePanel.setDepth(15);
+    this.challengePanel.setDepth(theme.zIndex.challengePanel);
     this.challengePanel.setVisible(false);
   }
 
@@ -2021,7 +2052,7 @@ export default class DodgeGame extends BaseScene {
     this.perkOptionIcons.forEach(icon => icon.setVisible(false));
     this.physics.pause();
     this.music.setVolume(0.25);
-    this.setStatusText("Challenge break: answer before the timer expires.", 0x55d6ff);
+    this.setStatusText("Challenge break: answer before the timer expires.", theme.colors.semantic.game.phaseCyan);
   }
 
   maybeForceDraftPerk() {
@@ -2057,7 +2088,7 @@ export default class DodgeGame extends BaseScene {
     });
     this.physics.pause();
     this.music.setVolume(0.25);
-    this.setStatusText("Draft mode: mandatory perk selection.", 0xb6f0ff);
+    this.setStatusText("Draft mode: mandatory perk selection.", theme.colors.semantic.game.pickupShield);
     this.nextDraftPerkAtMs += this.modeConfig.draftPerkIntervalSeconds * 1000;
   }
 
@@ -2070,7 +2101,7 @@ export default class DodgeGame extends BaseScene {
         this.hideChallengePanelTransitionOut(() => {
           this.music.setVolume(DODGE_AUDIO.musicNormalVolume);
           this.physics.resume();
-          this.setStatusText(`Perk online: ${chosenPerk.title}.`, 0x8be9b1);
+          this.setStatusText(`Perk online: ${chosenPerk.title}.`, theme.colors.semantic.game.phaseGreen);
           if (this.juice) this.juice.pulse(this.player);
         });
       });
@@ -2086,9 +2117,9 @@ export default class DodgeGame extends BaseScene {
     this.challengeTimerText.setText(`Timer: ${secondsLeft}s (press 1 / 2 / 3)`);
 
     if (this.challengeRemainingMs <= 3000) {
-      this.challengeTimerText.setColor("#ff4444");
+      this.challengeTimerText.setColor(theme.colors.semantic.text.danger);
     } else {
-      this.challengeTimerText.setColor("#ffd166");
+      this.challengeTimerText.setColor(theme.colors.semantic.text.bossTimer);
     }
 
     if (this.challengeRemainingMs <= 5000 && !this._challengeUrgencyTweenActive) {
@@ -2120,7 +2151,7 @@ export default class DodgeGame extends BaseScene {
     this._challengeUrgencyTweenActive = false;
     if (this.challengeTimerText) {
       this.challengeTimerText.setScale(1);
-      this.challengeTimerText.setColor("#ffd166");
+      this.challengeTimerText.setColor(theme.colors.semantic.text.bossTimer);
     }
   }
 
@@ -2143,7 +2174,7 @@ export default class DodgeGame extends BaseScene {
       this.hideChallengePanelTransitionOut(() => {
         this.music.setVolume(DODGE_AUDIO.musicNormalVolume);
         this.physics.resume();
-        this.setStatusText(`Perk online: ${chosenPerk.title}.`, 0x8be9b1);
+        this.setStatusText(`Perk online: ${chosenPerk.title}.`, theme.colors.semantic.game.phaseGreen);
         if (this.juice) this.juice.pulse(this.player);
       });
       return;
@@ -2189,7 +2220,7 @@ export default class DodgeGame extends BaseScene {
       this.challengeOutcomeLog.push(`${this.activeChallenge?.title || "Challenge"}: failed (${result.message})`);
       this.music.setVolume(DODGE_AUDIO.musicNormalVolume);
       this.physics.resume();
-      this.setStatusText(result.message, 0xff8072);
+      this.setStatusText(result.message, parseInt(theme.colors.semantic.stroke.gameOver.replace("#", ""), 16));
       return;
     }
 
@@ -2200,8 +2231,8 @@ export default class DodgeGame extends BaseScene {
         unlockAchievement(entry.achievementId);
       }
     });
-    showFloatingText(this, GAME_WIDTH / 2, GAME_HEIGHT / 2 - 140, "Correct!", "#8be9b1");
-    this.emitParticleBurst(GAME_WIDTH / 2, GAME_HEIGHT / 2 - 80, 6, 280, 0.3, 0x8be9b1);
+    showFloatingText(this, GAME_WIDTH / 2, GAME_HEIGHT / 2 - 140, "Correct!", theme.colors.semantic.text.success);
+    this.emitParticleBurst(GAME_WIDTH / 2, GAME_HEIGHT / 2 - 80, 6, 280, 0.3, theme.colors.semantic.game.phaseGreen);
 
     const challengeScore = Math.round(
       result.reward.scoreBonus * this.runModifiers.challengeScoreMultiplier
@@ -2210,7 +2241,7 @@ export default class DodgeGame extends BaseScene {
     this.bonusScore += challengeScore;
     this.runRewardTotals.score += challengeScore;
     if (challengeScore > 0) {
-      showFloatingText(this, GAME_WIDTH / 2, GAME_HEIGHT / 2 - 100, `+${challengeScore}`, "#8be9b1");
+      showFloatingText(this, GAME_WIDTH / 2, GAME_HEIGHT / 2 - 100, `+${challengeScore}`, theme.colors.semantic.text.success);
     }
     this.shieldCharges = Math.min(
       this.runModifiers.maxShields,
@@ -2220,7 +2251,7 @@ export default class DodgeGame extends BaseScene {
     this.perkPoints += result.reward.perkPoint;
     this.runRewardTotals.perkPoints += result.reward.perkPoint || 0;
     this.challengeOutcomeLog.push(`${result.challenge?.title || "Challenge"}: success (${result.message})`);
-    this.setStatusText(result.message, 0x8be9b1);
+    this.setStatusText(result.message, theme.colors.semantic.game.phaseGreen);
 
     if (this.perkPoints > 0) {
       this.perkPoints -= 1;
@@ -2265,7 +2296,7 @@ export default class DodgeGame extends BaseScene {
       this.bonusScore += objective.reward.scoreBonus;
       this.runRewardTotals.score += objective.reward.scoreBonus || 0;
       if (objective.reward.scoreBonus > 0) {
-        showFloatingText(this, GAME_WIDTH / 2, 160, `+${objective.reward.scoreBonus}`, "#8be9b1");
+        showFloatingText(this, GAME_WIDTH / 2, 160, `+${objective.reward.scoreBonus}`, theme.colors.semantic.text.success);
       }
       this.shieldCharges = Math.min(
         this.runModifiers.maxShields,
@@ -2275,7 +2306,7 @@ export default class DodgeGame extends BaseScene {
       this.perkPoints += objective.reward.perkPoint;
       this.runRewardTotals.perkPoints += objective.reward.perkPoint || 0;
       this.objectiveOutcomeLog.push(`${objective.title}: complete`);
-      this.setStatusText(`Objective complete: ${objective.title}`, 0x8be9b1);
+      this.setStatusText(`Objective complete: ${objective.title}`, theme.colors.semantic.game.phaseGreen);
     });
 
     this.flashCamera(120, 100, 200, 255);
@@ -2332,7 +2363,7 @@ export default class DodgeGame extends BaseScene {
     this.exitUnlocked = true;
     this.setStatusText(
       "Exit unlocked. Dash to the right edge whenever you want to leave the dodge loop.",
-      0x8be9b1
+      theme.colors.semantic.game.phaseGreen
     );
     this.exitText.setText("Exit unlocked: touch the right wall to continue");
 
@@ -2372,7 +2403,7 @@ export default class DodgeGame extends BaseScene {
     if (!texture) return;
     const hazard = this.physics.add.image(descriptor.x, descriptor.y, texture);
     hazard.setScale(descriptor.scaleX ?? HAZARD_VISUAL_DEFAULTS.scale, descriptor.scaleY ?? HAZARD_VISUAL_DEFAULTS.scale);
-    hazard.setDepth(4);
+    hazard.setDepth(theme.zIndex.gameplay);
     hazard.setTint(this.mapHazardTint(descriptor.tint ?? HAZARD_VISUAL_DEFAULTS.tint));
     hazard.setAlpha(descriptor.alpha ?? 1);
     hazard.body.setAllowGravity(false);
@@ -2419,8 +2450,8 @@ export default class DodgeGame extends BaseScene {
       ? this.physics.add.sprite(descriptor.x, descriptor.y, descriptor.texture, frame)
       : this.physics.add.image(descriptor.x, descriptor.y, descriptor.texture);
     pickup.setScale(descriptor.scaleX ?? 1, descriptor.scaleY ?? 1);
-    pickup.setTint(descriptor.tint ?? 0xffffff);
-    pickup.setDepth(3);
+    pickup.setTint(descriptor.tint ?? theme.colors.semantic.game.hazardDefault);
+    pickup.setDepth(theme.zIndex.pickups);
     pickup.body.setAllowGravity(false);
     pickup.setImmovable(true);
     const vx = descriptor.velocityX ?? 0;
@@ -2439,7 +2470,12 @@ export default class DodgeGame extends BaseScene {
     pickup.setData("pickupType", descriptor.pickupType ?? "shield");
     this.pickups.add(pickup);
 
-    const PICKUP_ARRIVAL_TINTS = { shield: 0x55d6ff, speed: 0x4ecdc4, invuln: 0xffe66d, scoreMult: 0x95e1d3 };
+    const PICKUP_ARRIVAL_TINTS = {
+      shield: theme.colors.semantic.game.pickupShield,
+      speed: theme.colors.semantic.game.pickupSpeed,
+      invuln: theme.colors.semantic.game.pickupInvuln,
+      scoreMult: theme.colors.semantic.game.pickupScoreMult
+    };
     this.emitParticleBurst(descriptor.x, descriptor.y, 5, 200, 0.25, PICKUP_ARRIVAL_TINTS[descriptor.pickupType ?? "shield"]);
 
     const finalScaleX = descriptor.scaleX ?? PICKUP_VISUAL_DEFAULTS.scale;
@@ -2467,8 +2503,8 @@ export default class DodgeGame extends BaseScene {
 
     const boss = this.physics.add.image(descriptor.x, descriptor.y, texture);
     boss.setScale(descriptor.scaleX ?? 1, descriptor.scaleY ?? 1);
-    boss.setDepth(5);
-    boss.setTint(this.mapHazardTint(descriptor.tint ?? 0xffffff));
+    boss.setDepth(theme.zIndex.gameplay + 1);
+    boss.setTint(this.mapHazardTint(descriptor.tint ?? theme.colors.semantic.game.hazardDefault));
     boss.body.setAllowGravity(false);
     boss.setImmovable(true);
     boss.setDataEnabled();
@@ -2495,11 +2531,11 @@ export default class DodgeGame extends BaseScene {
       bossName: descriptor.name ?? "mini-boss",
       outcome: "spawned"
     });
-    this.setStatusText(`${descriptor.name} inbound. Dodge the storm pattern.`, 0xff8072);
+    this.setStatusText(`${descriptor.name} inbound. Dodge the storm pattern.`, parseInt(theme.colors.semantic.stroke.gameOver.replace("#", ""), 16));
     this.shakeCamera(250, 0.006);
     cameraZoomPulse(this, 1.03, 220);
     this.flashCamera(180, 255, 110, 110);
-    this.emitParticleBurst(descriptor.x, descriptor.y, 20, 400, 0.3, 0xff6644);
+    this.emitParticleBurst(descriptor.x, descriptor.y, 20, 400, 0.3, theme.colors.semantic.game.phaseRed);
     if (!this.activeChallenge && !this.pendingPerkChoices && this.music?.isPlaying) {
       this.tweens.add({
         targets: this.music,
@@ -2581,7 +2617,7 @@ export default class DodgeGame extends BaseScene {
           const dx = this.player.x - entry.x;
           const dy = this.player.y - entry.y;
           if (dx * dx + dy * dy <= NEAR_MISS_DISTANCE * NEAR_MISS_DISTANCE) {
-            showFloatingText(this, entry.x, entry.y - 20, "CLOSE!", "#ff6b6b");
+            showFloatingText(this, entry.x, entry.y - 20, "CLOSE!", theme.colors.semantic.text.danger);
           }
         }
       }
@@ -2651,8 +2687,8 @@ export default class DodgeGame extends BaseScene {
       boss.setData("attackElapsedMs", config.attackCadenceMs);
       cameraZoomPulse(this, 1.055, 220);
       cameraShake(this, 140, 0.0032);
-      this.setStatusText(`${config.name} phase shift! Attacks are accelerating.`, 0xffc078);
-      showFloatingText(this, boss.x, boss.y - 60, "PHASE 2", "#ffc078");
+      this.setStatusText(`${config.name} phase shift! Attacks are accelerating.`, theme.colors.semantic.text.warm);
+      showFloatingText(this, boss.x, boss.y - 60, "PHASE 2", theme.colors.semantic.text.warm);
     }
 
     if (state === "fight") {
@@ -2687,9 +2723,9 @@ export default class DodgeGame extends BaseScene {
       boss.setData("state", "exit");
       this.bossTimerText?.setVisible(false);
       this.shakeCamera(200, 0.005);
-      this.emitParticleBurst(boss.x, boss.y, 16, 350, 0.4, 0x8be9b1);
+      this.emitParticleBurst(boss.x, boss.y, 16, 350, 0.4, theme.colors.semantic.game.phaseGreen);
       boss.setVelocity(0, -config.exitSpeed);
-      this.setStatusText("Boss wave cleared. One reward pocket before the next cycle.", 0x8be9b1);
+      this.setStatusText("Boss wave cleared. One reward pocket before the next cycle.", theme.colors.semantic.game.phaseGreen);
       const reward = rollBossReward({ rng: this.spawnDirector.random });
       this.applyBossReward(reward, config.rewardPickup);
       emitBossOutcome({
@@ -2746,8 +2782,8 @@ export default class DodgeGame extends BaseScene {
         speedX = (targetX - projectile.x) / travelTime;
       }
 
-      projectile.setTint(this.mapHazardTint(0xff9f43));
-      projectile.setDepth(4);
+      projectile.setTint(this.mapHazardTint(theme.colors.semantic.game.phaseAmber));
+      projectile.setDepth(theme.zIndex.gameplay);
       projectile.body.setAllowGravity(false);
       projectile.setImmovable(true);
       projectile.setVelocity(speedX, speedY);
@@ -2761,7 +2797,7 @@ export default class DodgeGame extends BaseScene {
       });
       this.projectiles.add(projectile);
     }
-    this.emitParticleBurst(boss.x, boss.y + 66, 6, 240, 0.3, 0xff9f43);
+    this.emitParticleBurst(boss.x, boss.y + 66, 6, 240, 0.3, theme.colors.semantic.game.phaseAmber);
   }
 
   applyBossReward(reward, basePickup) {
@@ -2769,8 +2805,8 @@ export default class DodgeGame extends BaseScene {
     if (reward.kind === "metaFragment") {
       addMetaFragments(reward.fragments);
       this.bonusScore += reward.fragments;
-      showFloatingText(this, GAME_WIDTH / 2, 186, `+${reward.fragments} Fragment`, "#bdb2ff");
-      this.setStatusText(`Boss reward: ${reward.label} secured.`, 0xbdb2ff);
+      showFloatingText(this, GAME_WIDTH / 2, 186, `+${reward.fragments} Fragment`, theme.colors.semantic.text.objective);
+      this.setStatusText(`Boss reward: ${reward.label} secured.`, theme.colors.semantic.game.pickupShield);
       emitObjectiveCompleteBurst(this, GAME_WIDTH / 2, 188);
       return;
     }
@@ -2778,7 +2814,7 @@ export default class DodgeGame extends BaseScene {
     const rewardPickup = buildBossRewardPickup(basePickup, reward);
     if (rewardPickup) {
       this.spawnPickup(rewardPickup);
-      this.setStatusText(`Boss reward: ${reward.label}. Grab the relic!`, 0x8be9b1);
+      this.setStatusText(`Boss reward: ${reward.label}. Grab the relic!`, theme.colors.semantic.game.phaseGreen);
     }
   }
 

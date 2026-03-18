@@ -1,9 +1,11 @@
 /**
  * Programmatic base scene assets: ground, background, arrow.
  * No image files required; all drawn with Phaser Graphics.
+ * Colors from theme.colors.semantic.procedural.
  */
+import { GAME_WIDTH, GAME_HEIGHT, theme } from "../config/gameConfig.js";
 
-import { GAME_WIDTH, GAME_HEIGHT } from "../config/gameConfig.js";
+const proc = theme.colors.semantic.procedural;
 
 const GROUND_W = 640;
 const GROUND_H = 32;
@@ -24,14 +26,14 @@ function ensureTexture(scene, key, width, height, drawFn) {
  */
 export function ensureProceduralBaseAssets(scene) {
   ensureTexture(scene, "ground", GROUND_W, GROUND_H, (g, w, h) => {
-    g.fillStyle(0x2d4a3e, 1);
+    g.fillStyle(proc.groundDark, 1);
     g.fillRect(0, 0, w, h);
-    g.fillStyle(0x3d5a4e, 0.6);
+    g.fillStyle(proc.groundMid, 0.6);
     g.fillRect(0, h * 0.4, w, h * 0.2);
   });
 
   ensureTexture(scene, "background", GAME_WIDTH, GAME_HEIGHT, (g, w, h) => {
-    g.fillGradientStyle(0x0a1628, 0x0a1628, 0x142536, 0x142536, 0.5, 0, 0.5, 1);
+    g.fillGradientStyle(proc.skyTop, proc.skyTop, proc.skyBottom, proc.skyBottom, 0.5, 0, 0.5, 1);
     g.fillRect(0, 0, w, h);
   });
 
@@ -39,7 +41,7 @@ export function ensureProceduralBaseAssets(scene) {
     const cx = w / 2;
     const cy = h / 2;
     const size = 20;
-    g.fillStyle(0xffffff, 0.95);
+    g.fillStyle(proc.arrow, 0.95);
     g.fillTriangle(
       cx + size,
       cy,

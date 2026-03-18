@@ -10,7 +10,8 @@ import {
   GAME_HEIGHT,
   GAME_WIDTH,
   PLAYER_START_Y,
-  WORLD_BOUNDS
+  WORLD_BOUNDS,
+  theme
 } from "../config/gameConfig";
 
 const SHARED_ANIMATIONS = [
@@ -97,7 +98,11 @@ export default class BaseScene extends Phaser.Scene {
   createText(x, y, text, style, originX = 0, originY = 0) {
     const label = this.add.text(x, y, text, style);
     label.setOrigin(originX, originY);
-    label.setShadow(10, 10, "rgba(0,0,0,0.5)", 2);
+    const hex = theme.colors.base.black.replace("#", "");
+    const r = parseInt(hex.slice(0, 2), 16);
+    const g = parseInt(hex.slice(2, 4), 16);
+    const b = parseInt(hex.slice(4, 6), 16);
+    label.setShadow(10, 10, `rgba(${r},${g},${b},0.5)`, 2);
     return label;
   }
 

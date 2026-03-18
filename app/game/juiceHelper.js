@@ -3,6 +3,7 @@
  * camera shake/zoom, and particle burst presets for key moments.
  * Use when no external juice plugin is available; camera shake/zoom use Phaser built-ins.
  */
+import { theme } from "../config/gameConfig";
 
 /**
  * Applies an impact/squash effect to a display object: scale bounce (scaleX/scaleY up then back) and optional flash.
@@ -29,7 +30,7 @@ export function impactSquash(scene, target, opts = {}) {
   });
 
   if (flash && target.setTint) {
-    target.setTint(0xffffff);
+    target.setTint(theme.colors.semantic.game.hazardDefault);
     scene.time.delayedCall(80, () => {
       if (target.scene) target.clearTint();
     });
@@ -83,7 +84,7 @@ export function cameraZoomPulse(scene, peakZoom = 1.04, duration = 200) {
  */
 export function emitPhaseChangeBurst(scene, x, y) {
   if (typeof scene.emitParticleBurst === "function") {
-    scene.emitParticleBurst(x, y, 12, 280, 0.4, 0x55d6ff);
+    scene.emitParticleBurst(x, y, 12, 280, 0.4, theme.colors.semantic.game.phaseCyan);
   }
 }
 
@@ -95,24 +96,24 @@ export function emitPhaseChangeBurst(scene, x, y) {
  */
 export function emitObjectiveCompleteBurst(scene, x, y) {
   if (typeof scene.emitParticleBurst === "function") {
-    scene.emitParticleBurst(x, y, 10, 320, 0.35, 0x8be9b1);
+    scene.emitParticleBurst(x, y, 10, 320, 0.35, theme.colors.semantic.game.phaseGreen);
   }
 }
 
 export function emitBossTelegraph(scene, x, y, signature = "fan") {
   const tintBySignature = {
-    fan: 0xff9f43,
-    aimedBurst: 0xff6b6b,
-    cross: 0x9d4edd
+    fan: theme.colors.semantic.game.phaseAmber,
+    aimedBurst: theme.colors.semantic.game.phaseRed,
+    cross: theme.colors.semantic.game.bossTelegraphCross
   };
   if (typeof scene.emitParticleBurst === "function") {
-    scene.emitParticleBurst(x, y, 10, 260, 0.32, tintBySignature[signature] ?? 0xff9f43);
+    scene.emitParticleBurst(x, y, 10, 260, 0.32, tintBySignature[signature] ?? theme.colors.semantic.game.phaseAmber);
   }
 
-  const ring = scene.add?.circle?.(x, y, 24, 0xffffff, 0.14);
+  const ring = scene.add?.circle?.(x, y, 24, theme.colors.semantic.game.hazardDefault, 0.14);
   if (!ring) return;
-  ring.setStrokeStyle(2, tintBySignature[signature] ?? 0xffffff, 0.55);
-  ring.setDepth(6);
+  ring.setStrokeStyle(theme.components.hud.stroke.width, tintBySignature[signature] ?? theme.colors.semantic.game.hazardDefault, 0.55);
+  ring.setDepth(theme.zIndex.gameplay + 2);
   scene.tweens.add({
     targets: ring,
     radius: 68,

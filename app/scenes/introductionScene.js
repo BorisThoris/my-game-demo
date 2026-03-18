@@ -4,6 +4,7 @@ import {
   INFO_BODY_STYLE,
   INFO_HEADING_STYLE
 } from "../config/sceneStyles";
+import { theme } from "../config/gameConfig";
 import BaseScene from "./baseScene";
 
 export default class IntroductionScene extends BaseScene {
@@ -51,7 +52,7 @@ export default class IntroductionScene extends BaseScene {
 
     this.continueBtn = this.add.text(1100, 380, "Continue", {
       fontSize: "24px",
-      fill: "#9ae6ff",
+      fill: theme.colors.semantic.text.accent,
       fontStyle: "bold"
     });
     this.continueBtn.setOrigin(0.5, 0.5);

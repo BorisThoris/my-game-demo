@@ -4,7 +4,7 @@
  */
 
 import Phaser from "phaser";
-import { GAME_HEIGHT, PLAYER_HEIGHT_FRACTION } from "../config/gameConfig";
+import { GAME_HEIGHT, PLAYER_HEIGHT_FRACTION, theme } from "../config/gameConfig";
 import { getSkeleton, getSkeletonBounds, drawStickman } from "./stickmanSkeleton";
 
 /** Skeleton logical height (y extent) – used to scale to display size */
@@ -62,7 +62,7 @@ export default class StickmanPlayer extends Phaser.Physics.Arcade.Sprite {
     this._graphics.setAlpha(this.alpha);
     const scaleMult = this._displayScaleMultiplier != null ? this._displayScaleMultiplier : 1;
     this._graphics.setScale(this._skeletonScale * scaleMult);
-    drawStickman(this._graphics, this._skeleton, 0x55d6ff);
+    drawStickman(this._graphics, this._skeleton, theme.colors.semantic.game.playerGlow);
   }
 
   _updateHitbox() {

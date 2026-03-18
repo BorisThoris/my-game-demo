@@ -2,7 +2,9 @@
  * Stickman skeleton: joint positions in local space (origin = center of player, Y down).
  * Inspired by original Piskel stickman: round head, thin limbs, 256×256 frame scale.
  * Phase 0–1 cycles per animation loop.
+ * Colors from theme.colors.semantic.figure.
  */
+import { theme } from "../config/gameConfig";
 
 const HEAD_R = 22;
 const NECK_Y = -72;
@@ -120,17 +122,16 @@ export { HEAD_R };
 const LINE_THICK = 5;
 const JOINT_R = 4;
 const FOOT_R = 5;
-const WHITE = 0xffffff;
-const LIGHT = 0x99b8d4;
-const DARK = 0x1a2a3a;
+const { limb: WHITE, highlight: LIGHT, shadow: DARK } = theme.colors.semantic.figure;
+const defaultGlow = theme.colors.semantic.game.playerGlow;
 
 /**
  * Draw stickman to Graphics in local coordinates (origin = center).
  * @param {Phaser.GameObjects.Graphics} graphics
  * @param {Object} skeleton - from getSkeleton()
- * @param {number} [glowColor=0x55d6ff] - optional glow behind figure
+ * @param {number} [glowColor] - optional glow behind figure (default: theme.colors.semantic.game.playerGlow)
  */
-export function drawStickman(graphics, skeleton, glowColor = 0x55d6ff) {
+export function drawStickman(graphics, skeleton, glowColor = defaultGlow) {
   const s = skeleton;
   graphics.clear();
 

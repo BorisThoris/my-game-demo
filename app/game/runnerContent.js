@@ -1,5 +1,8 @@
-import { GAME_WIDTH, GAME_HEIGHT } from "../config/gameConfig.js";
+import { GAME_WIDTH, GAME_HEIGHT, theme } from "../config/gameConfig.js";
 import { getTintModifierFromSeed, getHitboxFromProceduralParams } from "./proceduralSprites.js";
+
+const palette = theme.colors.palette;
+const game = theme.colors.semantic.game;
 
 const SPAWN_Y = -140;
 const SPAWN_Y_TOP_BAND = 50; // y jitter when spawning from top (SPAWN_Y to SPAWN_Y + SPAWN_Y_TOP_BAND)
@@ -73,34 +76,10 @@ export function getCurrentLevelFromScore(score) {
 }
 
 export const RUNNER_PHASES = [
-  {
-    key: "recovery",
-    label: "Recovery",
-    durationMs: 22000,
-    pressure: 0.26,
-    color: 0x55d6ff
-  },
-  {
-    key: "push",
-    label: "Push",
-    durationMs: 18000,
-    pressure: 0.52,
-    color: 0xffd166
-  },
-  {
-    key: "heat",
-    label: "Heat",
-    durationMs: 22000,
-    pressure: 0.9,
-    color: 0xff6b6b
-  },
-  {
-    key: "reset",
-    label: "Reset",
-    durationMs: 15000,
-    pressure: 0.38,
-    color: 0x8be9b1
-  }
+  { key: "recovery", label: "Recovery", durationMs: 22000, pressure: 0.26, color: palette.runPhaseRecovery },
+  { key: "push", label: "Push", durationMs: 18000, pressure: 0.52, color: palette.runPhasePush },
+  { key: "heat", label: "Heat", durationMs: 22000, pressure: 0.9, color: palette.runPhaseHeat },
+  { key: "reset", label: "Reset", durationMs: 15000, pressure: 0.38, color: palette.runPhaseReset }
 ];
 
 /**
@@ -113,8 +92,8 @@ export const RUNNER_PHASES = [
 export const OBSTACLE_LIBRARY = {
   meteor: {
     texture: "runner-orb",
-    tint: 0xffa94d,
-    tintVariant: 0xffcc80,
+    tint: palette.meteorTint,
+    tintVariant: palette.meteorVariant,
     tintVariantChance: 0.25,
     scale: [0.7, 1.15],
     speedFactor: 1,
@@ -137,8 +116,8 @@ export const OBSTACLE_LIBRARY = {
   },
   shard: {
     texture: "runner-wedge",
-    tint: 0xff6b6b,
-    tintVariant: 0xff8787,
+    tint: palette.shardTint,
+    tintVariant: palette.shardVariant,
     tintVariantChance: 0.2,
     scale: [0.65, 1.05],
     speedFactor: 1.08,
@@ -165,7 +144,7 @@ export const OBSTACLE_LIBRARY = {
   },
   crusher: {
     texture: "runner-beam",
-    tint: 0x7bed9f,
+    tint: palette.crusherTint,
     scaleX: [0.72, 1.08],
     scaleY: [0.86, 1.08],
     speedFactor: 0.92,
@@ -189,7 +168,7 @@ export const OBSTACLE_LIBRARY = {
   },
   zigzag: {
     texture: "runner-diamond",
-    tint: 0x74c0fc,
+    tint: palette.sentinelTint,
     scale: [0.8, 1.08],
     speedFactor: 1.04,
     rotationSpeed: 150,
@@ -217,8 +196,8 @@ export const OBSTACLE_LIBRARY = {
   },
   sentinel: {
     texture: "runner-gate",
-    tint: 0xd0bfff,
-    tintVariant: 0xe5deff,
+    tint: palette.polygonTint,
+    tintVariant: palette.polygonVariant,
     tintVariantChance: 0.2,
     scale: [0.78, 1],
     speedFactor: 0.96,
@@ -247,7 +226,7 @@ export const OBSTACLE_LIBRARY = {
   },
   pulse: {
     texture: "runner-orb",
-    tint: 0xffaa00,
+    tint: palette.zigzagTint,
     scale: [0.65, 1],
     speedFactor: 1.02,
     destroyArchetype: "lingering",
@@ -266,7 +245,7 @@ export const OBSTACLE_LIBRARY = {
   },
   streak: {
     texture: "runner-bolt",
-    tint: 0x00d4ff,
+    tint: palette.streakTint,
     scale: [0.75, 1.05],
     speedFactor: 1.12,
     rotationSpeed: 260,
@@ -287,7 +266,7 @@ export const OBSTACLE_LIBRARY = {
   },
   spinner: {
     texture: "runner-gate",
-    tint: 0xe599f7,
+    tint: palette.wedgeTint,
     scale: [0.78, 1.02],
     speedFactor: 0.98,
     rotationSpeed: 200,
@@ -315,7 +294,7 @@ export const OBSTACLE_LIBRARY = {
   },
   ring: {
     texture: "runner-orb",
-    tint: 0xffd43b,
+    tint: palette.ringTint,
     scale: [0.7, 1.05],
     speedFactor: 1.02,
     rotationSpeed: 140,
@@ -336,7 +315,7 @@ export const OBSTACLE_LIBRARY = {
   },
   star: {
     texture: "runner-gate",
-    tint: 0xda77f2,
+    tint: palette.starTint,
     scale: [0.72, 1.02],
     speedFactor: 1.06,
     rotationSpeed: 120,
@@ -359,7 +338,7 @@ export const OBSTACLE_LIBRARY = {
   },
   cross: {
     texture: "runner-beam",
-    tint: 0x69db7c,
+    tint: palette.crossTint,
     scale: [0.68, 1],
     speedFactor: 0.95,
     rotationSpeed: 80,
@@ -382,7 +361,7 @@ export const OBSTACLE_LIBRARY = {
   },
   drone: {
     texture: "runner-orb",
-    tint: 0xf59f00,
+    tint: palette.droneTint,
     scale: [0.68, 1],
     speedFactor: 1.04,
     rotationSpeed: 100,
@@ -408,7 +387,7 @@ export const OBSTACLE_LIBRARY = {
   },
   slicer: {
     texture: "runner-beam",
-    tint: 0x2dd4bf,
+    tint: palette.slicerTint,
     scale: [0.7, 0.98],
     speedFactor: 1.08,
     rotationSpeed: 200,
@@ -431,7 +410,7 @@ export const OBSTACLE_LIBRARY = {
   },
   hex: {
     texture: "runner-gate",
-    tint: 0xa78bfa,
+    tint: palette.hexTint,
     scale: [0.72, 1.02],
     speedFactor: 1,
     rotationSpeed: 60,
@@ -493,30 +472,10 @@ function pickSpawnEdge(context, rng) {
 
 /** In-run pickup effect types; weighted for random pick when not overridden. */
 export const PICKUP_TYPES = {
-  shield: {
-    id: "shield",
-    tint: 0xd7f9ff,
-    weight: 4,
-    pickupFrame: 0
-  },
-  speed: {
-    id: "speed",
-    tint: 0x4ecdc4,
-    weight: 2,
-    pickupFrame: 1
-  },
-  invuln: {
-    id: "invuln",
-    tint: 0xffe66d,
-    weight: 1,
-    pickupFrame: 2
-  },
-  scoreMult: {
-    id: "scoreMult",
-    tint: 0x95e1d3,
-    weight: 2,
-    pickupFrame: 3
-  }
+  shield: { id: "shield", tint: game.pickupShield, weight: 4, pickupFrame: 0 },
+  speed: { id: "speed", tint: game.pickupSpeed, weight: 2, pickupFrame: 1 },
+  invuln: { id: "invuln", tint: game.pickupInvuln, weight: 1, pickupFrame: 2 },
+  scoreMult: { id: "scoreMult", tint: game.pickupScoreMult, weight: 2, pickupFrame: 3 }
 };
 
 const PICKUP_TYPE_IDS = Object.keys(PICKUP_TYPES);
@@ -1055,7 +1014,7 @@ export const PATTERN_LIBRARY = [
 const BOSS_ARCHETYPES = [
   {
     name: "Storm Core",
-    tint: 0xff7c6b,
+    tint: palette.bossStormCore,
     holdY: 126,
     driftAmplitude: 250,
     driftFrequency: 1.1,
@@ -1077,7 +1036,7 @@ const BOSS_ARCHETYPES = [
   },
   {
     name: "Void Spire",
-    tint: 0x9d4edd,
+    tint: palette.bossVoidSpire,
     holdY: 140,
     driftAmplitude: 200,
     driftFrequency: 1.4,
@@ -1099,7 +1058,7 @@ const BOSS_ARCHETYPES = [
   },
   {
     name: "Ember Nexus",
-    tint: 0xff9f1c,
+    tint: palette.bossEmberNexus,
     holdY: 115,
     driftAmplitude: 280,
     driftFrequency: 0.95,
@@ -1121,7 +1080,7 @@ const BOSS_ARCHETYPES = [
   },
   {
     name: "Frost Shard",
-    tint: 0x48cae4,
+    tint: palette.bossFrostShard,
     holdY: 132,
     driftAmplitude: 220,
     driftFrequency: 1.25,
@@ -1143,7 +1102,7 @@ const BOSS_ARCHETYPES = [
   },
   {
     name: "Chaos Rift",
-    tint: 0x06d6a0,
+    tint: palette.bossChaosRift,
     holdY: 138,
     driftAmplitude: 260,
     driftFrequency: 1.15,
@@ -1212,7 +1171,7 @@ export const buildMiniBossWave = (context, rng) => {
     name: "Storm Core",
     texture: "runner-boss",
     proceduralParams,
-    tint: 0xff7c6b,
+    tint: palette.bossStormCore,
     x: GAME_WIDTH / 2,
     y: -180,
     scaleX: 1,

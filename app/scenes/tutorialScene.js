@@ -1,6 +1,7 @@
-import { GAME_CENTER_X, GAME_HEIGHT, GAME_WIDTH } from "../config/gameConfig";
+import { GAME_CENTER_X, GAME_HEIGHT, GAME_WIDTH, theme } from "../config/gameConfig";
 import { SCENE_KEYS } from "../config/sceneKeys";
 import { BODY_STYLE, PANEL_TITLE_STYLE } from "../config/sceneStyles";
+const { colors } = theme;
 import { setTutorialCompleted, setTutorialOptOut } from "../save/saveManager";
 import BaseScene from "./baseScene";
 
@@ -30,7 +31,7 @@ export default class TutorialScene extends BaseScene {
     ];
 
     lines.forEach((line) => {
-      this.createText(130, y, `• ${line}`, { ...BODY_STYLE, font: "700 22px Arial", align: "left", fill: "#d7f9ff" });
+      this.createText(130, y, `• ${line}`, { ...BODY_STYLE, font: "700 22px Arial", align: "left", fill: colors.semantic.text.status });
       y += 42;
     });
 
@@ -38,7 +39,7 @@ export default class TutorialScene extends BaseScene {
     this.optOutLabel = this.createText(130, y, "[ ] Don't show tutorial again", {
       ...BODY_STYLE,
       font: "700 22px Arial",
-      fill: "#9ae6ff",
+      fill: colors.semantic.text.accent,
       align: "left"
     });
     this.optOutLabel.setInteractive({ useHandCursor: true });
@@ -47,14 +48,14 @@ export default class TutorialScene extends BaseScene {
     this.spaceHint = this.createText(GAME_CENTER_X, GAME_HEIGHT - 168, "Press Enter to begin • Press O to toggle opt-out", {
       ...BODY_STYLE,
       font: "700 20px Arial",
-      fill: "#fff2b5",
+      fill: colors.semantic.text.score,
       align: "center"
     });
 
     const begin = this.createText(GAME_CENTER_X - 120, GAME_HEIGHT - 100, "Begin Run", {
       ...BODY_STYLE,
       font: "700 30px Arial",
-      fill: "#8be9b1"
+      fill: colors.semantic.text.success
     });
     begin.setInteractive({ useHandCursor: true });
     begin.on("pointerdown", () => this.finishTutorial());
@@ -62,7 +63,7 @@ export default class TutorialScene extends BaseScene {
     const skip = this.createText(GAME_CENTER_X + 120, GAME_HEIGHT - 100, "Skip", {
       ...BODY_STYLE,
       font: "700 30px Arial",
-      fill: "#ffb380"
+      fill: colors.semantic.text.warm
     });
     skip.setInteractive({ useHandCursor: true });
     skip.on("pointerdown", () => this.skipTutorial());

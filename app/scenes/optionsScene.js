@@ -1,7 +1,9 @@
-import { GAME_CENTER_X, GAME_HEIGHT, GAME_WIDTH } from "../config/gameConfig";
+import { CONTROL_LABELS } from "../config/controlLabels";
+import { GAME_CENTER_X, GAME_HEIGHT, GAME_WIDTH, theme } from "../config/gameConfig";
 import { SCENE_KEYS } from "../config/sceneKeys";
 import { BODY_STYLE, PANEL_TITLE_STYLE } from "../config/sceneStyles";
 import { getSettings, setSettings } from "../save/saveManager";
+import { getThemeList } from "../config/styleTokens/themes";
 import { GAME_VERSION } from "../config/version";
 import BaseScene from "./baseScene";
 
@@ -21,6 +23,7 @@ export default class OptionsScene extends BaseScene {
     this.returnData = (data && data.returnData) || null;
 
     const settings = getSettings();
+    const colors = theme.colors;
 
     let y = 80;
     this.createText(GAME_CENTER_X, y, "Options", PANEL_TITLE_STYLE, 0.5, 0.5);
@@ -31,11 +34,11 @@ export default class OptionsScene extends BaseScene {
     const musicVal = this.createText(520, y, `${Math.round((getSettings().musicVolume || 1) * 100)}%`, {
       ...BODY_STYLE,
       font: "700 22px Arial",
-      fill: "#d7f9ff",
+      fill: colors.semantic.text.status,
       align: "left"
     });
-    const musicDown = this.createText(340, y, " − ", { ...BODY_STYLE, font: "700 24px Arial", fill: "#9ae6ff" }).setInteractive({ useHandCursor: true });
-    const musicUp = this.createText(420, y, " + ", { ...BODY_STYLE, font: "700 24px Arial", fill: "#9ae6ff" }).setInteractive({ useHandCursor: true });
+    const musicDown = this.createText(340, y, " − ", { ...BODY_STYLE, font: "700 24px Arial", fill: colors.semantic.text.accent }).setInteractive({ useHandCursor: true });
+    const musicUp = this.createText(420, y, " + ", { ...BODY_STYLE, font: "700 24px Arial", fill: colors.semantic.text.accent }).setInteractive({ useHandCursor: true });
     musicDown.on("pointerdown", () => {
       const s = getSettings();
       const v = clamp01((s.musicVolume || 1) - 0.1);
@@ -55,11 +58,11 @@ export default class OptionsScene extends BaseScene {
     const sfxVal = this.createText(520, y, `${Math.round((getSettings().sfxVolume || 1) * 100)}%`, {
       ...BODY_STYLE,
       font: "700 22px Arial",
-      fill: "#d7f9ff",
+      fill: colors.semantic.text.status,
       align: "left"
     });
-    const sfxDown = this.createText(340, y, " − ", { ...BODY_STYLE, font: "700 24px Arial", fill: "#9ae6ff" }).setInteractive({ useHandCursor: true });
-    const sfxUp = this.createText(420, y, " + ", { ...BODY_STYLE, font: "700 24px Arial", fill: "#9ae6ff" }).setInteractive({ useHandCursor: true });
+    const sfxDown = this.createText(340, y, " − ", { ...BODY_STYLE, font: "700 24px Arial", fill: colors.semantic.text.accent }).setInteractive({ useHandCursor: true });
+    const sfxUp = this.createText(420, y, " + ", { ...BODY_STYLE, font: "700 24px Arial", fill: colors.semantic.text.accent }).setInteractive({ useHandCursor: true });
     sfxDown.on("pointerdown", () => {
       const s = getSettings();
       const v = clamp01((s.sfxVolume || 1) - 0.1);
@@ -79,11 +82,11 @@ export default class OptionsScene extends BaseScene {
     const shakeVal = this.createText(520, y, `${Math.round((getSettings().screenShakeIntensity ?? 1) * 100)}%`, {
       ...BODY_STYLE,
       font: "700 22px Arial",
-      fill: "#d7f9ff",
+      fill: colors.semantic.text.status,
       align: "left"
     });
-    const shakeDown = this.createText(340, y, " − ", { ...BODY_STYLE, font: "700 24px Arial", fill: "#9ae6ff" }).setInteractive({ useHandCursor: true });
-    const shakeUp = this.createText(420, y, " + ", { ...BODY_STYLE, font: "700 24px Arial", fill: "#9ae6ff" }).setInteractive({ useHandCursor: true });
+    const shakeDown = this.createText(340, y, " − ", { ...BODY_STYLE, font: "700 24px Arial", fill: colors.semantic.text.accent }).setInteractive({ useHandCursor: true });
+    const shakeUp = this.createText(420, y, " + ", { ...BODY_STYLE, font: "700 24px Arial", fill: colors.semantic.text.accent }).setInteractive({ useHandCursor: true });
     shakeDown.on("pointerdown", () => {
       const v = clamp01((getSettings().screenShakeIntensity ?? 1) - 0.1);
       setSettings({ screenShakeIntensity: v });
@@ -101,11 +104,11 @@ export default class OptionsScene extends BaseScene {
     const flashVal = this.createText(520, y, `${Math.round((getSettings().flashIntensity ?? 1) * 100)}%`, {
       ...BODY_STYLE,
       font: "700 22px Arial",
-      fill: "#d7f9ff",
+      fill: colors.semantic.text.status,
       align: "left"
     });
-    const flashDown = this.createText(340, y, " − ", { ...BODY_STYLE, font: "700 24px Arial", fill: "#9ae6ff" }).setInteractive({ useHandCursor: true });
-    const flashUp = this.createText(420, y, " + ", { ...BODY_STYLE, font: "700 24px Arial", fill: "#9ae6ff" }).setInteractive({ useHandCursor: true });
+    const flashDown = this.createText(340, y, " − ", { ...BODY_STYLE, font: "700 24px Arial", fill: colors.semantic.text.accent }).setInteractive({ useHandCursor: true });
+    const flashUp = this.createText(420, y, " + ", { ...BODY_STYLE, font: "700 24px Arial", fill: colors.semantic.text.accent }).setInteractive({ useHandCursor: true });
     flashDown.on("pointerdown", () => {
       const v = clamp01((getSettings().flashIntensity ?? 1) - 0.1);
       setSettings({ flashIntensity: v });
@@ -118,30 +121,11 @@ export default class OptionsScene extends BaseScene {
     });
     y += 50;
 
-    // Color blind palette
-    this.createText(200, y, "Color blind palette", { ...BODY_STYLE, font: "700 24px Arial", align: "left" });
-    const paletteModes = ["off", "protanopia", "deuteranopia", "tritanopia"];
-    const paletteVal = this.createText(430, y, (getSettings().colorBlindPaletteMode || "off"), {
-      ...BODY_STYLE,
-      font: "700 22px Arial",
-      fill: "#9ae6ff",
-      align: "left"
-    });
-    paletteVal.setInteractive({ useHandCursor: true });
-    paletteVal.on("pointerdown", () => {
-      const current = getSettings().colorBlindPaletteMode || "off";
-      const idx = paletteModes.indexOf(current);
-      const next = paletteModes[(idx + 1) % paletteModes.length];
-      setSettings({ colorBlindPaletteMode: next });
-      paletteVal.setText(next);
-    });
-    y += 55;
-
     // Fullscreen toggle (text button)
     const fsLabel = this.createText(200, y, settings.fullscreen ? "Fullscreen: On" : "Fullscreen: Off", {
       ...BODY_STYLE,
       font: "700 24px Arial",
-      fill: "#9ae6ff",
+      fill: colors.semantic.text.accent,
       align: "left"
     });
     fsLabel.setInteractive({ useHandCursor: true });
@@ -159,13 +143,66 @@ export default class OptionsScene extends BaseScene {
     });
     y += 55;
 
+    // Controls (display only; labels from config)
+    this.createText(GAME_CENTER_X, y, "Controls", PANEL_TITLE_STYLE, 0.5, 0.5);
+    y += 40;
+    CONTROL_LABELS.forEach(({ action, keys }) => {
+      this.createText(200, y, `${action}: ${keys}`, {
+        ...BODY_STYLE,
+        font: "700 20px Arial",
+        align: "left",
+        fill: colors.semantic.text.status
+      });
+      y += 32;
+    });
+    y += 20;
+
+    // Theme
+    const themeList = getThemeList();
+    const currentThemeId = getSettings().themeId || "skyfall";
+    const currentThemeName = themeList.find((t) => t.id === currentThemeId)?.name ?? "Skyfall";
+    this.createText(200, y, "Theme", { ...BODY_STYLE, font: "700 24px Arial", align: "left" });
+    const themeVal = this.createText(430, y, currentThemeName, {
+      ...BODY_STYLE,
+      font: "700 22px Arial",
+      fill: colors.semantic.text.accent,
+      align: "left"
+    });
+    themeVal.setInteractive({ useHandCursor: true });
+    themeVal.on("pointerdown", () => {
+      const idx = themeList.findIndex((t) => t.id === (getSettings().themeId || "skyfall"));
+      const next = themeList[(idx + 1) % themeList.length];
+      setSettings({ themeId: next.id });
+      this.scene.restart({ returnTo: this.returnTo, returnData: this.returnData });
+    });
+    y += 55;
+
+    // Color blind palette
+    this.createText(200, y, "Color blind palette", { ...BODY_STYLE, font: "700 24px Arial", align: "left" });
+    const paletteModes = ["off", "protanopia", "deuteranopia", "tritanopia"];
+    const paletteVal = this.createText(430, y, (getSettings().colorBlindPaletteMode || "off"), {
+      ...BODY_STYLE,
+      font: "700 22px Arial",
+      fill: colors.semantic.text.accent,
+      align: "left"
+    });
+    paletteVal.setInteractive({ useHandCursor: true });
+    paletteVal.on("pointerdown", () => {
+      const current = getSettings().colorBlindPaletteMode || "off";
+      const idx = paletteModes.indexOf(current);
+      const next = paletteModes[(idx + 1) % paletteModes.length];
+      setSettings({ colorBlindPaletteMode: next });
+      paletteVal.setText(next);
+    });
+    y += 55;
+
     // Resolution / quality (dropdown as text buttons)
     this.createText(200, y, "Resolution", { ...BODY_STYLE, font: "700 24px Arial", align: "left" });
     const resOptions = ["1280x720", "1920x1080"];
     const resLabel = this.createText(340, y, settings.resolutionOrQuality || "1280x720", {
       ...BODY_STYLE,
       font: "700 22px Arial",
-      fill: "#9ae6ff",
+      fill: colors.semantic.text.accent,
       align: "left"
     });
     resLabel.setInteractive({ useHandCursor: true });
@@ -177,25 +214,26 @@ export default class OptionsScene extends BaseScene {
     });
     y += 60;
 
-    // Keybinds list
-    this.createText(GAME_CENTER_X, y, "Controls", PANEL_TITLE_STYLE, 0.5, 0.5);
-    y += 40;
-    const keybinds = [
-      "WASD / Arrows / Mobile joystick – Move",
-      "1 / 2 / 3 – Challenge options",
-      "Escape – Pause",
-      "Tap options with + / − buttons for accessibility sliders"
-    ];
-    keybinds.forEach((line) => {
-      this.createText(200, y, line, { ...BODY_STYLE, font: "700 20px Arial", align: "left", fill: "#d7f9ff" });
-      y += 32;
+    // Achievements (link to achievements scene)
+    const achievementsLabel = this.createText(200, y, "Achievements", {
+      ...BODY_STYLE,
+      font: "700 24px Arial",
+      fill: colors.semantic.text.accent,
+      align: "left"
     });
-    y += 20;
+    achievementsLabel.setInteractive({ useHandCursor: true });
+    achievementsLabel.on("pointerdown", () => {
+      this.scene.start(SCENE_KEYS.achievements, {
+        returnTo: SCENE_KEYS.options,
+        returnData: { returnTo: this.returnTo, returnData: this.returnData }
+      });
+    });
+    y += 50;
 
     // Version
     this.createText(GAME_CENTER_X, y, `Skyfall v${GAME_VERSION}`, {
       font: "700 18px Arial",
-      fill: "#6a8a9a",
+      fill: colors.semantic.text.muted,
       align: "center"
     }).setOrigin(0.5, 0.5);
     y += 50;
@@ -204,7 +242,7 @@ export default class OptionsScene extends BaseScene {
     const back = this.createText(GAME_CENTER_X, Math.min(y, GAME_HEIGHT - 80), "Back", {
       ...BODY_STYLE,
       font: "700 28px Arial",
-      fill: "#ffb380"
+      fill: colors.semantic.text.warm
     });
     back.setOrigin(0.5, 0.5);
     back.setInteractive({ useHandCursor: true });

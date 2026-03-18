@@ -1,58 +1,39 @@
 /**
  * Shared HUD text styles for the dodge game scene.
- * Use with add.text(x, y, content, DODGE_HUD_STYLES.scoreText) etc.
+ * All values come from the active theme (Settings → Theme).
  */
-const base = {
-  fontFamily: "Arial",
-  fontStyle: "bold"
-};
+import { getTheme } from "./styleTokens/index.js";
 
-export const DODGE_HUD_STYLES = {
-  scoreText: {
-    ...base,
-    fontSize: "44px",
-    fill: "#fff2b5"
-  },
-  highestScore: {
-    ...base,
-    fontSize: "24px",
-    fill: "#d7f9ff"
-  },
-  phaseText: {
-    ...base,
-    fontSize: "32px",
-    fill: "#55d6ff"
-  },
-  shieldText: {
-    ...base,
-    fontSize: "24px",
-    fill: "#ffffff"
-  },
-  statusText: {
-    ...base,
-    fontSize: "24px",
-    fill: "#d7f9ff",
-    align: "center"
-  },
-  objectiveText: {
-    ...base,
-    fontSize: "20px",
-    fill: "#a6d9ff",
-    align: "left"
-  },
-  bossTimerText: {
-    ...base,
-    fontSize: "20px",
-    fill: "#ffaa44",
-    align: "left"
+function buildHudStyles(theme) {
+  const { typography, colors, components } = theme;
+  const hudComp = components.hud;
+  const strokeWidth = hudComp.stroke?.width ?? 3;
+  const base = { fontFamily: typography.fontFamily.primary, fontStyle: typography.fontStyle.bold };
+  return {
+    scoreText: { ...base, fontSize: hudComp.scoreText.fontSize ?? typography.fontSize["2xl"], fill: colors.semantic.text.score },
+    highestScore: { ...base, fontSize: hudComp.highestScore.fontSize ?? typography.fontSize.base, fill: colors.semantic.text.best },
+    phaseText: { ...base, fontSize: hudComp.phaseText.fontSize ?? typography.fontSize.xl, fill: colors.semantic.text.phase },
+    shieldText: { ...base, fontSize: hudComp.shieldText.fontSize ?? typography.fontSize.base, fill: colors.semantic.text.shield },
+    statusText: { ...base, fontSize: hudComp.statusText.fontSize ?? typography.fontSize.base, fill: colors.semantic.text.status, align: "center" },
+    objectiveText: { ...base, fontSize: hudComp.objectiveText.fontSize ?? typography.fontSize.sm, fill: colors.semantic.text.objective, align: "left" },
+    bossTimerText: { ...base, fontSize: hudComp.bossTimerText.fontSize ?? typography.fontSize.sm, fill: colors.semantic.text.bossTimer, align: "left" }
+  };
+}
+
+/** Resolves to current theme so changing theme in Settings updates HUD. */
+export const DODGE_HUD_STYLES = new Proxy({}, { get(_, prop) { return buildHudStyles(getTheme())[prop]; } });
+
+/** Stroke for key HUD text. Resolves to current theme. */
+export const HUD_STROKE = new Proxy(
+  {},
+  {
+    get(_, prop) {
+      const theme = getTheme();
+      const w = theme.components.hud.stroke?.width ?? 3;
+      return prop === "color" ? theme.colors.semantic.stroke.hud : prop === "width" ? w : undefined;
+    }
   }
-};
-
-/** Stroke for key HUD text so they read on the background */
-export const HUD_STROKE = {
-  color: "#0d1823",
-  width: 3
-};
+);
 
 /** Audio: music ducking and SFX (ooGnome/gameOver) rate/volume for events */
 export const DODGE_AUDIO = {
@@ -66,3 +47,5 @@ export const DODGE_AUDIO = {
   sfxDestroy: { rate: 1.0, volume: 0.18 },
   sfxChainDestroy: { rate: 1.25, volume: 0.22 }
 };
+
+export { getTheme as theme };

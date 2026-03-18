@@ -16,7 +16,8 @@ const DEFAULT_SETTINGS = {
   resolutionOrQuality: "1280x720",
   screenShakeIntensity: 1,
   flashIntensity: 1,
-  colorBlindPaletteMode: "off"
+  colorBlindPaletteMode: "off",
+  themeId: "skyfall"
 };
 
 const DEFAULT_UNLOCK_TREE = {

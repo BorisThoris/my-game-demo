@@ -1,6 +1,7 @@
-import { GAME_CENTER_X, GAME_HEIGHT } from "../config/gameConfig";
+import { GAME_CENTER_X, GAME_HEIGHT, theme } from "../config/gameConfig";
 import { SCENE_KEYS } from "../config/sceneKeys";
 import { BODY_STYLE, PANEL_TITLE_STYLE } from "../config/sceneStyles";
+const { colors } = theme;
 import { GAME_VERSION } from "../config/version";
 import BaseScene from "./baseScene";
 
@@ -18,7 +19,7 @@ export default class CreditsScene extends BaseScene {
     y += 50;
     this.createText(GAME_CENTER_X, y, `Version ${GAME_VERSION}`, {
       font: "700 22px Arial",
-      fill: "#9ae6ff",
+      fill: colors.semantic.text.accent,
       align: "center"
     }).setOrigin(0.5, 0.5);
     y += 50;
@@ -39,14 +40,14 @@ export default class CreditsScene extends BaseScene {
     this.createText(GAME_CENTER_X, y, "Thank you for playing.", {
       ...BODY_STYLE,
       font: "700 22px Arial",
-      fill: "#d7f9ff"
+      fill: colors.semantic.text.status
     });
     y += 80;
 
     const back = this.createText(GAME_CENTER_X, Math.min(y, GAME_HEIGHT - 80), "Back to menu", {
       ...BODY_STYLE,
       font: "700 28px Arial",
-      fill: "#ffb380"
+      fill: colors.semantic.text.warm
     });
     back.setOrigin(0.5, 0.5);
     back.setInteractive({ useHandCursor: true });

@@ -1,8 +1,11 @@
 /**
  * Procedural sprite texture generation.
  * Produces deterministic shapes from params (seed, family, dimensions) for hazards and bosses.
+ * Base fill/stroke use theme.colors.semantic.procedural (shapes are tinted at runtime).
  */
+import { theme } from "../config/gameConfig.js";
 
+const proc = theme.colors.semantic.procedural;
 const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
 
 /** Deterministic tint multiplier from seed (0.92–1.08 per channel) for slight hazard color variation. */
@@ -177,14 +180,14 @@ export function drawProceduralShape(graphics, params) {
     const radius = Math.min((params.radius ?? 48), width / 2 - 2, height / 2 - 2);
     const ringCount = clamp(Math.floor(params.ringCount ?? 2), 1, 4);
     const innerRatio = clamp(params.innerRatio ?? 0.45, 0.2, 0.8);
-    graphics.fillStyle(0xffffff, 1);
+    graphics.fillStyle(proc.uiFill, 1);
     graphics.fillCircle(cx, cy, radius);
     for (let r = 1; r <= ringCount; r += 1) {
       const ringRadius = radius * (1 - (r / (ringCount + 1)) * (1 - innerRatio));
-      graphics.fillStyle(0x99a7c2, 0.75 - r * 0.1);
+      graphics.fillStyle(proc.uiMuted, 0.75 - r * 0.1);
       graphics.fillCircle(cx, cy, ringRadius);
     }
-    graphics.lineStyle(6, 0xffffff, 0.55);
+    graphics.lineStyle(6, proc.uiFill, 0.55);
     graphics.strokeCircle(cx, cy, radius * 0.92);
     return;
   }
@@ -201,13 +204,13 @@ export function drawProceduralShape(graphics, params) {
     const leftX = 8;
     const rightX = w - 8;
     if (points === 3) {
-      graphics.fillStyle(0xffffff, 1);
+      graphics.fillStyle(proc.uiFill, 1);
       graphics.fillTriangle(leftX, bottomY, tipX, topY, rightX, bottomY);
-      graphics.fillStyle(0xffffff, 0.38);
+      graphics.fillStyle(proc.uiFill, 0.38);
       graphics.fillTriangle(leftX * 1.2, bottomY - 8, tipX, topY + 20, rightX * 0.8, bottomY - 8);
     } else {
       const pts = makePoints(points, Math.min(halfW, h) * 0.9, halfW, h / 2);
-      graphics.fillStyle(0xffffff, 1);
+      graphics.fillStyle(proc.uiFill, 1);
       graphics.fillPoints(pts.map(p => ({ x: p.x + halfW, y: p.y + h / 2 })), true);
     }
     return;
@@ -219,11 +222,11 @@ export function drawProceduralShape(graphics, params) {
     const notchCount = clamp(Math.floor(params.notchCount ?? 0), 0, 6);
     const x0 = (width - len) / 2;
     const y0 = (height - thick) / 2;
-    graphics.fillStyle(0xffffff, 1);
+    graphics.fillStyle(proc.uiFill, 1);
     graphics.fillRoundedRect(x0, y0, len, thick, 14);
     if (notchCount > 0) {
       const gap = len / (notchCount + 1);
-      graphics.fillStyle(0xffffff, 0.35);
+      graphics.fillStyle(proc.uiFill, 0.35);
       for (let i = 0; i < notchCount; i += 1) {
         graphics.fillRoundedRect(x0 + gap * (i + 0.5) - 20, y0 + 8, 40, thick - 16, 6);
       }
@@ -236,9 +239,9 @@ export function drawProceduralShape(graphics, params) {
     const radius = Math.min(params.radius ?? 48, width / 2 - 2, height / 2 - 2);
     const starFactor = clamp(params.starFactor ?? 0, 0, 0.5);
     const pts = makePoints(pointCount, radius, cx, cy, starFactor);
-    graphics.fillStyle(0xffffff, 1);
+    graphics.fillStyle(proc.uiFill, 1);
     graphics.fillPoints(pts, true);
-    graphics.fillStyle(0xffffff, 0.4);
+    graphics.fillStyle(proc.uiFill, 0.4);
     const innerPts = makePoints(pointCount, radius * 0.6, cx, cy, 0);
     graphics.fillPoints(innerPts, true);
     return;
@@ -248,22 +251,22 @@ export function drawProceduralShape(graphics, params) {
     const pointCount = clamp(params.pointCount ?? 8, 6, 12);
     const radius = Math.min(params.radius ?? 80, width / 2 - 2, height / 2 - 2);
     const pts = makePoints(pointCount, radius, cx, cy, 0);
-    graphics.fillStyle(0xffffff, 1);
+    graphics.fillStyle(proc.uiFill, 1);
     graphics.fillPoints(pts, true);
-    graphics.fillStyle(0xfff2f2, 0.3);
+    graphics.fillStyle(proc.bossInner, 0.3);
     graphics.fillCircle(cx, cy, radius * 0.5);
-    graphics.fillStyle(0x080f18, 1);
+    graphics.fillStyle(proc.bossCore, 1);
     graphics.fillCircle(cx, cy, radius * 0.2);
     return;
   }
 
   if (family === "hazardGlow") {
     const radius = Math.min(params.radius ?? 52, width / 2 - 4, height / 2 - 4);
-    graphics.fillStyle(0xffffff, 0.08);
+    graphics.fillStyle(proc.uiFill, 0.08);
     graphics.fillCircle(cx, cy, radius);
-    graphics.fillStyle(0xffffff, 0.18);
+    graphics.fillStyle(proc.uiFill, 0.18);
     graphics.fillCircle(cx, cy, radius * 0.7);
-    graphics.fillStyle(0xffffff, 0.32);
+    graphics.fillStyle(proc.uiFill, 0.32);
     graphics.fillCircle(cx, cy, radius * 0.4);
     return;
   }
@@ -279,9 +282,9 @@ export function drawProceduralShape(graphics, params) {
       const rad = i % 2 === 0 ? r : innerR;
       pts.push({ x: cx + Math.cos(angle) * rad, y: cy + Math.sin(angle) * rad });
     }
-    graphics.fillStyle(0xffffff, 0.95);
+    graphics.fillStyle(proc.uiFill, 0.95);
     graphics.fillPoints(pts, true);
-    graphics.fillStyle(0xffffff, 0.5);
+    graphics.fillStyle(proc.uiFill, 0.5);
     graphics.fillCircle(cx, cy, innerR * 0.8);
     return;
   }
@@ -294,9 +297,9 @@ export function drawProceduralShape(graphics, params) {
       { x: cx, y: cy + s },
       { x: cx - s, y: cy }
     ];
-    graphics.fillStyle(0xffffff, 1);
+    graphics.fillStyle(proc.uiFill, 1);
     graphics.fillPoints(pts, true);
-    graphics.lineStyle(2, 0xffffff, 0.6);
+    graphics.lineStyle(2, proc.uiFill, 0.6);
     for (let i = 0; i < pts.length; i += 1) {
       const a = pts[i];
       const b = pts[(i + 1) % pts.length];
@@ -311,9 +314,9 @@ export function drawProceduralShape(graphics, params) {
     const innerR = radius * innerRatio;
     const outerPts = makePoints(32, radius, cx, cy, 0);
     const innerPts = makePoints(32, innerR, cx, cy, 0).reverse();
-    graphics.fillStyle(0xffffff, 1);
+    graphics.fillStyle(proc.uiFill, 1);
     graphics.fillPoints([...outerPts, ...innerPts], true);
-    graphics.lineStyle(3, 0xffffff, 0.5);
+    graphics.lineStyle(3, proc.uiFill, 0.5);
     graphics.strokeCircle(cx, cy, radius);
     return;
   }
@@ -328,9 +331,9 @@ export function drawProceduralShape(graphics, params) {
       const r = i % 2 === 0 ? radius : radius * innerRatio;
       pts.push({ x: cx + Math.cos(angle) * r, y: cy + Math.sin(angle) * r });
     }
-    graphics.fillStyle(0xffffff, 1);
+    graphics.fillStyle(proc.uiFill, 1);
     graphics.fillPoints(pts, true);
-    graphics.fillStyle(0xffffff, 0.35);
+    graphics.fillStyle(proc.uiFill, 0.35);
     graphics.fillCircle(cx, cy, radius * innerRatio * 0.7);
     return;
   }
@@ -348,7 +351,7 @@ export function drawProceduralShape(graphics, params) {
     const hw = size - pad * 2;
     const hh = thickness;
     const rad = Math.min(4, thickness / 3);
-    graphics.fillStyle(0xffffff, 1);
+    graphics.fillStyle(proc.uiFill, 1);
     graphics.fillRoundedRect(vx, vy, vw, vh, rad);
     graphics.fillRoundedRect(hx, hy, hw, hh, rad);
     return;
@@ -357,12 +360,12 @@ export function drawProceduralShape(graphics, params) {
   if (family === "hex") {
     const radius = Math.min(params.radius ?? 44, width / 2 - 2, height / 2 - 2);
     const pts = makePoints(6, radius, cx, cy, 0);
-    graphics.fillStyle(0xffffff, 1);
+    graphics.fillStyle(proc.uiFill, 1);
     graphics.fillPoints(pts, true);
-    graphics.fillStyle(0xffffff, 0.4);
+    graphics.fillStyle(proc.uiFill, 0.4);
     const innerPts = makePoints(6, radius * 0.55, cx, cy, 0);
     graphics.fillPoints(innerPts, true);
-    graphics.lineStyle(2, 0xffffff, 0.5);
+    graphics.lineStyle(2, proc.uiFill, 0.5);
     for (let i = 0; i < pts.length; i += 1) {
       const a = pts[i];
       const b = pts[(i + 1) % pts.length];

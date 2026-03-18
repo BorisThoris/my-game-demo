@@ -236,6 +236,12 @@ body {
   z-index: 10;
 }
 
+/* Desktop/Electron: hide overlay so it takes no space and isn't focusable */
+body.desktop-build .mobile-controls-overlay,
+body.desktop-build .mobile-controls-overlay * {
+  display: none !important;
+}
+
 .mobile-controls-overlay.mobile-controls-visible {
   display: block;
 }
