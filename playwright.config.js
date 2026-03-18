@@ -1,10 +1,11 @@
-﻿// @ts-check
+// @ts-check
 import { defineConfig, devices } from "@playwright/test";
 import path from "path";
 import { fileURLToPath } from "url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const port = 25999;
+// Use a dedicated port so tests don't hit another app on 3000. For local dev: npm run dev -- --port 3000 then open http://localhost:3000/#/editor
+const port = process.env.PLAYWRIGHT_APP_PORT ? parseInt(process.env.PLAYWRIGHT_APP_PORT, 10) : 25999;
 const baseURL = "http://localhost:" + port;
 
 export default defineConfig({

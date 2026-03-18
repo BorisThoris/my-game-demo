@@ -1,6 +1,8 @@
 import Phaser from "phaser";
-import { GAME_CENTER_X, GAME_HEIGHT, GAME_WIDTH } from "../config/gameConfig";
+import { GAME_CENTER_X, GAME_HEIGHT, GAME_WIDTH, theme } from "../config/gameConfig";
 import { SCENE_KEYS } from "../config/sceneKeys";
+
+const { colors, zIndex } = theme;
 
 const BAR_WIDTH = 400;
 const BAR_HEIGHT = 24;
@@ -31,13 +33,13 @@ export default class LoadingScene extends Phaser.Scene {
     if (this.loadError) {
       const msg = this.add.text(GAME_CENTER_X, GAME_HEIGHT / 2 - 40, "Something went wrong loading the game.", {
         font: "700 28px Arial",
-        fill: "#ff8072",
+        fill: colors.semantic.stroke.gameOver,
         align: "center"
       });
       msg.setOrigin(0.5, 0.5);
       const retry = this.add.text(GAME_CENTER_X, GAME_HEIGHT / 2 + 20, "Retry", {
         font: "700 24px Arial",
-        fill: "#9ae6ff"
+        fill: colors.semantic.text.accent
       });
       retry.setOrigin(0.5, 0.5);
       retry.setPadding(28, 14);
@@ -48,20 +50,26 @@ export default class LoadingScene extends Phaser.Scene {
 
     this.add.text(GAME_CENTER_X, GAME_HEIGHT / 2 - 80, "Skyfall", {
       font: "700 56px Arial",
-      fill: "#fff3b0",
+      fill: colors.semantic.text.score,
       align: "center"
     }).setOrigin(0.5, 0.5);
 
     const barX = GAME_CENTER_X - BAR_WIDTH / 2;
     const barY = GAME_HEIGHT / 2 + 20;
+    this.add.text(GAME_CENTER_X, barY - 28, "Loading...", {
+      font: "700 22px Arial",
+      fill: colors.semantic.text.score,
+      align: "center"
+    }).setOrigin(0.5, 0.5);
+
     const track = this.add.graphics();
-    track.fillStyle(0x0d1823, 0.9);
+    track.fillStyle(colors.semantic.game.loadingTrack, 0.9);
     track.fillRoundedRect(barX, barY, BAR_WIDTH, BAR_HEIGHT, 6);
-    track.setDepth(1);
+    track.setDepth(zIndex.background + 1);
     const fill = this.add.graphics();
-    fill.fillStyle(0x55d6ff, 1);
+    fill.fillStyle(colors.semantic.game.loadingFill, 1);
     fill.fillRoundedRect(barX + 2, barY + 2, 0, BAR_HEIGHT - 4, 4);
-    fill.setDepth(2);
+    fill.setDepth(zIndex.background + 2);
 
     this.tweens.addCounter({
       from: 0,
@@ -71,11 +79,12 @@ export default class LoadingScene extends Phaser.Scene {
       onUpdate: (tween) => {
         const v = tween.getValue();
         fill.clear();
-        fill.fillStyle(0x55d6ff, 1);
+        fill.fillStyle(colors.semantic.game.loadingFill, 1);
         fill.fillRoundedRect(barX + 2, barY + 2, (BAR_WIDTH - 4) * v, BAR_HEIGHT - 4, 4);
       },
       onComplete: () => {
-        this.scene.start(SCENE_KEYS.mainMenu);
+        const goToEditor = typeof window !== "undefined" && window.location.hash === "#/editor";
+        this.scene.start(goToEditor ? SCENE_KEYS.editor : SCENE_KEYS.mainMenu);
       }
     });
   }

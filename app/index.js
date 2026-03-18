@@ -4,13 +4,17 @@ import LoadingScene from "./scenes/loadingScene";
 import MainMenuScene from "./scenes/mainMenuScene";
 import OptionsScene from "./scenes/optionsScene";
 import CreditsScene from "./scenes/creditsScene";
+import AchievementsScene from "./scenes/achievementsScene";
 import DodgeGame from "./scenes/dodgeGame";
 import MetaScene from "./scenes/metaScene";
 import TutorialScene from "./scenes/tutorialScene";
-import { initMobileControls } from "./input/mobileControls";
+import EditorScene from "./scenes/editorScene";
+import { SCENE_KEYS } from "./config/sceneKeys";
+import { initMobileControls, isMobile } from "./input/mobileControls";
 import {
   GAME_HEIGHT,
-  GAME_WIDTH
+  GAME_WIDTH,
+  theme
 } from "./config/gameConfig";
 
 const config = {
@@ -18,7 +22,7 @@ const config = {
   parent: "phaser-example",
   width: GAME_WIDTH,
   height: GAME_HEIGHT,
-  backgroundColor: "#08131d",
+  backgroundColor: theme.colors.semantic.background.overlay,
   fps: {
     limit: 60,
     min: 30
@@ -43,12 +47,22 @@ const config = {
     LoadingScene,
     MainMenuScene,
     OptionsScene,
+    AchievementsScene,
     TutorialScene,
     CreditsScene,
     DodgeGame,
-    MetaScene
+    MetaScene,
+    EditorScene
   ]
 };
 
 const game = new Phaser.Game(config);
 initMobileControls();
+if (!isMobile()) document.body.classList.add("desktop-build");
+
+// Hash routing: #/editor -> editor scene (when hash changes after load)
+window.addEventListener("hashchange", () => {
+  if (window.location.hash === "#/editor" && game.scene.getScene(SCENE_KEYS.editor)) {
+    game.scene.start(SCENE_KEYS.editor);
+  }
+});

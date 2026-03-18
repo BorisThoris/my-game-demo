@@ -10,6 +10,7 @@
     "agents:plan": "./scripts/agents/launch_task_agents.sh --dry-run",
     "agents:launch": "./scripts/agents/launch_task_agents.sh",
     "dev": "vite",
+    "dev:3000": "vite --port 3000",
     "build": "vite build",
     "preview": "vite preview",
     "electron:dev": "electron .",
@@ -20,7 +21,7 @@
   "license": "ISC",
   "dependencies": {
     "phaser": "^3.90.0",
-    "phaser3-juice-plugin": "github:RetroVX/phaser3-juice-plugin"
+    "phaser3-juice-plugin": "github:RetroVX/phaser3-juice-plugin#549cbddd6e7f950809a9c0bf04e1cfced176c9c5"
   },
   "devDependencies": {
     "@playwright/test": "^1.58.2",
