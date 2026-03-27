@@ -101,3 +101,12 @@ Official reference: [Steamworks — Trailers](https://partner.steamgames.com/doc
 - [ ] Export: H.264 + AAC, stereo, 44.1/48 kHz, Steam bitrate/resolution guidance met.
 - [ ] Music: licensed or original; trailer use documented.
 - [ ] Master saved as `marketing/trailer-master.mp4` (local) or equivalent path; `.mp4` under `marketing/` remains gitignored until you adopt LFS or another policy.
+
+---
+
+## AGENT-45 acceptance (repo / policy)
+
+| Criterion | How this repo satisfies it |
+|-----------|----------------------------|
+| One **final** `.mp4` in `marketing/` **or** agreed path + doc | **Agreed path:** `marketing/trailer-master.mp4` (documented above). File is **intentionally absent** from Git (see `.gitignore`); **human** captures and exports the binary. |
+| **No** copyrighted music without license | Covered in **Music licensing (trailer bed)** above; do not ship a trailer track without documented rights. |

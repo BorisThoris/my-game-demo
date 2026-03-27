@@ -16,6 +16,7 @@ import {
   GAME_WIDTH,
   theme
 } from "./config/gameConfig";
+import { GAME_VERSION } from "./config/version";
 
 const config = {
   type: Phaser.AUTO,
@@ -57,6 +58,9 @@ const config = {
 };
 
 const game = new Phaser.Game(config);
+if (import.meta.env.DEV) {
+  window.__skyfallDev = { game, GAME_VERSION };
+}
 initMobileControls();
 if (!isMobile()) document.body.classList.add("desktop-build");
 

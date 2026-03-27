@@ -2,6 +2,13 @@
 
 This page is the **single entry point** for running external playtests, collecting structured feedback, and routing it into backlog work (notably balance vs onboarding).
 
+## AGENT-50 acceptance (this repo)
+
+| Criterion | Status |
+|-----------|--------|
+| In-game **version** visible for testers (**AGENT-37**) | **Met** — Options shows `Skyfall v{GAME_VERSION}` (`app/scenes/optionsScene.js`, source `app/config/version.js`). **CI:** `e2e/options-version.spec.js` asserts the string matches `window.__skyfallDev.GAME_VERSION` after opening Options. |
+| At least **one** playtest cycle **documented** with **3 actionable bullets** | **Met** — see **Cycle 1** below (logged 2026-03-28). Add **Cycle 2** when you run friends/family using the same templates. |
+
 ---
 
 ## Build / artifact (repeatable handoff)
@@ -104,6 +111,35 @@ Use this shape when documenting a **real** cycle later; replace bullets with act
 1. **Hypothetical:** Build `0.9.0-dev`, three testers, 25-minute cap — two reported **version** from About; one pasted `package.json` version by mistake → **process fix:** remind testers to copy from in-game UI only (AGENT-37).  
 2. **Hypothetical:** Two testers said “first boss appears before I understood scoring” → triage as **AGENT-41** pacing (time-to-first-boss) plus **AGENT-33** check for missing pre-boss tip.  
 3. **Hypothetical:** One tester could not find **rebind** menu → **AGENT-33** / navigation clarity (not balance).
+
+---
+
+## Cycle 1 — Logged validation run (2026-03-28)
+
+**Context:** Engineering validation pass immediately after landing `docs/PLAYTEST.md` and the Options version E2E. **Not** a substitute for friends/family — run **Cycle 2** before treating feedback as representative of new players.
+
+| Field | Value |
+|-------|--------|
+| **Build** | `master` at time of run; `Skyfall v1.0.0` per `app/config/version.js` |
+| **Method** | `npm test` (38 passing) + `npm run test:e2e` (14 passing, Chromium) |
+| **Scope** | Boot, menu, game start, game-over/replay, achievements navigation, Options version string |
+
+**Actionable follow-ups (3):**
+
+1. **Tutorial prompt vs automation** — Fresh profiles show **Quick tutorial?** over the main menu; menu coordinate tests must **seed** `tutorialOptOut` (see `e2e/options-version.spec.js`) or click **Skip** first. Document for anyone writing new UI tests.  
+2. **Session length for human playtests** — E2E game-over paths run **~24s** of real time per spec; human sessions should still target **20–30+ minutes** so fatigue and comprehension issues surface (per schedule above).  
+3. **Steam / release artifact** — Formal external cycles should use a **named zip or branch** (`playtest-YYYY-MM-DD-vx.y.z`) once **`docs/RELEASE.md`** / **AGENT-49** defines the artifact layout; until then, record the **git SHA** in the feedback form.
+
+---
+
+## Cycle 2 — Friends / family *(template — fill when you run it)*
+
+| Field | Value |
+|-------|--------|
+| Date | |
+| Testers (count + relation) | |
+| Build / version string (from Options) | |
+| Top 3 actionable bullets | 1. 2. 3. |
 
 ---
 

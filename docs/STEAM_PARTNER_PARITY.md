@@ -19,22 +19,26 @@ Screenshots of partner config (redacted) can be appended here when available.
 
 ## Achievements: in-game ID → Steam API name
 
-The game passes the **in-game achievement id** string to `unlockAchievement` / the Steam adapter. Steam’s **API Name** field must match that string **exactly** (case-sensitive), unless you add an explicit mapping layer in the provider (not present in the canonical app today).
+The game passes the **in-game achievement id** string to `unlockAchievement` / the Steam adapter. Steam’s **API Name** field must match that string **exactly** (case-sensitive). There is **no** mapping layer in the default app path—**type these API names verbatim** when creating achievements in Steamworks.
 
-| In-game ID (`ACHIEVEMENTS` key) | In-game title (reference) | Steam API name (partner) — **replace with exact partner string** |
-|--------------------------------|---------------------------|------------------------------------------------------------------|
-| `first_run` | First Record | `<STEAM_API_NAME>` (suggested: `first_run`) |
-| `score_50` | 50 Up | `<STEAM_API_NAME>` (suggested: `score_50`) |
-| `score_100` | Century | `<STEAM_API_NAME>` (suggested: `score_100`) |
-| `score_250` | Skyline | `<STEAM_API_NAME>` (suggested: `score_250`) |
-| `boss_clear_1` | Boss Breaker | `<STEAM_API_NAME>` (suggested: `boss_clear_1`) |
-| `boss_clear_5` | Boss Veteran | `<STEAM_API_NAME>` (suggested: `boss_clear_5`) |
-| `challenge_streak_3` | In The Zone | `<STEAM_API_NAME>` (suggested: `challenge_streak_3`) |
-| `challenge_streak_5` | Perfect Cadence | `<STEAM_API_NAME>` (suggested: `challenge_streak_5`) |
-| `no_hit_30s` | Untouched | `<STEAM_API_NAME>` (suggested: `no_hit_30s`) |
-| `no_hit_60s` | Ghost Runner | `<STEAM_API_NAME>` (suggested: `no_hit_60s`) |
+| In-game ID (`ACHIEVEMENTS` key) | In-game title (reference) | **Steam API name to create (must match)** | Partner dashboard filled? |
+|--------------------------------|---------------------------|-------------------------------------------|---------------------------|
+| `first_run` | First Record | `first_run` | ☐ |
+| `score_50` | 50 Up | `score_50` | ☐ |
+| `score_100` | Century | `score_100` | ☐ |
+| `score_250` | Skyline | `score_250` | ☐ |
+| `boss_clear_1` | Boss Breaker | `boss_clear_1` | ☐ |
+| `boss_clear_5` | Boss Veteran | `boss_clear_5` | ☐ |
+| `challenge_streak_3` | In The Zone | `challenge_streak_3` | ☐ |
+| `challenge_streak_5` | Perfect Cadence | `challenge_streak_5` | ☐ |
+| `no_hit_30s` | Untouched | `no_hit_30s` | ☐ |
+| `no_hit_60s` | Ghost Runner | `no_hit_60s` | ☐ |
 
-**Table coverage:** 11 / 11 in-game achievements from `ACHIEVEMENTS` are listed (**100%**). **Confirmed** Steam partner API names filled in this doc: **0 / 11 (0%)** — placeholders only until partner data is pasted.
+**Coverage:** 10 / 10 in-game achievements from `ACHIEVEMENTS` have defined Steam API names (**100%**). Check the last column after you create rows in Steamworks and smoke-test with **AGENT-22**.
+
+### Partner screenshots (optional)
+
+Redacted screenshots of the achievement and leaderboard admin pages can be embedded here once configured. Until then, this table is the contract.
 
 ---
 
