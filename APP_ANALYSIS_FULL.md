@@ -30,7 +30,7 @@ Complete analysis of the app: structure, gameplay, assets, systems, and how ever
 
 ### Legacy / portfolio flow (not the live boot path)
 
-The **diagram in §3** describes an older **BeginningScene → ChoiceScene → …** hub. Those files may still exist under `app/scenes/` but are **not** registered in [`app/index.js`](app/index.js) for the current product. Cleanup: [`tasks/AGENT-11-remove-orphan-scenes.md`](tasks/AGENT-11-remove-orphan-scenes.md).
+The **diagram in §3** is an **archived** description of a **BeginningScene → ChoiceScene → …** hub. Those scene files were **removed** from the repo (**AGENT-11**, 2026); §3 is kept only as historical context. Live navigation uses **MainMenu** and related registered scenes only.
 
 ---
 

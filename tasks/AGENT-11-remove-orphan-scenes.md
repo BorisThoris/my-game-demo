@@ -19,9 +19,9 @@ rg "beginningScene|choiceScene|introductionScene|websitesScene|navigationScene|i
 5. Run `npm test` and `npm run test:e2e`.
 
 ## Acceptance criteria
-- [ ] Game boots: Loading → Main Menu → Play unchanged.
-- [ ] No broken imports; Vite build succeeds.
-- [ ] `sceneKeys.js` has no keys pointing to deleted scenes.
+- [x] Game boots: Loading → Main Menu → Play unchanged.
+- [x] No broken imports; Vite build succeeds.
+- [x] `sceneKeys.js` has no keys pointing to deleted scenes.
 
 ## Do not delete
 - `ChallengeDirector` / challenge flow (product constraint).

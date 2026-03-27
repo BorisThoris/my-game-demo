@@ -43,7 +43,7 @@
 | [08](./AGENT-08-daily-modifier.md) | Daily modifier | open | — | `.agents/agent-08` | — | — |
 | [09](./AGENT-09-perk-tags-feats.md) | Perk tags + feats | open | — | `.agents/agent-09` | — | Coordinate with 02 if overlap. |
 | [10](./AGENT-10-post-run-tips.md) | Post-run tips | open | — | `.agents/agent-10` | — | — |
-| [11](./AGENT-11-remove-orphan-scenes.md) | Remove orphan scenes | open | — | `.agents/agent-11` | — | — |
+| [11](./AGENT-11-remove-orphan-scenes.md) | Remove orphan scenes | done | cursor-agent-11 | `.agents/agent-11` | 2026-03-28 | Portfolio hub + websites.js removed |
 | [12](./AGENT-12-editor-production-gate.md) | Editor prod gate | done | cursor-wave02 | `.agents/agent-12` | 2026-03-28 | DEV-only editor + loading gate |
 | [13](./AGENT-13-online-telemetry-audit.md) | Online + telemetry audit | open | — | `.agents/agent-13` | — | — |
 | [14](./AGENT-14-optional-remove-game-mode.md) | Optional: remove mode | open | — | `.agents/agent-14` | — | Product approval. |
@@ -104,6 +104,7 @@
 
 Append a line when you do a bulk reset or housekeeping:
 
+- `2026-03-28` — **AGENT-11** orphan portfolio scenes removed; `websites.js` removed; docs updated.
 - `2026-03-28` — wave 02 (agents **12, 34, 38, 39**) completed; editor prod gate, credits notices, fullscreen QA doc, editor defer.
 - `2026-03-28` — wave 01 (agents **18, 35, 40, 44, 45, 50, 51, 52, 53, 54**) completed in parallel; board rows set `done`.
 - _Example: `2026-03-27` — reset all rows to `open` after shipping v1._

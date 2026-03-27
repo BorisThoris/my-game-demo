@@ -66,7 +66,7 @@ Prioritize using this table and [`docs/GAP_ANALYSIS_BEYOND_TASKS.md`](docs/GAP_A
 
 | Issue | Where | Fix |
 |-------|--------|-----|
-| **Stale name / copy in orphan files** | If `beginningScene.js` or other **non-boot** scenes remain, they may still say **Interval Dodger** or wrong exit tutorial copy (**35** vs **120**). | Remove or align with Skyfall + `EXIT_UNLOCK_SCORE` ([`AGENT-11`](tasks/AGENT-11-remove-orphan-scenes.md)). |
+| **Stale name / copy in orphan files** | *(Mitigated)* Portfolio orphan scenes **removed** ([`AGENT-11`](tasks/AGENT-11-remove-orphan-scenes.md)); verify [`index.html`](index.html) + player-facing scenes only. |
 | **Portfolio scenes off the live path** | Introduction / choice / websites scenes may still exist on disk with CV/portfolio tone. | Delete or quarantine; live menu is game-focused ([`docs/GAP_ANALYSIS_BEYOND_TASKS.md`](docs/GAP_ANALYSIS_BEYOND_TASKS.md) §6). |
 
 ---

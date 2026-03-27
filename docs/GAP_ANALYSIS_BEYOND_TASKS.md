@@ -121,7 +121,7 @@ This document is a **deep, codebase-grounded** inventory of what is **missing, s
 | **Tutorial** | Tutorial scene + `shouldShowTutorial` / opt-out in save. | Depth vs **interactive** onboarding is a **design** choice; [`BACKLOG-OPTIONAL-STRIPS.md`](../tasks/BACKLOG-OPTIONAL-STRIPS.md) mentions shorten/remove. |
 | **Lore / campaign** | None. | Intentional for arcade scope. |
 | **Credits** | `creditsScene.js`. | Small; optional strip in backlog. |
-| **Orphan portfolio scenes** | `beginningScene`, `choiceScene`, `introductionScene`, `websitesScene`, `navigationScene` **not** in [`app/index.js`](../app/index.js) scene list. | **AGENT-11** deletion candidate; narrative in those files is **not** player-facing in current boot. |
+| **Orphan portfolio scenes** | *(Resolved)* Former `beginningScene` / `choiceScene` / `introductionScene` / `websitesScene` / `navigationScene` hub **removed** (**AGENT-11**). |
 
 ---
 
@@ -131,7 +131,7 @@ This document is a **deep, codebase-grounded** inventory of what is **missing, s
 |----------|------|
 | [`STEAM_READY_GAP_ANALYSIS.md`](../STEAM_READY_GAP_ANALYSIS.md) | **Partially outdated**: claims no options, no pause, no achievements, web-only, blank favicon, etc.—**many are fixed** (Options, meta, achievements, Electron, favicon, loading). **Still valid** for: real Steamworks, real cloud, real resolution behavior, in-game leaderboard display, EULA/privacy. |
 | [`APP_ANALYSIS_FULL.md`](../APP_ANALYSIS_FULL.md) (if present) | May describe **BeginningScene as first scene**—current boot is **Loading → MainMenu** per `index.js`. |
-| **Two names / wrong copy** | STEAM doc cited “Interval Dodger” / score 35 vs **120**—verify [`index.html`](../index.html) and [`beginningScene.js`](../app/scenes/beginningScene.js) if orphan files remain after AGENT-11. |
+| **Two names / wrong copy** | STEAM doc cited “Interval Dodger” / score 35 vs **120**—verify [`index.html`](../index.html); portfolio orphan scenes that held stale copy are **removed** (**AGENT-11**). |
 
 ---
 

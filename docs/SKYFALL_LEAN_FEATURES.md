@@ -71,7 +71,7 @@ Goal: fewer parallel systems teaching the player different rules. **Your call:**
 
 | Target | Why it’s strip-friendly |
 |--------|-------------------------|
-| **Orphan scenes** — `beginningScene.js`, `choiceScene.js`, `introductionScene.js`, `websitesScene.js`, `navigationScene.js` | Not registered in `app/index.js` (boot goes **Loading → MainMenu → …**). They’re legacy / portfolio navigation; deleting them trims confusion and dead `SCENE_KEYS` entries **if** nothing imports them. Verify with repo-wide search before deleting. |
+| **Orphan scenes** — portfolio hub | **Done (AGENT-11):** removed unused `beginningScene`, `choiceScene`, `introductionScene`, `websitesScene`, `navigationScene`, and `config/websites.js`. |
 | **`#/editor` + `EditorScene`** | Dev/asset tooling. For a **player build**, omit the scene from the bundle or guard registration so shipping builds stay smaller and simpler. |
 | **Docs-only / analysis markdown** you don’t read | No runtime effect; optional repo hygiene only. |
 
