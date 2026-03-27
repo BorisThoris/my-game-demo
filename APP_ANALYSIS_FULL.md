@@ -22,7 +22,7 @@ Complete analysis of the app: structure, gameplay, assets, systems, and how ever
 1. **index.html** → `<script type="module" src="/main.js">`
 2. **main.js** → `import "./app/index.js"` (and `style.css`)
 3. **app/index.js** → `new Phaser.Game(config)` with:
-   - `scene: [LoadingScene, MainMenuScene, OptionsScene, AchievementsScene, TutorialScene, CreditsScene, DodgeGame, MetaScene, EditorScene]` (class list order = Phaser boot order)
+   - `scene:` shipping list is `LoadingScene` … `MetaScene`; **`EditorScene` is appended only in Vite dev** (`import.meta.env.DEV`). See [`app/index.js`](app/index.js).
    - Juice plugin (`phaser3-juice-plugin`)
    - Arcade physics, scale FIT, CENTER_BOTH
 4. **First scene:** `LoadingScene` → key `"loadingScene"` ([`app/scenes/loadingScene.js`](app/scenes/loadingScene.js)); after its timed progress completes it starts **`MainMenuScene`** (`"mainMenuScene"`), or **`EditorScene`** if the hash is `#/editor`.
