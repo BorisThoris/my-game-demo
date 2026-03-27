@@ -45,7 +45,7 @@
 | [10](./AGENT-10-post-run-tips.md) | Post-run tips | open | — | `.agents/agent-10` | — | — |
 | [11](./AGENT-11-remove-orphan-scenes.md) | Remove orphan scenes | done | cursor-agent-11 | `.agents/agent-11` | 2026-03-28 | Portfolio hub + websites.js removed |
 | [12](./AGENT-12-editor-production-gate.md) | Editor prod gate | done | cursor-wave02 | `.agents/agent-12` | 2026-03-28 | DEV-only editor + loading gate |
-| [13](./AGENT-13-online-telemetry-audit.md) | Online + telemetry audit | open | — | `.agents/agent-13` | — | — |
+| [13](./AGENT-13-online-telemetry-audit.md) | Online + telemetry audit | done | cursor-agent-13 | `.agents/agent-13` | 2026-03-28 | `docs/ONLINE_TELEMETRY.md` + dev-only debug |
 | [14](./AGENT-14-optional-remove-game-mode.md) | Optional: remove mode | open | — | `.agents/agent-14` | — | Product approval. |
 | [15](./AGENT-15-optional-remove-objectives.md) | Optional: remove objectives | open | — | `.agents/agent-15` | — | Product approval. |
 | [16](./AGENT-16-hud-clarity-formula-checklist.md) | HUD clarity | open | — | `.agents/agent-16` | — | — |
@@ -104,6 +104,7 @@
 
 Append a line when you do a bulk reset or housekeeping:
 
+- `2026-03-28` — **AGENT-13** online/telemetry audit doc; `[online]` debug logs gated to Vite DEV.
 - `2026-03-28` — **AGENT-11** orphan portfolio scenes removed; `websites.js` removed; docs updated.
 - `2026-03-28` — wave 02 (agents **12, 34, 38, 39**) completed; editor prod gate, credits notices, fullscreen QA doc, editor defer.
 - `2026-03-28` — wave 01 (agents **18, 35, 40, 44, 45, 50, 51, 52, 53, 54**) completed in parallel; board rows set `done`.

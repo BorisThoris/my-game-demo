@@ -143,6 +143,7 @@ let activeAdapter = makeLocalAdapter();
 let flushing = false;
 
 function debug(...args) {
+  if (!import.meta.env?.DEV) return;
   if (typeof console !== "undefined" && console.debug) {
     console.debug("[online]", ...args);
   }
@@ -366,7 +367,7 @@ export function registerTelemetryUploader(uploadFn) {
 
 export async function uploadTelemetryBatch(uploadFn) {
   const result = await flushTelemetryBatch(uploadFn);
-  if (typeof console !== "undefined" && console.debug) {
+  if (import.meta.env?.DEV && typeof console !== "undefined" && console.debug) {
     console.debug("[online] uploadTelemetryBatch:", result);
   }
   return result;

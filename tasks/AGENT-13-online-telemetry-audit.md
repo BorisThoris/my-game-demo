@@ -13,9 +13,9 @@ Audit `app/services/onlineService.js`, `app/game/telemetry.js`, and callers. Pro
 4. Update tests that mock telemetry.
 
 ## Acceptance criteria
-- [ ] Documented table: feature → storage vs network → purpose.
-- [ ] Offline play never blocks on telemetry flush.
-- [ ] `npm test` passes.
+- [x] Documented table: feature → storage vs network → purpose. *(See `docs/ONLINE_TELEMETRY.md`.)*
+- [x] Offline play never blocks on telemetry flush. *(Verified: `flushTelemetryBatch` no-op without hook; doc notes.)*
+- [x] `npm test` passes.
 
 ## Key files
 - `app/services/onlineService.js`
