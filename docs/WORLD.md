@@ -1,0 +1,3 @@
+# Skyfall — setting (light lore)
+
+Something cracked above the lanes—weather, debris field, or a sky that forgot which way is up—and now mass keeps falling while the floor pretends it is safe. You are not a chosen hero: you are the stick-shaped thing that showed up with decent reflexes and a habit of dodging. The run is a commute through that broken ceiling; score, shields, and perks are whatever scraps the drop throws at you, and the exit is the one honest door out when you have earned it. None of this is canon law—**optional flavor** for mood only; the game stays an arcade dodge-’em-up at heart.

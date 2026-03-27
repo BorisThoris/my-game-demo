@@ -83,15 +83,22 @@ export default class MainMenuScene extends BaseScene {
     });
     title.setDepth(zIndex.overlay);
 
+    const menuTagline = this.add.text(PANEL_PADDING, 120, "Survive the drop. Reach the exit.", {
+      font: "700 13px Arial",
+      fill: colors.semantic.text.muted,
+      wordWrap: { width: PANEL_WIDTH - PANEL_PADDING * 2 }
+    });
+    menuTagline.setDepth(zIndex.overlay);
+
     const modes = getModeList();
-    const modeLabel = this.add.text(PANEL_PADDING, 138, "Mode", {
+    const modeLabel = this.add.text(PANEL_PADDING, 152, "Mode", {
       font: "700 18px Arial",
       fill: colors.semantic.text.muted
     });
     modeLabel.setDepth(zIndex.overlay);
 
     modes.forEach((entry, index) => {
-      const modeText = this.add.text(PANEL_PADDING, 164 + index * 24, "", {
+      const modeText = this.add.text(PANEL_PADDING, 178 + index * 24, "", {
         font: "700 16px Arial",
         fill: colors.semantic.text.muted
       });
@@ -110,7 +117,7 @@ export default class MainMenuScene extends BaseScene {
     });
 
     // Menu options on the left, vertical list
-    const menuYStart = 240;
+    const menuYStart = 254;
     const menuSpacing = 48;
     const menuItems = [
       {
