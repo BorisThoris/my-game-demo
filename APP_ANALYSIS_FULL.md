@@ -1,5 +1,7 @@
 # Full App Analysis — firstNodeProject
 
+> **Historical — deep-dive written against an older scene stack.** Current boot order, shipping gaps, and task mapping: [`docs/GAP_ANALYSIS_BEYOND_TASKS.md`](docs/GAP_ANALYSIS_BEYOND_TASKS.md), [`tasks/README.md`](tasks/README.md) (**AGENT-21+** for platform/economy/docs). Steam-oriented drift guardrails: [`STEAM_READY_GAP_ANALYSIS.md`](STEAM_READY_GAP_ANALYSIS.md). **Live path (2026):** `LoadingScene` → `MainMenuScene` (or `EditorScene` when `location.hash === "#/editor"` after load) — see [`app/index.js`](app/index.js).
+
 Complete analysis of the app: structure, gameplay, assets, systems, and how everything connects. Built from multi-agent exploration.
 
 ---
@@ -15,16 +17,20 @@ Complete analysis of the app: structure, gameplay, assets, systems, and how ever
 | **App/Phaser** | `app/index.js` | Creates `new Phaser.Game(config)`, registers scenes and juice plugin, calls `initMobileControls()`. |
 | **Dev server** | Vite | `vite.config.js` → `npm run dev` (port 5173); `npm run build` / `npm run preview`. |
 
-### Boot chain
+### Boot chain (current)
 
 1. **index.html** → `<script type="module" src="/main.js">`
 2. **main.js** → `import "./app/index.js"` (and `style.css`)
 3. **app/index.js** → `new Phaser.Game(config)` with:
-   - `scene: [BeginningScene, DodgeGame, IntroductionScene, ChoiceScene, WebsitesScene]`
+   - `scene: [LoadingScene, MainMenuScene, OptionsScene, AchievementsScene, TutorialScene, CreditsScene, DodgeGame, MetaScene, EditorScene]` (class list order = Phaser boot order)
    - Juice plugin (`phaser3-juice-plugin`)
    - Arcade physics, scale FIT, CENTER_BOTH
-4. **First scene**: `BeginningScene` (first in array) → key `"beginningScene"`
-5. **initMobileControls()** runs after game creation (joystick on mobile)
+4. **First scene:** `LoadingScene` → key `"loadingScene"` ([`app/scenes/loadingScene.js`](app/scenes/loadingScene.js)); after its timed progress completes it starts **`MainMenuScene`** (`"mainMenuScene"`), or **`EditorScene`** if the hash is `#/editor`.
+5. **initMobileControls()** runs after game creation (joystick on mobile); desktop builds add a `desktop-build` body class when not mobile.
+
+### Legacy / portfolio flow (not the live boot path)
+
+The **diagram in §3** describes an older **BeginningScene → ChoiceScene → …** hub. Those files may still exist under `app/scenes/` but are **not** registered in [`app/index.js`](app/index.js) for the current product. Cleanup: [`tasks/AGENT-11-remove-orphan-scenes.md`](tasks/AGENT-11-remove-orphan-scenes.md).
 
 ---
 
@@ -53,6 +59,8 @@ Complete analysis of the app: structure, gameplay, assets, systems, and how ever
 ---
 
 ## 3. SCENES LIST & NAVIGATION
+
+> **§3 table and diagram are a legacy snapshot** (Beginning / Choice hub). For keys actually used in the current game object, see [`app/config/sceneKeys.js`](app/config/sceneKeys.js) and [`app/index.js`](app/index.js). **Boot:** Loading → MainMenu (see §1).
 
 | Scene | File | Phaser key | Extends | How started / switched |
 |-------|------|------------|---------|-------------------------|
