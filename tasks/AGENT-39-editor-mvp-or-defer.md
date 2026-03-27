@@ -9,8 +9,8 @@
 **Path B — Defer:** Replace placeholder copy with **“Editor deferred — see issue #…”** and remove from public roadmap docs; keep route for future.
 
 ## Acceptance criteria
-- [ ] Path stated in PR; no infinite placeholder without plan.
-- [ ] If MVP: documented how to use in `docs/EDITOR.md` (short).
+- [x] Path stated in PR; no infinite placeholder without plan. *(**Path B — defer**; copy in `editorScene.js`.)*
+- [x] If MVP: documented how to use in `docs/EDITOR.md` (short). *(Defer doc: `docs/EDITOR.md`.)*
 
 ## Dependencies
 **AGENT-12** for prod gate remains relevant.

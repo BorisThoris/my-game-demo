@@ -11,8 +11,8 @@ Update [`creditsScene.js`](../app/scenes/creditsScene.js) (or linked doc) with:
 - Link placeholder for privacy policy if **AGENT-37** adds URL
 
 ## Acceptance criteria
-- [ ] All bundled runtime deps with attribution requirements are listed.
-- [ ] Main menu still reaches Credits.
+- [x] All bundled runtime deps with attribution requirements are listed. *(Phaser, juice plugin, Vite, system fonts — `creditsScene.js`.)*
+- [x] Main menu still reaches Credits.
 
 ## Out of scope
 Legal review by counsel—dev task is **good-faith** inventory.

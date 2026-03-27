@@ -83,7 +83,10 @@ export default class LoadingScene extends Phaser.Scene {
         fill.fillRoundedRect(barX + 2, barY + 2, (BAR_WIDTH - 4) * v, BAR_HEIGHT - 4, 4);
       },
       onComplete: () => {
-        const goToEditor = typeof window !== "undefined" && window.location.hash === "#/editor";
+        const goToEditor =
+          import.meta.env.DEV &&
+          typeof window !== "undefined" &&
+          window.location.hash === "#/editor";
         this.scene.start(goToEditor ? SCENE_KEYS.editor : SCENE_KEYS.mainMenu);
       }
     });

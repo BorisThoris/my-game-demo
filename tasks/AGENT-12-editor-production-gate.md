@@ -13,9 +13,9 @@ Ensure **player/shipping** builds do not register `EditorScene` or respond to `#
 4. If e2e tests need editor, run tests with flag on in CI config.
 
 ## Acceptance criteria
-- [ ] `vite build` + preview: `#/editor` does nothing harmful (no crash, no scene).
-- [ ] `vite` dev: editor still reachable.
-- [ ] Electron build story documented if different (grep `electron/`).
+- [x] `vite build` + preview: `#/editor` does nothing harmful (no crash, no scene). *(Editor not registered; `loadingScene` skips editor when `!import.meta.env.DEV`.)*
+- [x] `vite` dev: editor still reachable.
+- [x] Electron build story documented if different (grep `electron/`). *(Same web bundle; no separate editor wiring in `electron/`.)*
 
 ## Key files
 - `app/index.js`

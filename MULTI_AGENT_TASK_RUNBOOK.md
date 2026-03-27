@@ -39,6 +39,10 @@ scripts/agents/launch_task_agents.sh \
   --workspace .agents
 ```
 
+## 1b) Skyfall — many agents without collisions
+
+For the **54** tasks under [`tasks/`](./tasks/), use **[`tasks/PARALLEL_EXECUTION.md`](./tasks/PARALLEL_EXECUTION.md)** and the curated batch files in **[`tasks/launch/`](./tasks/launch/)** instead of `list.md`. That layout splits **high-conflict** work (`dodgeGame.js`, `saveManager.js`, main menu) into **serial** one-agent files under [`tasks/launch/serial/`](./tasks/launch/serial/) and [`tasks/launch/ui-serial/`](./tasks/launch/ui-serial/), and keeps **docs-only** tasks in a **10-way parallel** first wave.
+
 ## 2) Agent handoff template
 
 For each worktree:

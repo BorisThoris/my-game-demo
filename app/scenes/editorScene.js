@@ -3,8 +3,7 @@ import { GAME_CENTER_X, GAME_HEIGHT, GAME_WIDTH, theme } from "../config/gameCon
 import { SCENE_KEYS } from "../config/sceneKeys";
 
 /**
- * Editor view at #/editor. Minimal placeholder so the route works;
- * extend with editor UI as needed.
+ * Dev-only editor stub at #/editor (see docs/EDITOR.md — Path B deferred).
  */
 export default class EditorScene extends Phaser.Scene {
   constructor() {
@@ -13,18 +12,21 @@ export default class EditorScene extends Phaser.Scene {
 
   create() {
     this.add
-      .text(GAME_CENTER_X, GAME_HEIGHT / 2 - 40, "Editor", {
-        font: "700 48px Arial",
+      .text(GAME_CENTER_X, GAME_HEIGHT / 2 - 80, "Editor (deferred)", {
+        font: "700 40px Arial",
         fill: theme.colors.semantic.text.phase,
         align: "center"
       })
       .setOrigin(0.5, 0.5);
 
+    const blurb =
+      "No production editor MVP yet.\nSee docs/EDITOR.md and tasks/AGENT-39-editor-mvp-or-defer.md";
     this.add
-      .text(GAME_CENTER_X, GAME_HEIGHT / 2 + 20, "Skyfall editor", {
-        font: "700 22px Arial",
+      .text(GAME_CENTER_X, GAME_HEIGHT / 2 - 10, blurb, {
+        font: "700 18px Arial",
         fill: theme.colors.semantic.text.muted,
-        align: "center"
+        align: "center",
+        wordWrap: { width: GAME_WIDTH - 120 }
       })
       .setOrigin(0.5, 0.5);
 

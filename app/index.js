@@ -1,3 +1,7 @@
+/**
+ * Skyfall bootstrap. Editor: `EditorScene` and `#/editor` routing exist only when
+ * `import.meta.env.DEV` (Vite dev server). `npm run build` / Electron prod use shipping scenes only.
+ */
 import Phaser from "phaser";
 import phaserJuicePlugin from "phaser3-juice-plugin";
 import LoadingScene from "./scenes/loadingScene";
@@ -53,7 +57,7 @@ const config = {
     CreditsScene,
     DodgeGame,
     MetaScene,
-    EditorScene
+    ...(import.meta.env.DEV ? [EditorScene] : [])
   ]
 };
 
@@ -64,9 +68,10 @@ if (import.meta.env.DEV) {
 initMobileControls();
 if (!isMobile()) document.body.classList.add("desktop-build");
 
-// Hash routing: #/editor -> editor scene (when hash changes after load)
-window.addEventListener("hashchange", () => {
-  if (window.location.hash === "#/editor" && game.scene.getScene(SCENE_KEYS.editor)) {
-    game.scene.start(SCENE_KEYS.editor);
-  }
-});
+if (import.meta.env.DEV) {
+  window.addEventListener("hashchange", () => {
+    if (window.location.hash === "#/editor" && game.scene.getScene(SCENE_KEYS.editor)) {
+      game.scene.start(SCENE_KEYS.editor);
+    }
+  });
+}

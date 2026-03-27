@@ -44,7 +44,7 @@
 | [09](./AGENT-09-perk-tags-feats.md) | Perk tags + feats | open | — | `.agents/agent-09` | — | Coordinate with 02 if overlap. |
 | [10](./AGENT-10-post-run-tips.md) | Post-run tips | open | — | `.agents/agent-10` | — | — |
 | [11](./AGENT-11-remove-orphan-scenes.md) | Remove orphan scenes | open | — | `.agents/agent-11` | — | — |
-| [12](./AGENT-12-editor-production-gate.md) | Editor prod gate | open | — | `.agents/agent-12` | — | — |
+| [12](./AGENT-12-editor-production-gate.md) | Editor prod gate | done | cursor-wave02 | `.agents/agent-12` | 2026-03-28 | DEV-only editor + loading gate |
 | [13](./AGENT-13-online-telemetry-audit.md) | Online + telemetry audit | open | — | `.agents/agent-13` | — | — |
 | [14](./AGENT-14-optional-remove-game-mode.md) | Optional: remove mode | open | — | `.agents/agent-14` | — | Product approval. |
 | [15](./AGENT-15-optional-remove-objectives.md) | Optional: remove objectives | open | — | `.agents/agent-15` | — | Product approval. |
@@ -71,12 +71,12 @@
 | [31](./AGENT-31-accessibility-presentation-pass.md) | A11y presentation | open | — | `.agents/agent-31` | — | — |
 | [32](./AGENT-32-audio-load-failure-ux.md) | Audio load failure UX | open | — | `.agents/agent-32` | — | — |
 | [33](./AGENT-33-tutorial-onboarding-pass.md) | Tutorial / onboarding | open | — | `.agents/agent-33` | — | — |
-| [34](./AGENT-34-credits-third-party-licenses.md) | Credits / licenses | open | — | `.agents/agent-34` | — | — |
+| [34](./AGENT-34-credits-third-party-licenses.md) | Credits / licenses | done | cursor-wave02 | `.agents/agent-34` | 2026-03-28 | Third-party block in Credits |
 | [35](./AGENT-35-doc-drift-steam-app-analysis.md) | Doc drift / Steam app | done | cursor-wave01-02 | `.agents/agent-35` | 2026-03-28 | Landed Steam/app analysis refresh |
 | [36](./AGENT-36-e2e-deep-flows.md) | Deep E2E | open | — | `.agents/agent-36` | — | After big UI merges ideal. |
 | [37](./AGENT-37-about-privacy-support.md) | About / privacy / support | open | — | `.agents/agent-37` | — | — |
-| [38](./AGENT-38-fullscreen-qa-matrix.md) | Fullscreen QA | open | — | `.agents/agent-38` | — | — |
-| [39](./AGENT-39-editor-mvp-or-defer.md) | Editor MVP or defer | open | — | `.agents/agent-39` | — | — |
+| [38](./AGENT-38-fullscreen-qa-matrix.md) | Fullscreen QA | done | cursor-wave02 | `.agents/agent-38` | 2026-03-28 | `docs/FULLSCREEN_QA.md` |
+| [39](./AGENT-39-editor-mvp-or-defer.md) | Editor MVP or defer | done | cursor-wave02 | `.agents/agent-39` | 2026-03-28 | Path B + `docs/EDITOR.md` |
 
 ## Board — fully fledged (40–54)
 
@@ -104,5 +104,6 @@
 
 Append a line when you do a bulk reset or housekeeping:
 
+- `2026-03-28` — wave 02 (agents **12, 34, 38, 39**) completed; editor prod gate, credits notices, fullscreen QA doc, editor defer.
 - `2026-03-28` — wave 01 (agents **18, 35, 40, 44, 45, 50, 51, 52, 53, 54**) completed in parallel; board rows set `done`.
 - _Example: `2026-03-27` — reset all rows to `open` after shipping v1._

@@ -3,6 +3,9 @@
 /nodePractice
 .env
 
+# Git worktrees for parallel agents (see tasks/PARALLEL_EXECUTION.md)
+.agents/
+
 # Large trailer/video masters (local only; see docs/TRAILER_NOTES.md)
 /marketing/*.mp4
 /marketing/**/*.mp4
