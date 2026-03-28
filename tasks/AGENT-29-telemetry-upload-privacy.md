@@ -9,9 +9,9 @@
 3. **Copy** — One paragraph in Options linking to privacy URL placeholder `#` or real policy.
 
 ## Acceptance criteria
-- [ ] Default OSS build: no network telemetry without env + consent.
-- [ ] Local batch still works for dev `aggregateTelemetry.js` when opted in.
-- [ ] Document env vars in `docs/TELEMETRY.md` extension.
+- [x] Default OSS build: no network telemetry without env + consent.
+- [x] Local batch still works for dev `aggregateTelemetry.js` when opted in.
+- [x] Document env vars in `docs/TELEMETRY.md` extension.
 
 ## Key files
 - [`app/game/telemetry.js`](../app/game/telemetry.js)

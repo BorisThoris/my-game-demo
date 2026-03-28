@@ -22,6 +22,7 @@ import {
 import { GAME_VERSION } from "../config/version";
 import BaseScene from "./baseScene";
 import { getModeList, normalizeGameMode } from "../game/modeConfig";
+import { getDailyModifierProfile } from "../game/dailyModifier.js";
 import { BODY_STYLE, PANEL_TITLE_STYLE } from "../config/sceneStyles";
 
 /** Valve/GMod-style main menu: options panel on the left, visuals (player + bg) on the right. */
@@ -90,15 +91,22 @@ export default class MainMenuScene extends BaseScene {
     });
     menuTagline.setDepth(zIndex.overlay);
 
+    const dailyLine = this.add.text(PANEL_PADDING, 138, getDailyModifierProfile().menuLine, {
+      font: "700 12px Arial",
+      fill: colors.semantic.text.score,
+      wordWrap: { width: PANEL_WIDTH - PANEL_PADDING * 2 }
+    });
+    dailyLine.setDepth(zIndex.overlay);
+
     const modes = getModeList();
-    const modeLabel = this.add.text(PANEL_PADDING, 152, "Mode", {
+    const modeLabel = this.add.text(PANEL_PADDING, 168, "Mode", {
       font: "700 18px Arial",
       fill: colors.semantic.text.muted
     });
     modeLabel.setDepth(zIndex.overlay);
 
     modes.forEach((entry, index) => {
-      const modeText = this.add.text(PANEL_PADDING, 178 + index * 24, "", {
+      const modeText = this.add.text(PANEL_PADDING, 194 + index * 24, "", {
         font: "700 16px Arial",
         fill: colors.semantic.text.muted
       });
@@ -117,7 +125,7 @@ export default class MainMenuScene extends BaseScene {
     });
 
     // Menu options on the left, vertical list
-    const menuYStart = 254;
+    const menuYStart = 270;
     const menuSpacing = 48;
     const menuItems = [
       {
@@ -166,10 +174,17 @@ export default class MainMenuScene extends BaseScene {
     const onlineStatus = getOnlineStatus();
     const unlockedCount = listAchievementStates().filter(item => item.unlocked).length;
     const bestSubmitted = onlineStatus.leaderboards?.best_score?.score ?? 0;
+    const adapter = onlineStatus.adapter || "local";
+    const adapterLabel =
+      adapter === "local"
+        ? "Off (local-only — scores stay on this device)"
+        : adapter === "steam"
+          ? "Steam"
+          : adapter;
     this.add.text(
       PANEL_PADDING,
-      454,
-      `Online: ${onlineStatus.adapter} | Queue: ${onlineStatus.queueLength}\nAchievements: ${unlockedCount} | Best submit: ${bestSubmitted}`,
+      452,
+      `Online: ${adapterLabel} | Queue: ${onlineStatus.queueLength}\nAchievements: ${unlockedCount} | Best submit: ${bestSubmitted}`,
       {
         font: "700 11px Arial",
         fill: colors.semantic.text.objective,
@@ -239,6 +254,7 @@ export default class MainMenuScene extends BaseScene {
       fill: contractClaims.length ? colors.semantic.text.success : colors.semantic.text.score,
       wordWrap: { width: PANEL_WIDTH - PANEL_PADDING * 2 }
     }).setDepth(zIndex.overlay);
+
     // Bottom-left: version and tagline (n-ish, left bottom left)
     const tagline = this.add.text(
       PANEL_PADDING,

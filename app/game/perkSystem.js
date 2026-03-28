@@ -21,7 +21,8 @@ export {
   getPerksByCategory,
   getDebuffsByCategory,
   getAllPerkIds,
-  getAllDebuffIds
+  getAllDebuffIds,
+  getPerkFeatTags
 } from "./perkLibrary.js";
 
 export const createBaseModifiers = createBaseFromLibrary;

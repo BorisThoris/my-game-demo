@@ -11,6 +11,7 @@ import {
   applyPerk,
   buildPerkChoices,
   createBaseModifiers,
+  getPerkFeatTags,
   getPerkIconFrame,
   PERK_LIBRARY
 } from "../game/perkSystem";
@@ -29,7 +30,9 @@ import {
 } from "../game/juiceHelper";
 import { showFloatingText } from "../game/floatingText";
 import { DODGE_HUD_STYLES, HUD_STROKE, DODGE_AUDIO } from "../config/dodgeHudStyles";
-import { applyRunEventToContracts } from "../game/contractDirector.js";
+import { applyRunEventToContracts, getContractDateKey } from "../game/contractDirector.js";
+import { applyDailyModifier } from "../game/dailyModifier.js";
+import { getPostRunTip } from "../config/runTips.js";
 import {
   BOSS_CLEAR_ACHIEVEMENTS,
   CHALLENGE_STREAK_ACHIEVEMENTS,
@@ -48,6 +51,8 @@ import {
 import {
   getHighScore,
   setHighScore,
+  getBestSurvivalSeconds,
+  setBestSurvivalSeconds,
   getSettings,
   getLastCompletedLevel,
   setLastCompletedLevel,
@@ -57,7 +62,8 @@ import {
   shouldShowTutorial,
   getActiveContracts,
   updateContracts,
-  claimCompletedContract
+  claimCompletedContract,
+  getSave
 } from "../save/saveManager";
 import { GAME_MODES, getModeConfig, isHazardDescriptor, normalizeGameMode } from "../game/modeConfig";
 import {
@@ -66,12 +72,12 @@ import {
   setRichPresence,
   uploadTelemetryBatch
 } from "../services/onlineService";
-import { grantMetaCurrency, getRunStartModifiers } from "../game/metaProgression";
+import { grantMetaCurrency, getNextUnlockHint, getRunStartModifiers } from "../game/metaProgression";
 import { getBossAttackProfile, shouldEnterPhaseTwo } from "../game/bossEncounter";
 import { rollBossReward, buildBossRewardPickup } from "../game/bossRewards";
 
 const SCORE_TICK_MS = 1000;
-const MILESTONES = [25, 50, 100, 250];
+const MILESTONES = [25, 50, 100, 250, 400, 500];
 const PLAYER_SPEED = 430;
 const PLAYER_START_X = GAME_WIDTH / 2;
 const PLAYER_START_Y = GAME_HEIGHT - 130;
@@ -124,6 +130,7 @@ export default class DodgeGame extends BaseScene {
     this.activeBoss = null;
     this.movementKeys = null;
     this.gameOverText = null;
+    this.gameOverBannerText = null;
     this.gameOverSummaryText = null;
     this.replayButton = null;
     this.music = null;
@@ -179,6 +186,7 @@ export default class DodgeGame extends BaseScene {
     this._objectivePulseTween = null;
     this._lastPhaseBarWidthTarget = null;
     this._justSetNewRecord = false;
+    this._justSetNewTimePb = false;
     this._lastMilestoneCelebrated = 0;
     this._lastScoreTickSecond = -1;
     this._getReadyRemainingMs = 0;
@@ -213,6 +221,8 @@ export default class DodgeGame extends BaseScene {
     this.contracts = [];
     this.runArchetypes = new Set();
     this.lastContractClaims = [];
+    this._hazardsDestroyedThisRun = 0;
+    this._maxContractRunScore = 0;
     this.challengeSuccessStreak = 0;
     this.bossClearsThisRun = 0;
     this.noHitWindowMs = 0;
@@ -326,6 +336,8 @@ export default class DodgeGame extends BaseScene {
 
     this.movementKeys = this.input.keyboard.addKeys("W,A,S,D");
     this.escKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ESC);
+    this.replayKeyR = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.R);
+    this.replayKeySpace = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
     this.createRuntimeTextures();
     ensureProceduralUiAssets(this);
     this.refreshAccessibilitySettings();
@@ -333,7 +345,10 @@ export default class DodgeGame extends BaseScene {
     this._initialHighScore = getHighScore(this.mode);
     this.highestScoreValue = this._initialHighScore;
     if (this.highestScore) {
-      this.highestScore.setText(`${this.modeConfig.label} Best: ${this.highestScoreValue}`);
+      const t = getBestSurvivalSeconds(this.mode);
+      this.highestScore.setText(
+        `${this.modeConfig.label} Best score: ${this.highestScoreValue} · Best time: ${t > 0 ? `${t}s` : "—"}`
+      );
     }
     this.createChallengeUi();
     this.createAudio();
@@ -421,9 +436,12 @@ export default class DodgeGame extends BaseScene {
 
   refreshAccessibilitySettings() {
     const settings = getSettings();
+    const shake = settings.screenShakeIntensity ?? 1;
+    const flash = settings.flashIntensity ?? 1;
+    const safe = Boolean(settings.reduceMotionSafeMode);
     this.accessibilitySettings = {
-      screenShakeIntensity: settings.screenShakeIntensity ?? 1,
-      flashIntensity: settings.flashIntensity ?? 1,
+      screenShakeIntensity: safe ? Math.min(shake, 0.35) : shake,
+      flashIntensity: safe ? Math.min(flash, 0.45) : flash,
       colorBlindPaletteMode: settings.colorBlindPaletteMode || "off"
     };
   }
@@ -740,6 +758,7 @@ export default class DodgeGame extends BaseScene {
     if (chainLength >= MEGA_CHAIN_THRESHOLD) {
       cameraShake(this, 280, 0.008);
       showFloatingText(this, GAME_WIDTH / 2, GAME_HEIGHT / 2 - 60, "MEGA CHAIN!", theme.colors.semantic.text.bossTimer);
+      this.recordContractEvent({ type: "megaChain" });
     }
     list.forEach((hazard, index) => {
       if (!hazard.scene || !this.hazards.contains(hazard)) return;
@@ -766,6 +785,8 @@ export default class DodgeGame extends BaseScene {
     if (chainLength > 1) {
       this.bonusScore += (chainLength - 1) * CHAIN_BONUS_PER_HAZARD;
     }
+    this._hazardsDestroyedThisRun += chainLength;
+    this.recordContractEvent({ type: "hazardDestroyed", count: chainLength });
     this._destroyStreakCount += list.length;
     if (this._destroyStreakCount >= DESTROY_STREAK_TARGET) {
       showFloatingText(this, GAME_WIDTH / 2, GAME_HEIGHT / 2 - 100, `${DESTROY_STREAK_TARGET}x Destroy!`, theme.colors.semantic.text.success);
@@ -780,7 +801,7 @@ export default class DodgeGame extends BaseScene {
 
     this.highestScore = this.add.text(24, 72, "Best: 0", DODGE_HUD_STYLES.highestScore);
 
-    this.phaseText = this.add.text(912, 24, "Phase: Recovery", DODGE_HUD_STYLES.phaseText);
+    this.phaseText = this.add.text(912, 24, "Pressure: Recovery", DODGE_HUD_STYLES.phaseText);
     this.phaseText.setStroke(HUD_STROKE.color, HUD_STROKE.width);
 
     this.shieldText = this.add.text(912, 66, "Shields: 0/3", DODGE_HUD_STYLES.shieldText);
@@ -828,6 +849,13 @@ export default class DodgeGame extends BaseScene {
     this.heatIndicator.setScale(0.2);
     this.heatIndicator.setVisible(false);
     this.heatIndicator.setDepth(theme.zIndex.pickups - 1);
+
+    this.phaseBarHint = this.add
+      .text(912 + PHASE_BAR_WIDTH / 2, phaseBarY + 16, "Bar fill → more heat", {
+        font: "12px Arial",
+        fill: theme.colors.semantic.text.muted
+      })
+      .setOrigin(0.5, 0);
 
     // Pause button: click/touch or Escape to open pause menu
     this.pauseButton = this.add.text(GAME_WIDTH - theme.spacing[6], 36, "Pause", {
@@ -880,6 +908,13 @@ export default class DodgeGame extends BaseScene {
       getRunStartModifiers(createBaseModifiers()),
       this.selectedArchetypeId
     );
+    const daily = applyDailyModifier(this.runModifiers, getContractDateKey());
+    this.runModifiers = daily.modifiers;
+    this._dailyContractProgressMult = daily.contractProgressMultiplier ?? 1;
+    this._dailyPassiveScorePerSec = daily.passiveScorePerSec ?? 0;
+    this._dailyFallMult = daily.fallSpeedScale ?? 1;
+    this.spawnDirector.setFallSpeedScale(daily.fallSpeedScale ?? 1);
+    this.refreshAccessibilitySettings();
     this.currentArchetypeName = getArchetypeById(this.selectedArchetypeId).name;
     this.nextChallengeScore = this.modeConfig.challengeScoreInterval;
     this.nextDraftPerkAtMs = this.modeConfig.draftPerkIntervalSeconds
@@ -911,6 +946,7 @@ export default class DodgeGame extends BaseScene {
     this.objectiveOutcomeLog = [];
     this.challengeSuccessStreak = 0;
     this.bossClearsThisRun = 0;
+    this._maxContractRunScore = 0;
     this.noHitWindowMs = 0;
     this._lastNoHitAchievementMs = 0;
     this._getReadyRemainingMs = 0;
@@ -928,6 +964,7 @@ export default class DodgeGame extends BaseScene {
     this.contracts = getActiveContracts().map(contract => ({ ...contract }));
     this.runArchetypes = new Set();
     this.lastContractClaims = [];
+    this._hazardsDestroyedThisRun = 0;
 
     this.player.clearTint();
     this.player.setAlpha(1);
@@ -1025,6 +1062,10 @@ export default class DodgeGame extends BaseScene {
       this.gameOverSummaryText.destroy();
       this.gameOverSummaryText = null;
     }
+    if (this.gameOverBannerText) {
+      this.gameOverBannerText.destroy();
+      this.gameOverBannerText = null;
+    }
     if (this.gameOverPanel) {
       this.gameOverPanel.destroy();
       this.gameOverPanel = null;
@@ -1086,7 +1127,8 @@ export default class DodgeGame extends BaseScene {
       shield: theme.colors.semantic.game.pickupShield,
       speed: theme.colors.semantic.game.pickupSpeed,
       invuln: theme.colors.semantic.game.pickupInvuln,
-      scoreMult: theme.colors.semantic.game.pickupScoreMult
+      scoreMult: theme.colors.semantic.game.pickupScoreMult,
+      gambit: 0xffc933
     };
     this.emitParticleBurst(px, py, 12, 350, 0.35, PICKUP_TINTS[pickupType] ?? PICKUP_TINTS.shield);
     pickup.destroy();
@@ -1115,6 +1157,13 @@ export default class DodgeGame extends BaseScene {
       this.tempScoreMultMultiplier = 1.5;
       this.setStatusText("Score multiplier! 1.5x score for 10s.", theme.colors.semantic.game.pickupScoreMult);
       showFloatingText(this, px, py, "1.5x Score!", theme.colors.semantic.text.success);
+    } else if (pickupType === "gambit") {
+      this.bonusScore += 28;
+      this.flashCamera(220, 255, 240, 120);
+      this.setStatusText("Gambit spark: score burst — expect a bright flash.", theme.colors.semantic.text.score);
+      showFloatingText(this, px, py, "+28 Gambit!", theme.colors.semantic.text.score);
+      unlockAchievement("risk_gambit");
+      this.recordContractEvent({ type: "gambitPickup" });
     }
 
     this.bonusScore += this.runModifiers.extraScorePerPickup ?? 0;
@@ -1217,12 +1266,58 @@ export default class DodgeGame extends BaseScene {
     this.player.setVelocity(0, 0);
     this.player.anims.play("flex", true);
 
+    const survivedSec = Math.floor(this.runTimeMs / 1000);
+    this._justSetNewTimePb = setBestSurvivalSeconds(this.mode, survivedSec);
+
     const runSummary = this.buildRunSummary();
+    this.recordContractEvent({ type: "runScore", score: runSummary.score });
     const metaReward = grantMetaCurrency(runSummary);
     this._lastRunSummary = { ...runSummary, metaReward };
     this.claimCompletedContracts();
+    this.evaluateRunAchievements();
 
     this.showGameOver();
+  }
+
+  evaluateRunAchievements() {
+    const save = getSave();
+    const life = save.lifetimeMetaEarned ?? 0;
+    if (life >= 500) {
+      unlockAchievement("meta_lifetime_500");
+    } else if (life >= 100) {
+      unlockAchievement("meta_lifetime_100");
+    }
+    if (Math.floor(this.runTimeMs / 1000) >= 180) {
+      unlockAchievement("survive_three_min");
+    }
+    if (this._hazardsDestroyedThisRun >= 20) {
+      unlockAchievement("hazard_demolisher_20");
+    }
+    if (this.ownedPerks.length >= 5) {
+      unlockAchievement("run_five_perks");
+    }
+    if (this.completedChallenges >= 3) {
+      unlockAchievement("challenge_triple_run");
+    }
+    const score = this.getScore();
+    if (this.mode === GAME_MODES.BossRush && score >= 100) {
+      unlockAchievement("boss_rush_century");
+    }
+    const perks = this.ownedPerks;
+    if (perks.length >= 3) {
+      const onlyMob = perks.every(id => {
+        const t = getPerkFeatTags(id);
+        return t.length > 0 && t.every(x => x === "mobility");
+      });
+      if (onlyMob) {
+        unlockAchievement("feat_pure_mobility");
+      }
+      const tagSet = new Set();
+      perks.forEach(id => getPerkFeatTags(id).forEach(t => tagSet.add(t)));
+      if (score >= 50 && tagSet.has("mobility") && tagSet.has("defense") && tagSet.has("score")) {
+        unlockAchievement("feat_triad_build");
+      }
+    }
   }
 
   buildRunSummary() {
@@ -1240,51 +1335,100 @@ export default class DodgeGame extends BaseScene {
   showGameOver() {
     this.pauseButton?.setVisible(false);
     this.gameOverPanel = this.add
-      .rectangle(GAME_WIDTH / 2, 235, 780, 440, parseInt(theme.colors.semantic.background.panel.replace("#", ""), 16), 0.94)
+      .rectangle(GAME_WIDTH / 2, 240, 780, 460, parseInt(theme.colors.semantic.background.panel.replace("#", ""), 16), 0.94)
       .setStrokeStyle(theme.components.hud.stroke.width, parseInt(theme.colors.semantic.stroke.gameOver.replace("#", ""), 16), 0.8)
       .setDepth(theme.zIndex.gameOverPanel);
 
     const runSummary = this._lastRunSummary || this.buildRunSummary();
     const score = runSummary.score;
-    const survivedSec = Math.floor(this.runTimeMs / 1000);
+    const survivedSec = runSummary.survivalTimeSec;
     const objectives = this.objectiveDirector ? this.objectiveDirector.getObjectives() : [];
     const completedCount = objectives.filter(o => o.completed).length;
-    const challengeSummary = this.challengeOutcomeLog.length ? this.challengeOutcomeLog.slice(-3).join("\n") : "No challenge resolutions";
-    const objectiveSummary = this.objectiveOutcomeLog.length ? this.objectiveOutcomeLog.slice(-3).join("\n") : "No objective rewards claimed";
-    const buildSummary = this.ownedPerks.length ? this.ownedPerks.join(", ") : `${this.modeConfig.label} / ${this.currentArchetypeName}`;
+    const bestTimeSec = getBestSurvivalSeconds(this.mode);
+    const bestTimeLabel = bestTimeSec > 0 ? `${bestTimeSec}s` : "—";
 
-    const recapLines = [
-      `Skyfall Ended   Score: ${score}   Best: ${this.highestScoreValue}`,
-      `Mode: ${this.modeConfig.label}   Archetype: ${this.currentArchetypeName}`,
-      `Death source: ${this.lastDeathSource}`,
-      `Run build: ${buildSummary}`,
-      `Time: ${runSummary.survivalTimeSec}s   Objectives: ${completedCount}/${objectives.length}   Challenges: ${runSummary.challengesCompleted}   Bosses: ${runSummary.bossClears}`,
-      `Challenges:`,
-      challengeSummary,
-      `Objective outcomes:`,
-      objectiveSummary,
-      `Rewards gained: +${this.runRewardTotals.score} score, +${this.runRewardTotals.shields} shields, +${this.runRewardTotals.perkPoints} perk points`
-    ];
-    if (runSummary.metaReward > 0) {
-      recapLines.push(`Meta currency earned: +${runSummary.metaReward}`);
+    let contractLine = "";
+    if (this.lastContractClaims.length > 0) {
+      contractLine = `Contracts claimed: ${this.lastContractClaims.map(c => c.title).join(" · ")}`;
+    } else if (this.contracts.some(c => c.completed)) {
+      contractLine = "Daily contracts progressed — claim on the main menu.";
     }
-    const contractCompletionCount = this.contracts.filter((contract) => contract.completed || contract.claimed).length;
-    if (this.contracts.length > 0) {
-      recapLines.push(`Contracts: ${contractCompletionCount}/${this.contracts.length} completed`);
+
+    const bannerLines = [];
+    if (runSummary.metaReward > 0) {
+      bannerLines.push(`+${runSummary.metaReward} META CURRENCY`);
     }
     if (this.lastContractClaims.length > 0) {
-      recapLines.push(
-        `Claims: ${this.lastContractClaims
-          .map((claim) => `${claim.title} +${claim.reward.currency}c/+${claim.reward.fragments}f`)
-          .join(" • ")}`
+      bannerLines.push(
+        `Contracts ✓ ${this.lastContractClaims.map(c => `${c.title} +${c.reward.currency}c/+${c.reward.fragments}f`).join(" · ")}`
       );
+    } else if (this.contracts.length && !contractLine.includes("progressed")) {
+      bannerLines.push("Daily contracts: in progress");
+    }
+    const metaLine =
+      runSummary.metaReward <= 0
+        ? "Little meta this run — longer survival and higher score earn more."
+        : "";
+
+    let recapStartY = 52;
+    if (bannerLines.length > 0) {
+      this.gameOverBannerText = this.add.text(GAME_WIDTH / 2, 40, bannerLines.join("\n"), {
+        fontSize: "28px",
+        fontStyle: "bold",
+        fill: theme.colors.semantic.text.score,
+        align: "center",
+        lineSpacing: 8,
+        wordWrap: { width: 720 }
+      });
+      this.gameOverBannerText.setOrigin(0.5, 0);
+      this.gameOverBannerText.setDepth(theme.zIndex.gameOverContent + 1);
+      this.gameOverBannerText.setAlpha(0);
+      this.tweens.add({
+        targets: this.gameOverBannerText,
+        alpha: 1,
+        duration: 200,
+        delay: 40,
+        ease: "Power2.Out"
+      });
+      recapStartY = 44 + bannerLines.length * 36;
     }
 
-    this.gameOverText = this.add.text(GAME_WIDTH / 2, 58, recapLines.join("\n"), {
-      fontSize: "22px",
+    const ch = runSummary.challengesCompleted;
+    const challengeLine =
+      ch === 0
+        ? "Challenges: none cleared."
+        : ch > 3
+          ? `${ch} challenges cleared · last: ${this.challengeOutcomeLog[this.challengeOutcomeLog.length - 1] || "—"}`
+          : this.challengeOutcomeLog.slice(-Math.min(3, ch)).join(" · ");
+
+    const pbNote = [this._justSetNewRecord ? "NEW SCORE PB" : null, this._justSetNewTimePb ? "NEW TIME PB" : null]
+      .filter(Boolean)
+      .join(" · ");
+
+    const recapLines = [
+      `Run over · ${this.modeConfig.label} · Score ${score} (best ${this.highestScoreValue})`,
+      metaLine,
+      this.lastContractClaims.length > 0 ? "" : contractLine,
+      `Survival ${survivedSec}s · Best time ${bestTimeLabel}${pbNote ? ` · ${pbNote}` : ""}`,
+      `Bosses ${runSummary.bossClears} · Perks ${this.ownedPerks.length} · Objectives ${completedCount}/${objectives.length}`,
+      challengeLine,
+      `Cause: ${this.lastDeathSource}`
+    ].filter(Boolean);
+
+    const tip = getPostRunTip({
+      survivalTimeSec: survivedSec,
+      challengesCompleted: ch,
+      bossClears: runSummary.bossClears,
+      score,
+      lastDeathSource: this.lastDeathSource
+    });
+    const footer = [getNextUnlockHint().text, tip].filter(Boolean).join("   |   ");
+
+    this.gameOverText = this.add.text(GAME_WIDTH / 2, recapStartY, recapLines.join("\n"), {
+      fontSize: "21px",
       fill: theme.colors.semantic.text.status,
       align: "center",
-      lineSpacing: 6,
+      lineSpacing: 5,
       wordWrap: { width: 700 }
     });
     this.gameOverText.setOrigin(0.5, 0);
@@ -1298,15 +1442,11 @@ export default class DodgeGame extends BaseScene {
       ease: "Power2.Out"
     });
 
-    const summaryParts = [
-      `Time survived: ${survivedSec}s`,
-      `Objectives: ${completedCount}/${objectives.length}`,
-      `Perks taken: ${this.ownedPerks.length}`
-    ];
-    this.gameOverSummaryText = this.add.text(GAME_WIDTH / 2, 400, summaryParts.join("   •   "), {
-      fontSize: "22px",
-      fill: theme.colors.semantic.text.status,
-      align: "center"
+    this.gameOverSummaryText = this.add.text(GAME_WIDTH / 2, 392, footer, {
+      fontSize: "15px",
+      fill: theme.colors.semantic.text.muted,
+      align: "center",
+      wordWrap: { width: 680 }
     });
     this.gameOverSummaryText.setOrigin(0.5, 0.5);
     this.gameOverSummaryText.setDepth(theme.zIndex.gameOverContent);
@@ -1321,8 +1461,12 @@ export default class DodgeGame extends BaseScene {
 
     if (this._justSetNewRecord) {
       this.flashCamera(100, 200, 200, 100);
-      showFloatingText(this, GAME_WIDTH / 2, 220, "New record!", theme.colors.semantic.text.score);
+      showFloatingText(this, GAME_WIDTH / 2, 210, "New score record!", theme.colors.semantic.text.score);
       this._justSetNewRecord = false;
+    }
+    if (this._justSetNewTimePb) {
+      showFloatingText(this, GAME_WIDTH / 2, 246, "New survival record!", theme.colors.semantic.text.success);
+      this._justSetNewTimePb = false;
     }
     this.showReplayButton();
   }
@@ -1589,6 +1733,9 @@ export default class DodgeGame extends BaseScene {
           this.ooGnome.setVolume(0.12);
           this.ooGnome.setRate(1.6);
           this.ooGnome.play();
+          if (this._dailyPassiveScorePerSec > 0) {
+            this.bonusScore += this._dailyPassiveScorePerSec;
+          }
         }
         this._lastScoreTickSecond = currentSecond;
       }
@@ -1604,6 +1751,11 @@ export default class DodgeGame extends BaseScene {
       }
 
       const score = this.getScore();
+      const scoreFloor = Math.floor(score);
+      if (scoreFloor > this._maxContractRunScore) {
+        this._maxContractRunScore = scoreFloor;
+        this.recordContractEvent({ type: "runScore", score: scoreFloor });
+      }
       const { events, context } = this.spawnDirector.update(
         delta,
         score,
@@ -1614,7 +1766,7 @@ export default class DodgeGame extends BaseScene {
         : events;
 
       this.currentFallSpeed = context.fallSpeed;
-      this.backgroundSpeed = context.backgroundSpeed;
+      this.backgroundSpeed = context.backgroundSpeed * (this._dailyFallMult ?? 1);
       const toCelebrate = MILESTONES.find(
         m => score >= m && m > this._lastMilestoneCelebrated
       );
@@ -1680,6 +1832,13 @@ export default class DodgeGame extends BaseScene {
         return;
       }
     } else if (this.gameOverState === "ended") {
+      if (
+        (this.replayKeyR && Phaser.Input.Keyboard.JustDown(this.replayKeyR)) ||
+        (this.replayKeySpace && Phaser.Input.Keyboard.JustDown(this.replayKeySpace))
+      ) {
+        this.resetRun();
+        return;
+      }
       this.player.setVelocity(0, 0);
       this.player.anims.play("flex", true);
     }
@@ -1688,7 +1847,9 @@ export default class DodgeGame extends BaseScene {
   }
 
   recordContractEvent(event) {
-    this.contracts = applyRunEventToContracts(this.contracts, event);
+    this.contracts = applyRunEventToContracts(this.contracts, event, {
+      progressMultiplier: this._dailyContractProgressMult ?? 1
+    });
   }
 
   claimCompletedContracts() {
@@ -1823,9 +1984,6 @@ export default class DodgeGame extends BaseScene {
   updateHud(context) {
     const displayScore = this.getDisplayScore();
     const phaseProgress = context.phaseProgress;
-    const bestScore = Math.floor(this.highestScoreValue);
-    const phaseText = `Phase: ${context.phaseLabel}`;
-    const shieldText = `Shields: ${this.shieldCharges}/${this.runModifiers.maxShields}`;
     const showHeat = context.phaseKey === "heat" || Boolean(this.activeBoss);
 
     if (phaseProgress < 0.85) {
@@ -1863,9 +2021,13 @@ export default class DodgeGame extends BaseScene {
       });
     }
 
-    this.scoreText.setText(`Score: ${displayScore}`);
-    this.highestScore.setText(`${this.modeConfig.label} Best: ${this.highestScoreValue}`);
-    this.phaseText.setText(`Phase: ${context.phaseLabel}`);
+    this.scoreText.setText(`Survive · Score: ${displayScore}`);
+    const timePb = getBestSurvivalSeconds(this.mode);
+    this.highestScore.setText(
+      `${this.modeConfig.label} Best score: ${this.highestScoreValue} · Best time: ${timePb > 0 ? `${timePb}s` : "—"}`
+    );
+    const phaseLabelDetail = showHeat ? `${context.phaseLabel} · pace up` : context.phaseLabel;
+    this.phaseText.setText(`Heat / phase: ${phaseLabelDetail}`);
     this.phaseText.setColor(`#${context.phaseColor.toString(16).padStart(6, "0")}`);
     this.shieldText.setText(`Shields: ${this.shieldCharges}/${this.runModifiers.maxShields}`);
     if (!this.gameOverState && this.shieldCharges <= 1) {
@@ -2097,6 +2259,7 @@ export default class DodgeGame extends BaseScene {
       this.captureOptionInput(this.pendingPerkChoices, chosenPerk => {
         this.runModifiers = applyPerk(this.runModifiers, chosenPerk.id);
         this.ownedPerks.push(chosenPerk.id);
+        this.recordContractEvent({ type: "perkTaken" });
         this.pendingPerkChoices = null;
         this.hideChallengePanelTransitionOut(() => {
           this.music.setVolume(DODGE_AUDIO.musicNormalVolume);
@@ -2170,6 +2333,7 @@ export default class DodgeGame extends BaseScene {
       const chosenPerk = this.pendingPerkChoices[index];
       this.runModifiers = applyPerk(this.runModifiers, chosenPerk.id);
       this.ownedPerks.push(chosenPerk.id);
+      this.recordContractEvent({ type: "perkTaken" });
       this.pendingPerkChoices = null;
       this.hideChallengePanelTransitionOut(() => {
         this.music.setVolume(DODGE_AUDIO.musicNormalVolume);
@@ -2197,9 +2361,10 @@ export default class DodgeGame extends BaseScene {
   resolveChallenge(selectedIndex) {
     this.stopChallengeUrgencyTween();
 
-    const challengeType = this.activeChallenge?.type ?? "unknown";
+    const challengeSnapshot = this.activeChallenge;
+    const challengeType = challengeSnapshot?.type ?? "unknown";
     const result = this.challengeDirector.evaluate(
-      this.activeChallenge,
+      challengeSnapshot,
       selectedIndex,
       this.challengeRemainingMs
     );
@@ -2217,7 +2382,7 @@ export default class DodgeGame extends BaseScene {
     if (!result.success) {
       this.challengeSuccessStreak = 0;
       this.shieldCharges = Math.max(0, this.shieldCharges - (result.reward.shieldPenalty ?? 0));
-      this.challengeOutcomeLog.push(`${this.activeChallenge?.title || "Challenge"}: failed (${result.message})`);
+      this.challengeOutcomeLog.push(`${challengeSnapshot?.title || "Challenge"}: failed (${result.message})`);
       this.music.setVolume(DODGE_AUDIO.musicNormalVolume);
       this.physics.resume();
       this.setStatusText(result.message, parseInt(theme.colors.semantic.stroke.gameOver.replace("#", ""), 16));
@@ -2238,6 +2403,7 @@ export default class DodgeGame extends BaseScene {
       result.reward.scoreBonus * this.runModifiers.challengeScoreMultiplier
     );
     this.completedChallenges += 1;
+    this.recordContractEvent({ type: "challengeSuccess" });
     this.bonusScore += challengeScore;
     this.runRewardTotals.score += challengeScore;
     if (challengeScore > 0) {
@@ -2250,7 +2416,7 @@ export default class DodgeGame extends BaseScene {
     this.runRewardTotals.shields += result.reward.shieldBonus || 0;
     this.perkPoints += result.reward.perkPoint;
     this.runRewardTotals.perkPoints += result.reward.perkPoint || 0;
-    this.challengeOutcomeLog.push(`${result.challenge?.title || "Challenge"}: success (${result.message})`);
+    this.challengeOutcomeLog.push(`${challengeSnapshot?.title || "Challenge"}: success (${result.message})`);
     this.setStatusText(result.message, theme.colors.semantic.game.phaseGreen);
 
     if (this.perkPoints > 0) {
@@ -2474,7 +2640,8 @@ export default class DodgeGame extends BaseScene {
       shield: theme.colors.semantic.game.pickupShield,
       speed: theme.colors.semantic.game.pickupSpeed,
       invuln: theme.colors.semantic.game.pickupInvuln,
-      scoreMult: theme.colors.semantic.game.pickupScoreMult
+      scoreMult: theme.colors.semantic.game.pickupScoreMult,
+      gambit: 0xffc933
     };
     this.emitParticleBurst(descriptor.x, descriptor.y, 5, 200, 0.25, PICKUP_ARRIVAL_TINTS[descriptor.pickupType ?? "shield"]);
 

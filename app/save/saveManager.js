@@ -17,7 +17,11 @@ const DEFAULT_SETTINGS = {
   screenShakeIntensity: 1,
   flashIntensity: 1,
   colorBlindPaletteMode: "off",
-  themeId: "skyfall"
+  themeId: "skyfall",
+  /** Opt-in anonymous analytics upload (requires VITE_TELEMETRY_ENDPOINT + hook). */
+  allowAnonymousAnalytics: false,
+  /** Clamps flash + screen shake for photosensitivity (see docs/ACCESSIBILITY.md). */
+  reduceMotionSafeMode: false
 };
 
 const DEFAULT_UNLOCK_TREE = {
@@ -32,6 +36,14 @@ const DEFAULT_SAVE = {
     BossRush: 0,
     Draft: 0
   },
+  /** Longest survival (seconds) per mode for PB display. */
+  bestTimesByMode: {
+    Classic: 0,
+    BossRush: 0,
+    Draft: 0
+  },
+  /** Lifetime meta currency earned (achievements / display). */
+  lifetimeMetaEarned: 0,
   lastCompletedLevel: 0,
   selectedArchetype: "all-rounder",
   settings: { ...DEFAULT_SETTINGS },
@@ -145,7 +157,12 @@ export function migrateSave(raw) {
     ...DEFAULT_SAVE,
     ...raw,
     settings: { ...DEFAULT_SETTINGS, ...(raw.settings || {}) },
-    unlockTree: normalizeUnlockTree(raw.unlockTree)
+    unlockTree: normalizeUnlockTree(raw.unlockTree),
+    bestTimesByMode: {
+      ...DEFAULT_SAVE.bestTimesByMode,
+      ...(raw.bestTimesByMode && typeof raw.bestTimesByMode === "object" ? raw.bestTimesByMode : {})
+    },
+    lifetimeMetaEarned: Number.isFinite(raw.lifetimeMetaEarned) ? Math.max(0, Math.floor(raw.lifetimeMetaEarned)) : 0
   };
 
   if (version < 2) {
@@ -280,6 +297,31 @@ export function setHighScore(value, mode = "Classic") {
     save.highScore = value;
   }
   setSave(save);
+}
+
+/** Best survival time in seconds for a mode (0 = none yet). */
+export function getBestSurvivalSeconds(mode = "Classic") {
+  const save = getSave();
+  const normalizedMode = normalizeMode(mode);
+  return save.bestTimesByMode?.[normalizedMode] ?? 0;
+}
+
+/** Persist if this run beat the mode survival PB. */
+export function setBestSurvivalSeconds(mode = "Classic", seconds) {
+  const save = getSave();
+  const normalizedMode = normalizeMode(mode);
+  const next = Math.max(0, Math.floor(Number(seconds) || 0));
+  const prev = save.bestTimesByMode?.[normalizedMode] ?? 0;
+  if (next <= prev) {
+    return false;
+  }
+  save.bestTimesByMode = {
+    ...DEFAULT_SAVE.bestTimesByMode,
+    ...(save.bestTimesByMode || {})
+  };
+  save.bestTimesByMode[normalizedMode] = next;
+  setSave(save);
+  return true;
 }
 
 /** Get last completed level (run progress). We do not save ongoing level — only N-1 when exiting. */

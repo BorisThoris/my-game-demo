@@ -78,7 +78,7 @@ export function getCurrentLevelFromScore(score) {
 export const RUNNER_PHASES = [
   { key: "recovery", label: "Recovery", durationMs: 22000, pressure: 0.26, color: palette.runPhaseRecovery },
   { key: "push", label: "Push", durationMs: 18000, pressure: 0.52, color: palette.runPhasePush },
-  { key: "heat", label: "Heat", durationMs: 22000, pressure: 0.9, color: palette.runPhaseHeat },
+  { key: "heat", label: "Heat (faster rain)", durationMs: 22000, pressure: 0.9, color: palette.runPhaseHeat },
   { key: "reset", label: "Reset", durationMs: 15000, pressure: 0.38, color: palette.runPhaseReset }
 ];
 
@@ -475,7 +475,9 @@ export const PICKUP_TYPES = {
   shield: { id: "shield", tint: game.pickupShield, weight: 4, pickupFrame: 0 },
   speed: { id: "speed", tint: game.pickupSpeed, weight: 2, pickupFrame: 1 },
   invuln: { id: "invuln", tint: game.pickupInvuln, weight: 1, pickupFrame: 2 },
-  scoreMult: { id: "scoreMult", tint: game.pickupScoreMult, weight: 2, pickupFrame: 3 }
+  scoreMult: { id: "scoreMult", tint: game.pickupScoreMult, weight: 2, pickupFrame: 3 },
+  /** Rare risk pickup: burst score + warning flash (Package C tradeoff). */
+  gambit: { id: "gambit", tint: 0xffc933, weight: 0.18, pickupFrame: 0 }
 };
 
 const PICKUP_TYPE_IDS = Object.keys(PICKUP_TYPES);

@@ -1,9 +1,9 @@
 import Phaser from "phaser";
 import { GAME_HEIGHT, GAME_WIDTH, theme } from "../config/gameConfig";
 import { SCENE_KEYS } from "../config/sceneKeys";
-import { getMetaState, META_UNLOCK_NODES, purchaseUnlock } from "../game/metaProgression";
+import { getMetaState, getNextUnlockHint, META_UNLOCK_NODES, purchaseUnlock } from "../game/metaProgression";
 
-const { colors, zIndex, spacing } = theme;
+const { colors, spacing, components } = theme;
 
 export default class MetaScene extends Phaser.Scene {
   constructor() {
@@ -20,11 +20,18 @@ export default class MetaScene extends Phaser.Scene {
       fill: colors.semantic.text.objective
     });
 
+    this.hintText = this.add.text(spacing[10], 144, "", {
+      font: "700 16px Arial",
+      fill: colors.semantic.text.score,
+      wordWrap: { width: GAME_WIDTH - spacing[10] * 2 }
+    });
+
     const entries = Object.values(META_UNLOCK_NODES);
+    const rowGap = Math.min(92, Math.max(72, Math.floor((GAME_HEIGHT - 300) / Math.max(1, entries.length))));
     entries.forEach((node, idx) => {
-      const y = 180 + idx * 105;
+      const y = 208 + idx * rowGap;
       const card = this.add.rectangle(60 + 520 / 2, y, 520, 88, parseInt(colors.semantic.background.panel.replace("#", ""), 16), 0.95).setOrigin(0.5);
-      card.setStrokeStyle(theme.components.hud.stroke.width, colors.semantic.game.cardStroke, 1);
+      card.setStrokeStyle(components.hud.stroke.width, colors.semantic.game.cardStroke, 1);
 
       const title = this.add.text(80, y - 30, `${node.label} (${node.cost})`, {
         font: "700 24px Arial",
@@ -70,6 +77,7 @@ export default class MetaScene extends Phaser.Scene {
   renderState() {
     const state = getMetaState();
     this.currencyText.setText(`Meta currency: ${state.metaCurrency}`);
+    this.hintText.setText(getNextUnlockHint().text);
     const unlocked = new Set(state.unlockTree.unlockedNodes);
 
     this._nodes.forEach(({ node, card, title, prereq, buy }) => {
@@ -77,7 +85,7 @@ export default class MetaScene extends Phaser.Scene {
       const prereqMet = node.prereqs.every(reqId => unlocked.has(reqId));
       const canBuy = !has && prereqMet && state.metaCurrency >= node.cost;
 
-      card.setStrokeStyle(theme.components.hud.stroke.width, has ? colors.semantic.game.cardStrokeSuccess : canBuy ? colors.semantic.game.cardStrokeCanBuy : colors.semantic.game.cardStroke, 1);
+      card.setStrokeStyle(components.hud.stroke.width, has ? colors.semantic.game.cardStrokeSuccess : canBuy ? colors.semantic.game.cardStrokeCanBuy : colors.semantic.game.cardStroke, 1);
       title.setFill(has ? colors.semantic.text.success : colors.semantic.text.status);
       prereq.setFill(prereqMet ? colors.semantic.text.muted : colors.semantic.text.danger);
       buy.setText(has ? "Unlocked" : "Unlock");

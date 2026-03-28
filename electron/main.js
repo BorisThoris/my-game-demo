@@ -29,11 +29,24 @@ function createWindow() {
   });
 }
 
+function registerSkyfallIpc() {
+  ipcMain.removeHandler("skyfall:get-user-data-path");
+  ipcMain.handle("skyfall:get-user-data-path", () => app.getPath("userData"));
+}
+
+ipcMain.on("skyfall:quit", () => {
+  app.quit();
+});
+
+/** @deprecated use skyfall:quit from preload skyfallElectron.quit */
 ipcMain.on("quit", () => {
   app.quit();
 });
 
-app.whenReady().then(createWindow);
+app.whenReady().then(() => {
+  registerSkyfallIpc();
+  createWindow();
+});
 
 app.on("window-all-closed", () => {
   app.quit();

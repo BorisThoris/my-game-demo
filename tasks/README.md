@@ -12,6 +12,8 @@
 
 **Who claimed which task:** [`AGENT_BOARD.md`](./AGENT_BOARD.md) (status + claim column for chats).
 
+**Lean QA (AGENT-20):** On 2026-03-28, `npm test`, `npm run test:e2e` (chromium), and `npm run build` completed successfully for lean **01–13**, **16–20** (integration pass: meta hint UI, game-over banner/PB HUD, `meta_lifetime_100`, duplicate contract event fix, `e2e/boot.spec.js` click coords for shifted main menu). Agents **14–15** remain **blocked** pending product approval.
+
 Assign **one autonomous agent per `AGENT-XX-*.md` file**. Respect dependency groups.
 
 ---

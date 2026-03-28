@@ -45,7 +45,7 @@ export const createBaseModifiers = () => ({
 
 // ---------------------------------------------------------------------------
 // PERK LIBRARY
-// Each perk: id, title, description, category, rarity?, iconFrame? (0–7), apply(modifiers)
+// Each perk: id, title, description, category, featTags (≤3 names: mobility/defense/score), rarity?, iconFrame? (0–7), apply(modifiers)
 // ---------------------------------------------------------------------------
 
 export const PERK_LIBRARY = Object.freeze([
@@ -55,6 +55,7 @@ export const PERK_LIBRARY = Object.freeze([
     title: "Kinetic Boots",
     description: "+12% move speed.",
     category: PERK_CATEGORIES.movement,
+    featTags: ["mobility"],
     rarity: RARITY.uncommon,
     iconFrame: 0,
     apply(modifiers) {
@@ -69,6 +70,7 @@ export const PERK_LIBRARY = Object.freeze([
     title: "Quick Step",
     description: "+8% move speed.",
     category: PERK_CATEGORIES.movement,
+    featTags: ["mobility"],
     rarity: RARITY.common,
     iconFrame: 0,
     apply(modifiers) {
@@ -83,6 +85,7 @@ export const PERK_LIBRARY = Object.freeze([
     title: "Afterburner",
     description: "+15% move speed.",
     category: PERK_CATEGORIES.movement,
+    featTags: ["mobility"],
     rarity: RARITY.rare,
     iconFrame: 0,
     apply(modifiers) {
@@ -97,6 +100,7 @@ export const PERK_LIBRARY = Object.freeze([
     title: "Sprint Master",
     description: "+10% move speed.",
     category: PERK_CATEGORIES.movement,
+    featTags: ["mobility"],
     rarity: RARITY.common,
     iconFrame: 0,
     apply(modifiers) {
@@ -112,6 +116,7 @@ export const PERK_LIBRARY = Object.freeze([
     title: "Magnetic Core",
     description: "+1 max shield capacity.",
     category: PERK_CATEGORIES.defense,
+    featTags: ["defense"],
     rarity: RARITY.uncommon,
     iconFrame: 1,
     apply(modifiers) {
@@ -126,6 +131,7 @@ export const PERK_LIBRARY = Object.freeze([
     title: "Thick Skin",
     description: "+1 max shield capacity.",
     category: PERK_CATEGORIES.defense,
+    featTags: ["defense"],
     rarity: RARITY.common,
     iconFrame: 1,
     apply(modifiers) {
@@ -140,6 +146,7 @@ export const PERK_LIBRARY = Object.freeze([
     title: "Fortress",
     description: "+1 max shield capacity.",
     category: PERK_CATEGORIES.defense,
+    featTags: ["defense"],
     rarity: RARITY.uncommon,
     iconFrame: 7,
     apply(modifiers) {
@@ -154,6 +161,7 @@ export const PERK_LIBRARY = Object.freeze([
     title: "Phase Buffer",
     description: "Longer invulnerability after shield break.",
     category: PERK_CATEGORIES.defense,
+    featTags: ["defense"],
     rarity: RARITY.uncommon,
     iconFrame: 2,
     apply(modifiers) {
@@ -168,6 +176,7 @@ export const PERK_LIBRARY = Object.freeze([
     title: "Reactive Plating",
     description: "+250ms invulnerability after shield break.",
     category: PERK_CATEGORIES.defense,
+    featTags: ["defense"],
     rarity: RARITY.common,
     iconFrame: 2,
     apply(modifiers) {
@@ -183,6 +192,7 @@ export const PERK_LIBRARY = Object.freeze([
     title: "Overclock",
     description: "+20% score bonus from challenge rewards.",
     category: PERK_CATEGORIES.score,
+    featTags: ["score"],
     rarity: RARITY.uncommon,
     iconFrame: 3,
     apply(modifiers) {
@@ -197,6 +207,7 @@ export const PERK_LIBRARY = Object.freeze([
     title: "Scavenger",
     description: "+2 bonus score per pickup collected.",
     category: PERK_CATEGORIES.score,
+    featTags: ["score"],
     rarity: RARITY.common,
     iconFrame: 4,
     apply(modifiers) {
@@ -211,6 +222,7 @@ export const PERK_LIBRARY = Object.freeze([
     title: "High Roller",
     description: "+30% challenge score bonus.",
     category: PERK_CATEGORIES.score,
+    featTags: ["score"],
     rarity: RARITY.rare,
     iconFrame: 3,
     apply(modifiers) {
@@ -225,6 +237,7 @@ export const PERK_LIBRARY = Object.freeze([
     title: "Treasure Sense",
     description: "+3 bonus score per pickup.",
     category: PERK_CATEGORIES.score,
+    featTags: ["score"],
     rarity: RARITY.uncommon,
     iconFrame: 4,
     apply(modifiers) {
@@ -240,6 +253,7 @@ export const PERK_LIBRARY = Object.freeze([
     title: "Lucky Charm",
     description: "+5% move speed, +50ms invulnerability.",
     category: PERK_CATEGORIES.utility,
+    featTags: ["mobility", "defense"],
     rarity: RARITY.common,
     iconFrame: 5,
     apply(modifiers) {
@@ -255,6 +269,7 @@ export const PERK_LIBRARY = Object.freeze([
     title: "Veteran",
     description: "+1 shield, +10% challenge score.",
     category: PERK_CATEGORIES.utility,
+    featTags: ["defense", "score"],
     rarity: RARITY.rare,
     iconFrame: 6,
     apply(modifiers) {
@@ -379,6 +394,17 @@ export const DEBUFF_LIBRARY = Object.freeze([
 
 export const getPerkById = (id) => PERK_LIBRARY.find((p) => p.id === id) ?? null;
 
+/** True if every taken perk is tagged only with `tag` (at least one perk, ≥2 picks for purist). */
+export const runUsesSingleFeatTagOnly = (ownedPerkIds, tag) => {
+  if (!Array.isArray(ownedPerkIds) || ownedPerkIds.length < 2) {
+    return false;
+  }
+  return ownedPerkIds.every((id) => {
+    const tags = getPerkFeatTags(id);
+    return tags.length > 0 && tags.every((t) => t === tag);
+  });
+};
+
 export const getDebuffById = (id) => DEBUFF_LIBRARY.find((d) => d.id === id) ?? null;
 
 export const getPerksByCategory = (category) =>
@@ -399,3 +425,30 @@ export const getPerkIconFrame = (perkId, maxFrames = 8) => {
   const frame = perk.iconFrame ?? index;
   return Math.min(Math.max(0, frame), maxFrames - 1);
 };
+
+const DEFAULT_FEAT_TAGS = {
+  [PERK_CATEGORIES.movement]: ["mobility"],
+  [PERK_CATEGORIES.defense]: ["defense"],
+  [PERK_CATEGORIES.score]: ["score"]
+};
+
+/** ≤3 tag names (mobility / defense / score) for feat achievements (AGENT-09). */
+export function getPerkFeatTags(perkId) {
+  const p = getPerkById(perkId);
+  if (!p) {
+    return [];
+  }
+  if (Array.isArray(p.featTags) && p.featTags.length) {
+    return [...p.featTags];
+  }
+  if (p.category === PERK_CATEGORIES.utility) {
+    if (p.id === "lucky-charm") {
+      return ["mobility", "defense"];
+    }
+    if (p.id === "veteran") {
+      return ["defense", "score"];
+    }
+    return ["mobility", "score"];
+  }
+  return DEFAULT_FEAT_TAGS[p.category] ? [...DEFAULT_FEAT_TAGS[p.category]] : ["score"];
+}

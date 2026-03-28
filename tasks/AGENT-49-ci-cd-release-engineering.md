@@ -10,8 +10,8 @@
 4. **Signing** — document **Windows code signing** steps (cert, `signtool`); implement if cert available, else **“unsigned build”** warning in release doc.
 
 ## Acceptance criteria
-- [ ] Green CI on default branch for **test + build**.
-- [ ] `docs/RELEASE.md` — **one page** “how to ship 1.x.y”.
+- [x] Green CI on default branch for **test + build**.
+- [x] `docs/RELEASE.md` — **one page** “how to ship 1.x.y”.
 
 ## Out of scope
 Mac notarization unless you scope it in the same doc as future work.

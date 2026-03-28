@@ -5,6 +5,7 @@ export const SCENE_KEYS = {
   achievements: "achievementsScene",
   tutorial: "tutorialScene",
   credits: "creditsScene",
+  about: "aboutScene",
   game: "gameScene",
   meta: "metaScene",
   editor: "editorScene"

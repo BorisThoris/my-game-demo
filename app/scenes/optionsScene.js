@@ -5,6 +5,8 @@ import { BODY_STYLE, PANEL_TITLE_STYLE } from "../config/sceneStyles";
 import { getSettings, setSettings } from "../save/saveManager";
 import { getThemeList } from "../config/styleTokens/themes";
 import { GAME_VERSION } from "../config/version";
+import { EXTERNAL_LINKS } from "../config/externalLinks";
+import { openExternalLink } from "../shared/browser";
 import BaseScene from "./baseScene";
 
 function clamp01(v) {
@@ -121,6 +123,40 @@ export default class OptionsScene extends BaseScene {
     });
     y += 50;
 
+    this.createText(200, y, "Safe mode (photosensitivity)", { ...BODY_STYLE, font: "700 24px Arial", align: "left" });
+    const safeVal = this.createText(520, y, getSettings().reduceMotionSafeMode ? "On" : "Off", {
+      ...BODY_STYLE,
+      font: "700 22px Arial",
+      fill: colors.semantic.text.accent,
+      align: "left"
+    });
+    const safeToggle = this.createText(340, y, "Toggle", {
+      ...BODY_STYLE,
+      font: "700 20px Arial",
+      fill: colors.semantic.text.warm,
+      align: "left"
+    });
+    safeToggle.setInteractive({ useHandCursor: true });
+    safeToggle.on("pointerdown", () => {
+      const next = !getSettings().reduceMotionSafeMode;
+      setSettings({ reduceMotionSafeMode: next });
+      safeVal.setText(next ? "On" : "Off");
+    });
+    y += 36;
+    this.createText(
+      200,
+      y,
+      "Caps brightest flashes and screen shake. See docs/ACCESSIBILITY.md.",
+      {
+        ...BODY_STYLE,
+        font: "700 14px Arial",
+        fill: colors.semantic.text.muted,
+        align: "left",
+        wordWrap: { width: GAME_WIDTH - 240 }
+      }
+    );
+    y += 44;
+
     // Fullscreen toggle (text button)
     const fsLabel = this.createText(200, y, settings.fullscreen ? "Fullscreen: On" : "Fullscreen: Off", {
       ...BODY_STYLE,
@@ -194,25 +230,31 @@ export default class OptionsScene extends BaseScene {
       setSettings({ colorBlindPaletteMode: next });
       paletteVal.setText(next);
     });
-    y += 55;
-
-    // Resolution / quality (dropdown as text buttons)
-    this.createText(200, y, "Resolution", { ...BODY_STYLE, font: "700 24px Arial", align: "left" });
-    const resOptions = ["1280x720", "1920x1080"];
-    const resLabel = this.createText(340, y, settings.resolutionOrQuality || "1280x720", {
+    y += 28;
+    this.createText(200, y, "Warm/cool hazard tint remap — helps distinguish threats, not a full palette swap.", {
       ...BODY_STYLE,
-      font: "700 22px Arial",
-      fill: colors.semantic.text.accent,
-      align: "left"
+      font: "700 13px Arial",
+      fill: colors.semantic.text.muted,
+      align: "left",
+      wordWrap: { width: GAME_WIDTH - 240 }
     });
-    resLabel.setInteractive({ useHandCursor: true });
-    resLabel.on("pointerdown", () => {
-      const idx = resOptions.indexOf(getSettings().resolutionOrQuality);
-      const next = resOptions[(idx + 1) % resOptions.length];
-      setSettings({ resolutionOrQuality: next });
-      resLabel.setText(next);
-    });
-    y += 60;
+    y += 40;
+
+    // Canvas size follows layout tokens; resolution setting is stored for a future display pass.
+    this.createText(200, y, "Display size", { ...BODY_STYLE, font: "700 24px Arial", align: "left" });
+    this.createText(
+      200,
+      y + 30,
+      `Fixed layout in this build. Saved target ${settings.resolutionOrQuality || "1280x720"} (not applied yet).`,
+      {
+        ...BODY_STYLE,
+        font: "700 15px Arial",
+        fill: colors.semantic.text.muted,
+        align: "left",
+        wordWrap: { width: GAME_WIDTH - 240 }
+      }
+    );
+    y += 72;
 
     // Achievements (link to achievements scene)
     const achievementsLabel = this.createText(200, y, "Achievements", {
@@ -228,7 +270,65 @@ export default class OptionsScene extends BaseScene {
         returnData: { returnTo: this.returnTo, returnData: this.returnData }
       });
     });
-    y += 50;
+    y += 46;
+
+    const aboutLabel = this.createText(200, y, "About", {
+      ...BODY_STYLE,
+      font: "700 24px Arial",
+      fill: colors.semantic.text.accent,
+      align: "left"
+    });
+    aboutLabel.setInteractive({ useHandCursor: true });
+    aboutLabel.on("pointerdown", () => {
+      this.scene.start(SCENE_KEYS.about, {
+        returnTo: SCENE_KEYS.options,
+        returnData: { returnTo: this.returnTo, returnData: this.returnData }
+      });
+    });
+    y += 48;
+
+    this.createText(200, y, "Anonymous analytics upload", {
+      ...BODY_STYLE,
+      font: "700 22px Arial",
+      align: "left"
+    });
+    const analyticsVal = this.createText(520, y, getSettings().allowAnonymousAnalytics ? "On" : "Off", {
+      ...BODY_STYLE,
+      font: "700 22px Arial",
+      fill: colors.semantic.text.accent,
+      align: "left"
+    });
+    const analyticsToggle = this.createText(340, y, "Toggle", {
+      ...BODY_STYLE,
+      font: "700 20px Arial",
+      fill: colors.semantic.text.warm,
+      align: "left"
+    });
+    analyticsToggle.setInteractive({ useHandCursor: true });
+    analyticsToggle.on("pointerdown", () => {
+      const next = !getSettings().allowAnonymousAnalytics;
+      setSettings({ allowAnonymousAnalytics: next });
+      analyticsVal.setText(next ? "On" : "Off");
+    });
+    y += 44;
+
+    const privacyUrl = EXTERNAL_LINKS.privacy;
+    const privacyLine = privacyUrl?.startsWith("http")
+      ? "Privacy policy: tap to open (browser)"
+      : "Privacy policy: configure app/config/externalLinks.js before ship. Full text in About.";
+    const privacyText = this.createText(GAME_CENTER_X, y, privacyLine, {
+      ...BODY_STYLE,
+      font: "700 15px Arial",
+      fill: colors.semantic.text.muted,
+      align: "center",
+      wordWrap: { width: GAME_WIDTH - 200 }
+    });
+    privacyText.setOrigin(0.5, 0);
+    if (privacyUrl?.startsWith("http")) {
+      privacyText.setInteractive({ useHandCursor: true });
+      privacyText.on("pointerdown", () => openExternalLink(privacyUrl));
+    }
+    y += privacyText.height + 28;
 
     // Version
     this.createText(GAME_CENTER_X, y, `Skyfall v${GAME_VERSION}`, {

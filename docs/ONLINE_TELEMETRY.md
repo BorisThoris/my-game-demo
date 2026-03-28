@@ -13,6 +13,11 @@
 | **Rich presence** | Cached string in state | Adapter | Queued on failure |
 | **Cloud save** (`saveToCloud` / `loadFromCloud`) | — | Adapter | Callback no-op on failure |
 
+## Build-time upload endpoint + consent
+
+- If **`VITE_TELEMETRY_ENDPOINT`** is set at build time, the app may register an upload hook (see `app/index.js`). Upload still requires **Settings → Allow anonymous analytics** (`allowAnonymousAnalytics`); otherwise `flushTelemetryBatch` skips with `no-consent`.
+- Env vars and player-facing copy: **[TELEMETRY.md](./TELEMETRY.md)**.
+
 ## Offline / no hook behavior
 
 - **`flushTelemetryBatch`:** If there is no upload hook or the batch is empty, returns immediately `{ uploaded: 0, skipped: true }` — **does not block** gameplay.

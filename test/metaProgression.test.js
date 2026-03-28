@@ -3,6 +3,8 @@ import test from "node:test";
 import {
   applyUnlocksToModifiers,
   calculateMetaCurrencyReward,
+  getNextUnlockHint,
+  grantMetaCurrency,
   purchaseUnlock
 } from "../app/game/metaProgression.js";
 import { createBaseModifiers } from "../app/game/perkSystem.js";
@@ -73,4 +75,48 @@ test("applyUnlocksToModifiers applies known unlocks and ignores unknown nodes", 
   assert.equal(out.maxShields, base.maxShields + 1);
   assert.ok(out.moveSpeedMultiplier > base.moveSpeedMultiplier);
   assert.equal(out.scoreMultiplier, base.scoreMultiplier);
+});
+
+test("getNextUnlockHint names next purchasable node", () => {
+  const cleanup = installStorage({
+    version: 2,
+    highScore: 0,
+    lastCompletedLevel: 0,
+    settings: {},
+    unlockedAchievements: [],
+    metaCurrency: 5,
+    lifetimeMetaEarned: 0,
+    unlockTree: { unlockedNodes: [] },
+    bestTimesByMode: { Classic: 0, BossRush: 0, Draft: 0 },
+    highScoresByMode: { Classic: 0, BossRush: 0, Draft: 0 }
+  });
+  const hint = getNextUnlockHint();
+  assert.match(hint.text, /meta to unlock|Unlock .+ now/);
+  cleanup();
+});
+
+test("grantMetaCurrency increases lifetimeMetaEarned", () => {
+  const cleanup = installStorage({
+    version: 2,
+    highScore: 0,
+    lastCompletedLevel: 0,
+    settings: {},
+    unlockedAchievements: [],
+    metaCurrency: 0,
+    lifetimeMetaEarned: 0,
+    unlockTree: { unlockedNodes: [] },
+    bestTimesByMode: { Classic: 0, BossRush: 0, Draft: 0 },
+    highScoresByMode: { Classic: 0, BossRush: 0, Draft: 0 }
+  });
+  const reward = grantMetaCurrency({
+    survivalTimeSec: 40,
+    score: 50,
+    bossClears: 0,
+    objectivesCompleted: 0,
+    challengesCompleted: 0
+  });
+  assert.ok(reward > 0);
+  const raw = JSON.parse(global.localStorage.getItem("skyfall_save"));
+  assert.ok(raw.lifetimeMetaEarned >= reward);
+  cleanup();
 });

@@ -1,4 +1,5 @@
 import { getSave, setSave } from "../save/saveManager.js";
+import { unlockAchievement } from "../services/onlineService.js";
 
 export const META_UNLOCK_NODES = {
   "starter-shield": {
@@ -32,6 +33,38 @@ export const META_UNLOCK_NODES = {
     cost: 40,
     prereqs: ["starter-shield"],
     effect: { challengeScoreMultiplier: 0.15 }
+  },
+  "iron-lining": {
+    id: "iron-lining",
+    label: "Iron Lining",
+    description: "+220ms invulnerability after a hit.",
+    cost: 38,
+    prereqs: ["starter-shield"],
+    effect: { invulnerabilityMs: 220 }
+  },
+  "gilded-touch": {
+    id: "gilded-touch",
+    label: "Gilded Touch",
+    description: "+1 score from every pickup.",
+    cost: 48,
+    prereqs: ["score-engine"],
+    effect: { extraScorePerPickup: 1 }
+  },
+  "tailwind-coil": {
+    id: "tailwind-coil",
+    label: "Tailwind Coil",
+    description: "+6% move speed.",
+    cost: 42,
+    prereqs: ["focus-core"],
+    effect: { moveSpeedMultiplier: 0.06 }
+  },
+  "arc-stabilizer": {
+    id: "arc-stabilizer",
+    label: "Arc Stabilizer",
+    description: "+120ms invulnerability after a hit.",
+    cost: 44,
+    prereqs: ["tailwind-coil"],
+    effect: { invulnerabilityMs: 120 }
   }
 };
 
@@ -47,6 +80,29 @@ export function getMetaState() {
         : []
     }
   };
+}
+
+/** One-line hint for meta UI / game over (display-only). */
+export function getNextUnlockHint() {
+  const state = getMetaState();
+  const unlocked = new Set(state.unlockTree.unlockedNodes);
+  const remaining = Object.values(META_UNLOCK_NODES).filter(n => !unlocked.has(n.id));
+  if (remaining.length === 0) {
+    return { text: "All meta unlocks owned." };
+  }
+  const candidates = remaining.filter(n => n.prereqs.every(reqId => unlocked.has(reqId)));
+  if (candidates.length === 0) {
+    remaining.sort((a, b) => a.cost - b.cost || a.id.localeCompare(b.id));
+    const gate = remaining[0];
+    return { text: `Earn meta and meet prerequisites for ${gate.label}.` };
+  }
+  candidates.sort((a, b) => a.cost - b.cost || a.id.localeCompare(b.id));
+  const next = candidates[0];
+  const need = next.cost - state.metaCurrency;
+  if (need <= 0) {
+    return { text: `Unlock ${next.label} now in Meta.` };
+  }
+  return { text: `+${need} meta to unlock ${next.label}.` };
 }
 
 export function calculateMetaCurrencyReward(runSummary = {}) {
@@ -72,8 +128,16 @@ export function grantMetaCurrency(runSummary = {}) {
   }
 
   const save = getSave();
+  const prevLife = clampInt(save.lifetimeMetaEarned);
   save.metaCurrency = clampInt(save.metaCurrency) + reward;
+  save.lifetimeMetaEarned = prevLife + reward;
   setSave(save);
+  if (prevLife < 100 && save.lifetimeMetaEarned >= 100) {
+    unlockAchievement("meta_lifetime_100");
+  }
+  if (prevLife < 500 && save.lifetimeMetaEarned >= 500) {
+    unlockAchievement("meta_lifetime_500");
+  }
   return reward;
 }
 
@@ -84,6 +148,7 @@ export function purchaseUnlock(nodeId) {
   }
 
   const save = getSave();
+  const priorUnlocked = Array.isArray(save.unlockTree?.unlockedNodes) ? save.unlockTree.unlockedNodes.length : 0;
   const unlocked = new Set(Array.isArray(save.unlockTree?.unlockedNodes) ? save.unlockTree.unlockedNodes : []);
   if (unlocked.has(nodeId)) {
     return { ok: false, reason: "already-unlocked" };
@@ -103,6 +168,9 @@ export function purchaseUnlock(nodeId) {
   save.metaCurrency = metaCurrency - node.cost;
   save.unlockTree = { unlockedNodes: [...unlocked] };
   setSave(save);
+  if (priorUnlocked === 0) {
+    unlockAchievement("meta_first_purchase");
+  }
   return { ok: true, nodeId, remainingCurrency: save.metaCurrency };
 }
 
@@ -124,10 +192,17 @@ export function applyUnlocksToModifiers(baseModifiers, unlockTree) {
       modifiers.moveSpeedMultiplier *= 1 + effect.moveSpeedMultiplier;
     }
     if (effect.scoreMultiplier) {
-      modifiers.scoreMultiplier *= 1 + effect.scoreMultiplier;
+      const base = modifiers.scoreMultiplier ?? 1;
+      modifiers.scoreMultiplier = base * (1 + effect.scoreMultiplier);
     }
     if (effect.challengeScoreMultiplier) {
       modifiers.challengeScoreMultiplier *= 1 + effect.challengeScoreMultiplier;
+    }
+    if (effect.invulnerabilityMs) {
+      modifiers.invulnerabilityMs += effect.invulnerabilityMs;
+    }
+    if (effect.extraScorePerPickup) {
+      modifiers.extraScorePerPickup = (modifiers.extraScorePerPickup ?? 0) + effect.extraScorePerPickup;
     }
   });
 

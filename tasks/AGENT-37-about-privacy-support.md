@@ -9,8 +9,8 @@
 3. Optional: **“Report a bug”** mailto or GitHub issues link for non-Steam builds.
 
 ## Acceptance criteria
-- [ ] No broken `href="#"` without visible “coming soon” if URLs unset.
-- [ ] Options or main menu reachable path to About in ≤3 clicks.
+- [x] No broken `href="#"` without visible “coming soon” if URLs unset.
+- [x] Options or main menu reachable path to About in ≤3 clicks.
 
 ## Key files
 - New small scene or `optionsScene` subsection

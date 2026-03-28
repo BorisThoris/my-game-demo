@@ -23,6 +23,10 @@ test("migrateSave upgrades legacy saves with meta progression defaults", () => {
   assert.deepEqual(migrated.unlockTree, { unlockedNodes: [] });
   assert.equal(migrated.settings.musicVolume, 0.3);
   assert.equal(migrated.settings.sfxVolume, 1);
+  assert.equal(migrated.settings.allowAnonymousAnalytics, false);
+  assert.equal(migrated.settings.reduceMotionSafeMode, false);
+  assert.deepEqual(migrated.bestTimesByMode, { Classic: 0, BossRush: 0, Draft: 0 });
+  assert.equal(migrated.lifetimeMetaEarned, 0);
   assert.equal(migrated.tutorialCompleted, false);
   assert.equal(migrated.tutorialOptOut, false);
 });

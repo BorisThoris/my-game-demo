@@ -62,8 +62,13 @@ test.describe("Boot and menu", () => {
     consoleErrors.length = 0;
     const box = await container.boundingBox();
     expect(box).toBeTruthy();
-    const clickX = box.x + box.width / 2;
-    const clickY = box.y + box.height - 120;
+    const gameW = 1280;
+    const gameH = 720;
+    // Left panel "Play" row (see mainMenuScene menuYStart + first item)
+    const playX = 96;
+    const playY = 284;
+    const clickX = box.x + (box.width * playX) / gameW;
+    const clickY = box.y + (box.height * playY) / gameH;
     await page.mouse.click(clickX, clickY);
     await expect(canvas).toBeVisible();
     expect(
@@ -110,7 +115,7 @@ test.describe("Boot and menu", () => {
     const gameW = 1280;
     const gameH = 720;
     const achievementsItemX = 100;
-    const achievementsItemY = 336;
+    const achievementsItemY = 380;
     const clickAchievementsX = box.x + (box.width * achievementsItemX) / gameW;
     const clickAchievementsY = box.y + (box.height * achievementsItemY) / gameH;
     await page.mouse.click(clickAchievementsX, clickAchievementsY);

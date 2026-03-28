@@ -1,51 +1,20 @@
-# Telemetry Plan & KPI Baselines
+# Telemetry (local batch + optional upload)
 
-## Event taxonomy
+## Local batch (always)
 
-Core run events emitted by gameplay code:
-- `run_start`: run begins, includes `runId`, phase, and starting shields.
-- `run_end`: run exits or ends in death with `score`, `runTimeMs`, `exited`.
-- `death_source`: source classification (`hazard`, `boss_or_projectile`) and texture.
-- `pickup_usage`: pickup type and context (`scoreBefore`, shield count).
-- `boss_outcome`: boss spawned/cleared outcomes and optional duration.
-- `challenge_performance`: challenge type and success/failure.
+Run analytics events are buffered in `localStorage` under `skyfall.telemetry.v1` (ring buffer, cap 250). This supports dev tooling (`npm run telemetry:aggregate`) and future uploads.
 
-Additional lightweight events emitted by directors:
-- `challenge_spawned`, `challenge_evaluated`
-- `objectives_reset`, `objective_completed`, `objective_reward_claimed`
+## Optional HTTP upload (build-time)
 
-## Local buffering and upload hook
+If **`VITE_TELEMETRY_ENDPOINT`** is set at **build** time to an absolute `https://` URL, the game registers `setTelemetryUploadHook` and POSTs JSON batches to that URL. Payload shape includes `{ events, gameVersion }` (see `app/index.js`).
 
-Telemetry writes to local storage key `skyfall.telemetry.v1` and keeps the most recent 250 events.
+- **No env variable** → no upload hook; nothing is sent over the network from telemetry.
+- **Consent** — Upload runs only when **Settings → Allow anonymous analytics** is on (`allowAnonymousAnalytics` in save). If off, `flushTelemetryBatch` skips the hook with reason `no-consent` and keeps the local batch for later opt-in or CLI export.
 
-Upload integration is intentionally hook-based:
-1. Register a provider with `registerTelemetryUploader(uploadFn)` in `onlineService.js`.
-2. Call `uploadTelemetryBatch()` to flush buffered events.
-3. The queue clears on successful upload callback resolution.
+## Privacy copy
 
-## KPI baseline script
+Options shows a short disclosure when telemetry upload is relevant; optional **Privacy policy** opens only if `app/config/externalLinks.js` has a real `http(s)` URL for `privacy`.
 
-Use the aggregation script to compute balancing baselines:
+## Related
 
-```bash
-node scripts/telemetry/aggregateTelemetry.js ./telemetry-sample.json
-```
-
-Expected input: JSON array of telemetry events.
-
-Output fields:
-- `medianRunLengthMs`: median of `run_end.runTimeMs`
-- `firstBossReachRate`: distinct runs with `boss_outcome=cleared` / distinct `run_start`
-- `challengeSuccessRate`: successful challenge outcomes / total challenge outcomes
-
-## Dashboard metrics (balancing)
-
-Recommended dashboard cards:
-- Run funnel: starts, voluntary exits, deaths.
-- Median run length (overall and by phase reached).
-- First boss reach/clear rate.
-- Death-source distribution by content ID/texture.
-- Pickup usage rates and pickup-to-survival correlation.
-- Challenge spawn frequency, response latency, success rate by challenge type.
-- Objective completion and reward-claim rates by objective ID.
-
+- [ONLINE_TELEMETRY.md](./ONLINE_TELEMETRY.md) — full storage/queue audit.

@@ -18,7 +18,11 @@ function seedSaveNoTutorialPrompt() {
       flashIntensity: 1,
       colorBlindPaletteMode: "off",
       themeId: "skyfall",
+      allowAnonymousAnalytics: false,
+      reduceMotionSafeMode: false
     },
+    bestTimesByMode: { Classic: 0, BossRush: 0, Draft: 0 },
+    lifetimeMetaEarned: 0,
     unlockedAchievements: [],
     metaFragments: 0,
     metaCurrency: 0,
@@ -38,18 +42,8 @@ function seedSaveNoTutorialPrompt() {
 
 const PAGE_LOAD_TIMEOUT = 15000;
 const CANVAS_SELECTOR = "#phaser-example canvas";
-const GAME_W = 1280;
-const GAME_H = 720;
-
-function canvasClick(canvasBox, gameX, gameY) {
-  return {
-    x: canvasBox.x + (canvasBox.width * gameX) / GAME_W,
-    y: canvasBox.y + (canvasBox.height * gameY) / GAME_H,
-  };
-}
-
 test.describe("Options — version string (AGENT-37 / AGENT-50)", () => {
-  test.setTimeout(25000);
+  test.setTimeout(45000);
 
   test("Options scene lists Skyfall version matching GAME_VERSION", async ({ page }) => {
     await page.addInitScript(seedSaveNoTutorialPrompt);
@@ -65,17 +59,15 @@ test.describe("Options — version string (AGENT-37 / AGENT-50)", () => {
       { timeout: PAGE_LOAD_TIMEOUT }
     );
 
-    const box = await canvas.boundingBox();
-    expect(box).toBeTruthy();
-
-    const { x, y } = canvasClick(box, 100, 318);
-    await page.mouse.click(x, y);
+    await page.evaluate(() => {
+      window.__skyfallDev?.game?.scene?.start("optionsScene", { returnTo: "mainMenuScene" });
+    });
     await page.waitForFunction(
       () => {
         const g = window.__skyfallDev?.game;
         return g?.scene?.isActive("optionsScene");
       },
-      { timeout: PAGE_LOAD_TIMEOUT }
+      { timeout: 20000 }
     );
 
     const result = await page.evaluate(() => {

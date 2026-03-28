@@ -47,6 +47,13 @@ export default class RunnerSpawnDirector {
     this.pendingSpawns = [];
     this.timeUntilNextPatternMs = INITIAL_PATTERN_DELAY_MS;
     this.bossCooldownMs = 20000 * this.modeTuning.bossCooldownScale;
+    this.fallSpeedScale = 1;
+  }
+
+  /** Daily modifier: multiply hazard / pickup fall speeds (1 = default). */
+  setFallSpeedScale(scale = 1) {
+    const s = Number(scale);
+    this.fallSpeedScale = Number.isFinite(s) && s > 0 ? s : 1;
   }
 
   getPhaseState() {
@@ -54,12 +61,14 @@ export default class RunnerSpawnDirector {
   }
 
   getContext(score) {
-    return buildRunnerContext({
+    const ctx = buildRunnerContext({
       score,
       phaseIndex: this.phaseIndex,
       phaseElapsedMs: this.phaseElapsedMs,
       cycleCount: this.cycleCount
     });
+    const scale = this.fallSpeedScale ?? 1;
+    return { ...ctx, fallSpeed: ctx.fallSpeed * scale };
   }
 
   update(deltaMs, score, bossActive = false) {

@@ -8,6 +8,7 @@ import LoadingScene from "./scenes/loadingScene";
 import MainMenuScene from "./scenes/mainMenuScene";
 import OptionsScene from "./scenes/optionsScene";
 import CreditsScene from "./scenes/creditsScene";
+import AboutScene from "./scenes/aboutScene";
 import AchievementsScene from "./scenes/achievementsScene";
 import DodgeGame from "./scenes/dodgeGame";
 import MetaScene from "./scenes/metaScene";
@@ -21,6 +22,8 @@ import {
   theme
 } from "./config/gameConfig";
 import { GAME_VERSION } from "./config/version";
+import { getSettings } from "./save/saveManager.js";
+import { setTelemetryConsentChecker, setTelemetryUploadHook } from "./game/telemetry.js";
 
 const config = {
   type: Phaser.AUTO,
@@ -55,6 +58,7 @@ const config = {
     AchievementsScene,
     TutorialScene,
     CreditsScene,
+    AboutScene,
     DodgeGame,
     MetaScene,
     ...(import.meta.env.DEV ? [EditorScene] : [])
@@ -67,6 +71,23 @@ if (import.meta.env.DEV) {
 }
 initMobileControls();
 if (!isMobile()) document.body.classList.add("desktop-build");
+
+setTelemetryConsentChecker(() => Boolean(getSettings().allowAnonymousAnalytics));
+
+const telemetryEndpoint =
+  typeof import.meta.env !== "undefined" ? import.meta.env.VITE_TELEMETRY_ENDPOINT : "";
+if (telemetryEndpoint && typeof telemetryEndpoint === "string") {
+  setTelemetryUploadHook(async events => {
+    const res = await fetch(telemetryEndpoint, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ events, gameVersion: GAME_VERSION })
+    });
+    if (!res.ok) {
+      throw new Error(`telemetry upload failed: ${res.status}`);
+    }
+  });
+}
 
 if (import.meta.env.DEV) {
   window.addEventListener("hashchange", () => {

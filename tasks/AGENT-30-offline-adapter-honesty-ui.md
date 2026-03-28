@@ -8,8 +8,8 @@
 - When **AGENT-22** sets Steam adapter, show **“Steam: Connected”** or error state from last sync patch (`onlineService` state if exposed).
 
 ## Acceptance criteria
-- [ ] No code path claims “global leaderboard” for local adapter.
-- [ ] Submissions can remain (queued no-ops) or be hidden behind copy—product choice documented in PR.
+- [x] No code path claims “global leaderboard” for local adapter.
+- [x] Submissions can remain (queued no-ops) or be hidden behind copy—product choice documented in PR.
 
 ## Key files
 - [`app/services/onlineService.js`](../app/services/onlineService.js) — export `getAdapterName()` or similar read-only.

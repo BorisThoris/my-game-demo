@@ -3,6 +3,11 @@ const TELEMETRY_MAX_BATCH_SIZE = 250;
 
 const listeners = new Set();
 let uploadHook = null;
+let consentChecker = () => false;
+
+export const setTelemetryConsentChecker = fn => {
+  consentChecker = typeof fn === "function" ? fn : () => false;
+};
 
 const safeJsonParse = value => {
   try {
@@ -86,6 +91,9 @@ export const flushTelemetryBatch = async (hook = uploadHook) => {
   const events = readBatch();
   if (events.length === 0 || typeof hook !== "function") {
     return { uploaded: 0, skipped: true };
+  }
+  if (!consentChecker()) {
+    return { uploaded: 0, skipped: true, reason: "no-consent" };
   }
 
   await hook(events);

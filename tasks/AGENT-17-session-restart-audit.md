@@ -13,9 +13,9 @@ Verify **short sessions** and **one-action restart** after death: no blocking mo
 4. Add brief note to `docs/SKYFALL_LEAN_FEATURES.md` or `tasks/README.md` “verified restart flow” if useful.
 
 ## Acceptance criteria
-- [ ] Restart from game over in ≤2 inputs (e.g. click replay or one key).
-- [ ] Pause/ESC behavior still sane (no soft-lock).
-- [ ] Documented list of any intentional friction (e.g. must see summary)—should be minimal.
+- [x] Restart from game over in ≤2 inputs (e.g. click replay or one key).
+- [x] Pause/ESC behavior still sane (no soft-lock).
+- [x] Documented list of any intentional friction (e.g. must see summary)—should be minimal.
 
 ## Key files
 - `app/scenes/dodgeGame.js`

@@ -34,10 +34,64 @@ const CONTRACT_POOL = [
     baseTarget: 2,
     growthPerDifficulty: 1,
     rewardBase: { currency: 40, fragments: 2 }
+  },
+  {
+    id: "demolition-crew",
+    title: "Demolition Crew",
+    description: "Clear {target} hazards with chain destroys.",
+    metric: "hazardsDestroyed",
+    baseTarget: 10,
+    growthPerDifficulty: 4,
+    rewardBase: { currency: 42, fragments: 1 }
+  },
+  {
+    id: "perk-runner",
+    title: "Perk Runner",
+    description: "Commit to {target} perks in a run.",
+    metric: "perks",
+    baseTarget: 2,
+    growthPerDifficulty: 1,
+    rewardBase: { currency: 38, fragments: 1 }
+  },
+  {
+    id: "challenge-rush",
+    title: "Challenge Rush",
+    description: "Complete {target} challenges in a run.",
+    metric: "challenges",
+    baseTarget: 2,
+    growthPerDifficulty: 1,
+    rewardBase: { currency: 40, fragments: 2 }
+  },
+  {
+    id: "score-surge",
+    title: "Score Surge",
+    description: "Reach {target} score in one run.",
+    metric: "runScore",
+    baseTarget: 40,
+    growthPerDifficulty: 22,
+    rewardBase: { currency: 34, fragments: 1 }
+  },
+  {
+    id: "chain-artist",
+    title: "Chain Artist",
+    description: "Trigger {target} mega chain (5+ hazard) clears.",
+    metric: "megaChains",
+    baseTarget: 1,
+    growthPerDifficulty: 1,
+    rewardBase: { currency: 36, fragments: 1 }
+  },
+  {
+    id: "spark-hunter",
+    title: "Spark Hunter",
+    description: "Collect {target} Gambit spark pickups.",
+    metric: "gambits",
+    baseTarget: 1,
+    growthPerDifficulty: 1,
+    rewardBase: { currency: 32, fragments: 1 }
   }
 ];
 
-function stringHash(input) {
+export function stringHash(input) {
   let hash = 2166136261;
   for (let i = 0; i < input.length; i += 1) {
     hash ^= input.charCodeAt(i);
@@ -109,10 +163,12 @@ export function generateDailyContracts({ dateKey, difficultyProfile, count = 3 }
   return contracts;
 }
 
-export function applyRunEventToContracts(contracts, event) {
+export function applyRunEventToContracts(contracts, event, options = {}) {
   if (!Array.isArray(contracts) || !event) {
     return contracts || [];
   }
+
+  const progressMultiplier = Math.max(1, Number(options.progressMultiplier) || 1);
 
   return contracts.map((contract) => {
     if (contract.completed) {
@@ -121,16 +177,34 @@ export function applyRunEventToContracts(contracts, event) {
 
     let nextProgress = contract.progress;
     if (event.type === "pickup" && contract.metric === "pickups") {
-      nextProgress += 1;
+      nextProgress += progressMultiplier;
     }
     if (event.type === "survival" && contract.metric === "survivalMs") {
-      nextProgress += event.deltaMs || 0;
+      nextProgress += (event.deltaMs || 0) * progressMultiplier;
     }
     if (event.type === "bossClear" && contract.metric === "bosses") {
-      nextProgress += 1;
+      nextProgress += progressMultiplier;
     }
     if (event.type === "archetypeUsed" && contract.metric === "archetypes" && event.isNewArchetype) {
-      nextProgress += 1;
+      nextProgress += progressMultiplier;
+    }
+    if (event.type === "perkTaken" && contract.metric === "perks") {
+      nextProgress += progressMultiplier;
+    }
+    if (event.type === "challengeSuccess" && contract.metric === "challenges") {
+      nextProgress += progressMultiplier;
+    }
+    if (event.type === "hazardDestroyed" && contract.metric === "hazardsDestroyed") {
+      nextProgress += Math.max(0, Math.floor(event.count || 0)) * progressMultiplier;
+    }
+    if (event.type === "runScore" && contract.metric === "runScore" && Number.isFinite(event.score)) {
+      nextProgress = Math.max(nextProgress, Math.floor(event.score));
+    }
+    if (event.type === "megaChain" && contract.metric === "megaChains") {
+      nextProgress += progressMultiplier;
+    }
+    if (event.type === "gambitPickup" && contract.metric === "gambits") {
+      nextProgress += progressMultiplier;
     }
 
     const completed = nextProgress >= contract.target;

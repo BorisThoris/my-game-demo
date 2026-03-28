@@ -127,12 +127,18 @@ Short read: are we covered without new systems?
 
 ---
 
+## Verified restart flow (AGENT-17)
+
+After game over, restart is **one input**: **Replay** (pointer) or **R** / **Space** (keyboard). No forced meta scene. Pause (**ESC**) is disabled during game-over overlay so it does not soft-lock against the summary UI. See [SESSION_RESTART.md](./SESSION_RESTART.md).
+
+---
+
 ## Related docs
 
 - [POPULAR_SIMPLE_GAMES_FORMULA.md](./POPULAR_SIMPLE_GAMES_FORMULA.md) — cross-genre research and sources.  
 - [GAP_ANALYSIS_BEYOND_TASKS.md](./GAP_ANALYSIS_BEYOND_TASKS.md) — engineering gaps → tasks **21–39**.  
 - [FULLY_FLEDGED_EXPERIENCE.md](./FULLY_FLEDGED_EXPERIENCE.md) — commercial “full game” axes → tasks **40–54**.  
-- Repo reality check: `app/game/metaProgression.js`, `app/game/contractDirector.js`, `app/config/achievements.js`, `app/scenes/dodgeGame.js` (`buildRunSummary`, `endRun`).
+- Repo reality check: `app/game/metaProgression.js`, `app/game/contractDirector.js`, `app/config/achievements.js`, `app/scenes/dodgeGame.js` (`buildRunSummary`, `endRun`, `resetRun`).
 
 ---
 
