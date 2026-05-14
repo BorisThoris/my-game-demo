@@ -1,7 +1,7 @@
 {
-  "name": "skyfall",
+  "name": "skyfall-phaser-endless-dodger",
   "version": "1.0.0",
-  "description": "Procedural endless dodger — heat phases, bosses, perks.",
+  "description": "Phaser 3 endless dodger with heat phases, bosses, perks, progression, tests, and Electron packaging.",
   "type": "module",
   "main": "electron/main.js",
   "scripts": {
