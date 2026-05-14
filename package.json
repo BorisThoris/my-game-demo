@@ -1,5 +1,5 @@
 {
-  "name": "skyfall-phaser-endless-dodger",
+  "name": "skyfall",
   "version": "1.0.0",
   "description": "Phaser 3 endless dodger with heat phases, bosses, perks, progression, tests, and Electron packaging.",
   "type": "module",

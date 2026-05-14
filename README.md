@@ -1,4 +1,4 @@
-# Skyfall Phaser Endless Dodger
+# Skyfall
 
 **Skyfall** is a Phaser 3 endless dodger built with Vite and packaged for desktop with Electron. The game centers on short arcade runs where the player survives escalating hazard waves, clears boss encounters, drafts perks, completes objectives/contracts, and carries progress forward through unlocks and achievements.
 
