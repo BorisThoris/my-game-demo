@@ -57,12 +57,35 @@ npm run electron:dev
 npm run electron:build
 ```
 
+## Demo run
+
+```bash
+npm install
+npm run build
+npm run preview -- --host 127.0.0.1 --port 4104
+```
+
+Open `http://127.0.0.1:4104/`. The browser demo uses local saves and stubbed platform/online boundaries unless release services are configured.
+
 ## Project Status
 
-Archived/active portfolio project. The game code is considerably more complete than the old `my-game-demo` name suggested, with a real gameplay loop and a substantial roadmap toward a Steam-style desktop release. Some docs are intentionally planning-heavy because they were used to coordinate feature, quality, and release-readiness passes.
+Archived/active portfolio project. The game code has a real gameplay loop and a substantial roadmap toward a Steam-style desktop release. Some docs are intentionally planning-heavy because they were used to coordinate feature, quality, and release-readiness passes.
 
 ## Notes
 
 - The product title remains **Skyfall**.
 - The repository name is descriptive for GitHub/LinkedIn discovery.
 - Online and Steam-facing integrations are boundary/stub oriented unless configured for a real release environment.
+
+## Cloudflare Pages
+
+- Pages project name: `skyfall`
+- GitHub repository: `BorisThoris/skyfall`
+- Production branch: `master`
+- Root directory: `.`
+- Build command: `npm run build`
+- Build output directory: `dist`
+- Environment variable: `NODE_VERSION=22.16.0`
+- Public URL target: `https://skyfall-bas.pages.dev/`
+
+Do not enable Cloudflare Access for the demo deployment. Leave frame-blocking headers unset so the portfolio can iframe the public build.

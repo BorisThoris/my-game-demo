@@ -17,6 +17,7 @@ export default class LoadingScene extends Phaser.Scene {
     super(SCENE_KEYS.loading);
     this.loadError = false;
     this.progress = 0;
+    this.hasStartedNextScene = false;
   }
 
   preload() {
@@ -71,6 +72,18 @@ export default class LoadingScene extends Phaser.Scene {
     fill.fillRoundedRect(barX + 2, barY + 2, 0, BAR_HEIGHT - 4, 4);
     fill.setDepth(zIndex.background + 2);
 
+    const startNextScene = () => {
+      if (this.hasStartedNextScene || !this.scene.isActive(SCENE_KEYS.loading)) return;
+      this.hasStartedNextScene = true;
+      const goToEditor =
+        import.meta.env.DEV &&
+        typeof window !== "undefined" &&
+        window.location.hash === "#/editor";
+      this.scene.start(goToEditor ? SCENE_KEYS.editor : SCENE_KEYS.mainMenu);
+    };
+
+    this.time.delayedCall(LOAD_DURATION_MS + 350, startNextScene);
+
     this.tweens.addCounter({
       from: 0,
       to: 1,
@@ -83,11 +96,7 @@ export default class LoadingScene extends Phaser.Scene {
         fill.fillRoundedRect(barX + 2, barY + 2, (BAR_WIDTH - 4) * v, BAR_HEIGHT - 4, 4);
       },
       onComplete: () => {
-        const goToEditor =
-          import.meta.env.DEV &&
-          typeof window !== "undefined" &&
-          window.location.hash === "#/editor";
-        this.scene.start(goToEditor ? SCENE_KEYS.editor : SCENE_KEYS.mainMenu);
+        startNextScene();
       }
     });
   }
